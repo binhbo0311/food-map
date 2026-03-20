@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="food-map-c-sharp/food-map-c-sharp.Shared/food-map-c-sharp.Shared.csproj" />
+  <Project Path="food-map-c-sharp/food-map-c-sharp.Web/food-map-c-sharp.Web.csproj" />
+  <Project Path="food-map-c-sharp/food-map-c-sharp/food-map-c-sharp.csproj" />
+</Solution>
