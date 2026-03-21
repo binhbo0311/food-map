@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\buildMultiTargeting\food-map-c-sharp.Shared.props" />
+</Project>

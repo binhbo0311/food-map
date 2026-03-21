@@ -1,0 +1,10 @@
+<api type="debug" assembly-name="food-map-c-sharp" mvid="132c090da43f4b419c4fbf6b81f1a4a3">
+  <java-to-managed>
+    <entry java-name="crc645cbf02881cb56b12/MainActivity" managed-name="food_map_c_sharp.MainActivity, food-map-c-sharp" managed-type-token-id="33554441" />
+    <entry java-name="crc645cbf02881cb56b12/MainApplication" managed-name="food_map_c_sharp.MainApplication, food-map-c-sharp" managed-type-token-id="33554442" />
+  </java-to-managed>
+  <managed-to-java>
+    <entry java-name="crc645cbf02881cb56b12/MainActivity" managed-name="food_map_c_sharp.MainActivity, food-map-c-sharp" managed-type-token-id="33554441" />
+    <entry java-name="crc645cbf02881cb56b12/MainApplication" managed-name="food_map_c_sharp.MainApplication, food-map-c-sharp" managed-type-token-id="33554442" />
+  </managed-to-java>
+</api>

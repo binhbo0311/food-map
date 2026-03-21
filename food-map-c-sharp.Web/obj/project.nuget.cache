@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "v2kz0eVt3a4=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\binhb\\source\\repos\\food-map\\food-map-c-sharp\\food-map-c-sharp.Web\\food-map-c-sharp.Web.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\binhb\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.5\\microsoft.aspnetcore.app.internal.assets.10.0.5.nupkg.sha512"
+  ],
+  "logs": []
+}
