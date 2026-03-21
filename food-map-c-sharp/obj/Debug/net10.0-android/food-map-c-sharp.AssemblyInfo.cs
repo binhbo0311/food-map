@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("food-map-c-sharp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+c0371224c2cc2ba8d88a86967335cde4e7c2ecf3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+74e280b11fc592587a96058db566f4dfc0242f9e")]
 [assembly: System.Reflection.AssemblyProductAttribute("food-map-c-sharp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("food-map-c-sharp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
