@@ -1,0 +1,480 @@
+@page "/admin/poi"
+@using FOOD_MAP.Shared.Data
+@using FOOD_MAP.Shared.Models
+@using Microsoft.EntityFrameworkCore
+@using System.ComponentModel.DataAnnotations
+@inject IDbContextFactory<AppDbContext> DbContextFactory
+
+<PageTitle>POI Admin</PageTitle>
+
+<h1>POI Admin</h1>
+<p class="text-muted">Manage POI core fields and Vietnamese base translation content.</p>
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <div class="alert @(isErrorStatus ? "alert-danger" : "alert-success")" role="alert">
+        @statusMessage
+    </div>
+}
+
+<EditForm Model="editorModel" OnValidSubmit="HandleSubmitAsync" class="border rounded p-3 mb-3 bg-light-subtle">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">Latitude</label>
+            <InputNumber @bind-Value="editorModel.Latitude" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Longitude</label>
+            <InputNumber @bind-Value="editorModel.Longitude" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Activation Radius (m)</label>
+            <InputNumber @bind-Value="editorModel.ActivationRadius" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Priority</label>
+            <InputNumber @bind-Value="editorModel.Priority" class="form-control" />
+        </div>
+        <div class="col-12">
+            <label class="form-label">QRCode Id</label>
+            <InputText @bind-Value="editorModel.QRCodeId" class="form-control" />
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">Vietnamese Name (Base)</label>
+            <InputText @bind-Value="editorModel.VietnameseName" class="form-control" />
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">Vietnamese Description (Base)</label>
+            <InputTextArea @bind-Value="editorModel.VietnameseDescription" class="form-control" rows="4" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Vietnamese Image Url (Base)</label>
+            <InputText @bind-Value="editorModel.VietnameseImageUrl" class="form-control" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Vietnamese Audio Url (Base)</label>
+            <InputText @bind-Value="editorModel.VietnameseAudioFileUrl" class="form-control" />
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">Vietnamese TTS Script (Base)</label>
+            <InputTextArea @bind-Value="editorModel.VietnameseTtsScript" class="form-control" rows="3" />
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary" disabled="@isBusy">
+            @(isEditMode ? "Update POI" : "Create POI")
+        </button>
+        <button type="button" class="btn btn-secondary" @onclick="ResetEditor" disabled="@isBusy">Reset</button>
+    </div>
+</EditForm>
+
+@if (isBusy)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table table-striped table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Vietnamese Name</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Radius</th>
+                <th>Priority</th>
+                <th>QRCode</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var poi in poiItems)
+            {
+                <tr>
+                    <td>@poi.Id</td>
+                    <td>@poi.VietnameseName</td>
+                    <td>@poi.Latitude</td>
+                    <td>@poi.Longitude</td>
+                    <td>@poi.ActivationRadius</td>
+                    <td>@poi.Priority</td>
+                    <td>@poi.QRCodeId</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => StartEdit(poi)">Edit</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePoiAsync(poi.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private readonly List<PoiAdminRow> poiItems = [];
+    private readonly PoiFormModel editorModel = new();
+
+    private bool isBusy;
+    private bool isEditMode;
+    private bool isErrorStatus;
+    private int? editingPoiId;
+    private string statusMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPoiItemsAsync();
+    }
+
+    private async Task LoadPoiItemsAsync()
+    {
+        isBusy = true;
+        statusMessage = string.Empty;
+
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var vietnameseLanguageId = await GetVietnameseLanguageIdAsync(dbContext);
+
+            var items = await dbContext.Pois
+                .AsNoTracking()
+                .Select(x => new PoiAdminRow
+                {
+                    Id = x.Id,
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude,
+                    ActivationRadius = x.ActivationRadius,
+                    Priority = x.Priority,
+                    QRCodeId = x.QRCodeId,
+                    VietnameseName = x.PoiTranslations
+                        .Where(t => t.LanguageId == vietnameseLanguageId)
+                        .Select(t => t.LocationName)
+                        .FirstOrDefault() ?? string.Empty,
+                    VietnameseDescription = x.PoiTranslations
+                        .Where(t => t.LanguageId == vietnameseLanguageId)
+                        .Select(t => t.Description)
+                        .FirstOrDefault() ?? string.Empty,
+                    VietnameseImageUrl = x.PoiTranslations
+                        .Where(t => t.LanguageId == vietnameseLanguageId)
+                        .Select(t => t.ImageUrl)
+                        .FirstOrDefault() ?? string.Empty,
+                    VietnameseAudioFileUrl = x.PoiTranslations
+                        .Where(t => t.LanguageId == vietnameseLanguageId)
+                        .Select(t => t.AudioFileUrl)
+                        .FirstOrDefault() ?? string.Empty,
+                    VietnameseTtsScript = x.PoiTranslations
+                        .Where(t => t.LanguageId == vietnameseLanguageId)
+                        .Select(t => t.TtsScript)
+                        .FirstOrDefault() ?? string.Empty
+                })
+                .OrderBy(x => x.Priority)
+                .ThenBy(x => x.Id)
+                .ToListAsync();
+
+            poiItems.Clear();
+            poiItems.AddRange(items);
+        }
+        catch (Exception ex)
+        {
+            // Hiển thị lỗi thao tác để người quản trị dễ kiểm tra kết nối cơ sở dữ liệu.
+            isErrorStatus = true;
+            statusMessage = $"Unable to load POI list: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        if (editorModel.ActivationRadius <= 0)
+        {
+            isErrorStatus = true;
+            statusMessage = "Activation radius must be greater than zero.";
+            return;
+        }
+
+        if (editorModel.Priority <= 0)
+        {
+            isErrorStatus = true;
+            statusMessage = "Priority must be greater than zero.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editorModel.VietnameseName)
+            || string.IsNullOrWhiteSpace(editorModel.VietnameseDescription)
+            || string.IsNullOrWhiteSpace(editorModel.VietnameseImageUrl)
+            || string.IsNullOrWhiteSpace(editorModel.VietnameseAudioFileUrl)
+            || string.IsNullOrWhiteSpace(editorModel.VietnameseTtsScript))
+        {
+            isErrorStatus = true;
+            statusMessage = "Vietnamese base translation fields are required.";
+            return;
+        }
+
+        isBusy = true;
+        statusMessage = string.Empty;
+
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var vietnameseLanguageId = await EnsureVietnameseLanguageAsync(dbContext);
+
+            if (isEditMode && editingPoiId.HasValue)
+            {
+                var existingPoi = await dbContext.Pois
+                    .Include(x => x.PoiTranslations)
+                    .FirstOrDefaultAsync(x => x.Id == editingPoiId.Value);
+
+                if (existingPoi is null)
+                {
+                    isErrorStatus = true;
+                    statusMessage = "POI no longer exists.";
+                    return;
+                }
+
+                // Cập nhật thông tin POI từ biểu mẫu quản trị.
+                existingPoi.Latitude = editorModel.Latitude;
+                existingPoi.Longitude = editorModel.Longitude;
+                existingPoi.ActivationRadius = editorModel.ActivationRadius;
+                existingPoi.Priority = editorModel.Priority;
+                existingPoi.QRCodeId = string.IsNullOrWhiteSpace(editorModel.QRCodeId) ? null : editorModel.QRCodeId.Trim();
+
+                var vietnameseTranslation = existingPoi.PoiTranslations
+                    .FirstOrDefault(x => x.LanguageId == vietnameseLanguageId);
+
+                if (vietnameseTranslation is null)
+                {
+                    vietnameseTranslation = new POITranslation
+                    {
+                        PoiId = existingPoi.Id,
+                        LanguageId = vietnameseLanguageId
+                    };
+
+                    dbContext.PoiTranslations.Add(vietnameseTranslation);
+                }
+
+                // Đồng bộ bản dịch tiếng Việt làm dữ liệu gốc để app và CMS dùng chung.
+                vietnameseTranslation.LocationName = editorModel.VietnameseName.Trim();
+                vietnameseTranslation.Description = editorModel.VietnameseDescription.Trim();
+                vietnameseTranslation.ImageUrl = editorModel.VietnameseImageUrl.Trim();
+                vietnameseTranslation.AudioFileUrl = editorModel.VietnameseAudioFileUrl.Trim();
+                vietnameseTranslation.TtsScript = editorModel.VietnameseTtsScript.Trim();
+
+                await dbContext.SaveChangesAsync();
+
+                isErrorStatus = false;
+                statusMessage = "POI and Vietnamese base translation updated successfully.";
+            }
+            else
+            {
+                var newPoi = new POI
+                {
+                    Latitude = editorModel.Latitude,
+                    Longitude = editorModel.Longitude,
+                    ActivationRadius = editorModel.ActivationRadius,
+                    Priority = editorModel.Priority,
+                    QRCodeId = string.IsNullOrWhiteSpace(editorModel.QRCodeId) ? null : editorModel.QRCodeId.Trim()
+                };
+
+                dbContext.Pois.Add(newPoi);
+                await dbContext.SaveChangesAsync();
+
+                var vietnameseTranslation = new POITranslation
+                {
+                    PoiId = newPoi.Id,
+                    LanguageId = vietnameseLanguageId,
+                    LocationName = editorModel.VietnameseName.Trim(),
+                    Description = editorModel.VietnameseDescription.Trim(),
+                    ImageUrl = editorModel.VietnameseImageUrl.Trim(),
+                    AudioFileUrl = editorModel.VietnameseAudioFileUrl.Trim(),
+                    TtsScript = editorModel.VietnameseTtsScript.Trim()
+                };
+
+                dbContext.PoiTranslations.Add(vietnameseTranslation);
+                await dbContext.SaveChangesAsync();
+
+                isErrorStatus = false;
+                statusMessage = "POI and Vietnamese base translation created successfully.";
+            }
+
+            ResetEditor();
+            await LoadPoiItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            // Trả thông báo rõ ràng để thuận tiện rà soát dữ liệu nhập.
+            isErrorStatus = true;
+            statusMessage = $"Unable to save POI: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void StartEdit(PoiAdminRow poi)
+    {
+        editingPoiId = poi.Id;
+        isEditMode = true;
+
+        editorModel.Latitude = poi.Latitude;
+        editorModel.Longitude = poi.Longitude;
+        editorModel.ActivationRadius = poi.ActivationRadius;
+        editorModel.Priority = poi.Priority;
+        editorModel.QRCodeId = poi.QRCodeId ?? string.Empty;
+        editorModel.VietnameseName = poi.VietnameseName;
+        editorModel.VietnameseDescription = poi.VietnameseDescription;
+        editorModel.VietnameseImageUrl = poi.VietnameseImageUrl;
+        editorModel.VietnameseAudioFileUrl = poi.VietnameseAudioFileUrl;
+        editorModel.VietnameseTtsScript = poi.VietnameseTtsScript;
+
+        isErrorStatus = false;
+        statusMessage = $"Editing POI #{poi.Id}";
+    }
+
+    private async Task DeletePoiAsync(int poiId)
+    {
+        isBusy = true;
+        statusMessage = string.Empty;
+
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var existingPoi = await dbContext.Pois.FirstOrDefaultAsync(x => x.Id == poiId);
+            if (existingPoi is null)
+            {
+                isErrorStatus = true;
+                statusMessage = "POI no longer exists.";
+                return;
+            }
+
+            dbContext.Pois.Remove(existingPoi);
+            await dbContext.SaveChangesAsync();
+
+            // Làm mới danh sách sau khi xóa để giao diện phản ánh dữ liệu mới nhất.
+            if (editingPoiId == poiId)
+            {
+                ResetEditor();
+            }
+
+            isErrorStatus = false;
+            statusMessage = "POI deleted successfully.";
+            await LoadPoiItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            isErrorStatus = true;
+            statusMessage = $"Unable to delete POI: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void ResetEditor()
+    {
+        editingPoiId = null;
+        isEditMode = false;
+
+        editorModel.Latitude = 0;
+        editorModel.Longitude = 0;
+        editorModel.ActivationRadius = 100;
+        editorModel.Priority = 1;
+        editorModel.QRCodeId = string.Empty;
+        editorModel.VietnameseName = string.Empty;
+        editorModel.VietnameseDescription = string.Empty;
+        editorModel.VietnameseImageUrl = string.Empty;
+        editorModel.VietnameseAudioFileUrl = string.Empty;
+        editorModel.VietnameseTtsScript = string.Empty;
+    }
+
+    private static async Task<int> GetVietnameseLanguageIdAsync(AppDbContext dbContext)
+    {
+        return await dbContext.Languages
+            .Where(x => x.LanguageCode == "vi")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync();
+    }
+
+    private static async Task<int> EnsureVietnameseLanguageAsync(AppDbContext dbContext)
+    {
+        var language = await dbContext.Languages.FirstOrDefaultAsync(x => x.LanguageCode == "vi");
+        if (language is not null)
+        {
+            return language.Id;
+        }
+
+        // Tạo ngôn ngữ tiếng Việt nếu chưa có để đảm bảo POI luôn có dữ liệu nền.
+        var vietnameseLanguage = new Language
+        {
+            LanguageCode = "vi",
+            LanguageName = "Tiếng Việt"
+        };
+
+        dbContext.Languages.Add(vietnameseLanguage);
+        await dbContext.SaveChangesAsync();
+        return vietnameseLanguage.Id;
+    }
+
+    private sealed class PoiAdminRow
+    {
+        public int Id { get; set; }
+
+        public double Latitude { get; set; }
+
+        public double Longitude { get; set; }
+
+        public int ActivationRadius { get; set; }
+
+        public int Priority { get; set; }
+
+        public string? QRCodeId { get; set; }
+
+        public string VietnameseName { get; set; } = string.Empty;
+
+        public string VietnameseDescription { get; set; } = string.Empty;
+
+        public string VietnameseImageUrl { get; set; } = string.Empty;
+
+        public string VietnameseAudioFileUrl { get; set; } = string.Empty;
+
+        public string VietnameseTtsScript { get; set; } = string.Empty;
+    }
+
+    private sealed class PoiFormModel
+    {
+        public double Latitude { get; set; }
+
+        public double Longitude { get; set; }
+
+        public int ActivationRadius { get; set; } = 100;
+
+        public int Priority { get; set; } = 1;
+
+        public string QRCodeId { get; set; } = string.Empty;
+
+        [Required]
+        public string VietnameseName { get; set; } = string.Empty;
+
+        [Required]
+        public string VietnameseDescription { get; set; } = string.Empty;
+
+        [Required]
+        public string VietnameseImageUrl { get; set; } = string.Empty;
+
+        [Required]
+        public string VietnameseAudioFileUrl { get; set; } = string.Empty;
+
+        [Required]
+        public string VietnameseTtsScript { get; set; } = string.Empty;
+    }
+}

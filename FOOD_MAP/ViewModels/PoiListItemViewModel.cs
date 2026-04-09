@@ -1,0 +1,104 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
+namespace FOOD_MAP.ViewModels;
+
+public sealed class PoiListItemViewModel : INotifyPropertyChanged
+{
+    private bool _isNearest;
+    private bool _isFavorite;
+    private bool _isVisited;
+
+    public int PoiId { get; }
+
+    public double Latitude { get; }
+
+    public double Longitude { get; }
+
+    public string Name { get; }
+
+    public string DistanceText { get; }
+
+    public string Description { get; }
+
+    public string NarrationText { get; }
+
+    public string ImageUrl { get; }
+
+    public PoiListItemViewModel(
+        int poiId,
+        double latitude,
+        double longitude,
+        string name,
+        string distanceText,
+        string description,
+        string narrationText,
+        string imageUrl,
+        bool isNearest = false)
+    {
+        PoiId = poiId;
+        Latitude = latitude;
+        Longitude = longitude;
+        Name = name;
+        DistanceText = distanceText;
+        Description = description;
+        NarrationText = narrationText;
+        ImageUrl = imageUrl;
+        _isNearest = isNearest;
+    }
+
+    public bool IsNearest
+    {
+        get => _isNearest;
+        set
+        {
+            if (_isNearest == value)
+            {
+                return;
+            }
+
+            _isNearest = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsFavorite
+    {
+        get => _isFavorite;
+        set
+        {
+            if (_isFavorite == value)
+            {
+                return;
+            }
+
+            _isFavorite = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(FavoriteButtonText));
+        }
+    }
+
+    public string FavoriteButtonText => _isFavorite ? "Unfav" : "Fav";
+
+    public bool IsVisited
+    {
+        get => _isVisited;
+        set
+        {
+            if (_isVisited == value)
+            {
+                return;
+            }
+
+            _isVisited = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+}

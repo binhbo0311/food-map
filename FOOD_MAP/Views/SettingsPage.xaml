@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FOOD_MAP.SettingsPage"
+             Title="Settings"
+             BackgroundColor="#EAF8F8"
+             Padding="16,18,16,12">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="12">
+            <Border BackgroundColor="White"
+                    Stroke="#A9E1E2"
+                    StrokeThickness="1"
+                    Padding="14">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Profile"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="#066D72" />
+
+                    <Label Text="Username"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding UserName}"
+                           IsReadOnly="True"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536" />
+
+                    <Label Text="Display Name"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding DisplayName}"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Button Text="Save Profile"
+                            HeightRequest="42"
+                            CornerRadius="12"
+                            BackgroundColor="#066D72"
+                            TextColor="White"
+                            Command="{Binding SaveProfileCommand}"
+                            IsEnabled="{Binding CanEditSettings}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="White"
+                    Stroke="#A9E1E2"
+                    StrokeThickness="1"
+                    Padding="14">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Security"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="#066D72" />
+
+                    <Label Text="Current Password"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding CurrentPassword}"
+                           IsPassword="True"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="New Password"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding NewPassword}"
+                           IsPassword="True"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="Confirm New Password"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding ConfirmNewPassword}"
+                           IsPassword="True"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Button Text="Change Password"
+                            HeightRequest="42"
+                            CornerRadius="12"
+                            BackgroundColor="#066D72"
+                            TextColor="White"
+                            Command="{Binding ChangePasswordCommand}"
+                            IsEnabled="{Binding CanEditSettings}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="12"
+                   TextColor="#4D6B6C" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

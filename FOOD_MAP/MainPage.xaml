@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:maps="http://schemas.microsoft.com/dotnet/2021/maui/maps"
+             xmlns:viewModels="clr-namespace:FOOD_MAP.ViewModels"
+             x:Class="FOOD_MAP.MainPage"
+             BackgroundColor="#EAF8F8">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <Color x:Key="PrimaryAquaDark">#066D72</Color>
+            <Color x:Key="SurfaceWhite">#FFFFFF</Color>
+            <Color x:Key="TextPrimary">#143536</Color>
+            <Color x:Key="TextMuted">#4D6B6C</Color>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid x:Name="MainRootGrid" RowDefinitions="8*,2*" RowSpacing="8" Padding="12,12,12,10">
+        <Border x:Name="MapContainer" Grid.Row="0"
+                Stroke="{StaticResource PrimaryAquaDark}"
+                StrokeThickness="2"
+                BackgroundColor="{StaticResource SurfaceWhite}"
+                Padding="8">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="20" />
+            </Border.StrokeShape>
+            <Grid>
+                <maps:Map x:Name="map"
+                          IsShowingUser="True"
+                          MapClicked="OnMapClicked" />
+
+                <Border HorizontalOptions="Start"
+                        VerticalOptions="Start"
+                        Margin="10"
+                        Padding="10,6"
+                        BackgroundColor="#CCFFFFFF"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="0">
+                        <Label Text="Food Map Tour"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource PrimaryAquaDark}" />
+                        <Label Text="Android Audio Guide"
+                               FontSize="12"
+                               TextColor="{StaticResource TextMuted}" />
+                    </VerticalStackLayout>
+                </Border>
+
+            </Grid>
+        </Border>
+
+        <Border x:Name="PoiBottomSheet" Grid.Row="1"
+                BackgroundColor="#DDF3F4"
+                Stroke="#A9E1E2"
+                StrokeThickness="1"
+                Padding="12">
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnBottomSheetTapped" />
+            </Border.GestureRecognizers>
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="16" />
+            </Border.StrokeShape>
+
+            <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+                <!-- Thanh keo bottom sheet -->
+                <Grid Grid.Row="0" HeightRequest="24" Padding="0,2,0,8">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnDragHandleTapped" />
+                    </Grid.GestureRecognizers>
+                    <Border HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                            BackgroundColor="#A9E1E2"
+                            WidthRequest="40"
+                            HeightRequest="4"
+                            Padding="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="2" />
+                        </Border.StrokeShape>
+                    </Border>
+                </Grid>
+
+                <!-- Cum nut chuyen tab -->
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,*" ColumnSpacing="8">
+                    <Button x:Name="SettingsButton"
+                            Grid.Column="0"
+                            Text="☰"
+                            WidthRequest="44"
+                            HeightRequest="42"
+                            CornerRadius="12"
+                            BackgroundColor="#F2FBFB"
+                            TextColor="{StaticResource PrimaryAquaDark}"
+                            Clicked="OnSettingsClicked" />
+
+                        <Button x:Name="PoiTabButton"
+                            Grid.Column="1"
+                            Text="POI"
+                            HeightRequest="42"
+                            CornerRadius="12"
+                            Command="{Binding SelectPoiTabCommand}"
+                            Clicked="OnPoiTabClicked">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" Binding="{Binding IsPoiTabActive}" Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryAquaDark}" />
+                                <Setter Property="TextColor" Value="White" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Button" Binding="{Binding IsPoiTabActive}" Value="False">
+                                <Setter Property="BackgroundColor" Value="#F2FBFB" />
+                                <Setter Property="TextColor" Value="{StaticResource PrimaryAquaDark}" />
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
+
+                        <Button x:Name="CameraTabButton"
+                            Grid.Column="2"
+                            Text="Camera"
+                            HeightRequest="42"
+                            CornerRadius="12"
+                            Command="{Binding SelectCameraTabCommand}"
+                            Clicked="OnCameraTabClicked">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" Binding="{Binding IsCameraTabActive}" Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryAquaDark}" />
+                                <Setter Property="TextColor" Value="White" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Button" Binding="{Binding IsCameraTabActive}" Value="False">
+                                <Setter Property="BackgroundColor" Value="#F2FBFB" />
+                                <Setter Property="TextColor" Value="{StaticResource PrimaryAquaDark}" />
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
+                </Grid>
+
+                  <Label Grid.Row="2"
+                      FontSize="12"
+                      TextColor="{StaticResource TextMuted}"
+                      Text="{Binding SessionDisplayText}" />
+
+                <!-- Noi dung theo tab POI/Camera -->
+                  <Grid Grid.Row="3">
+                      <Grid IsVisible="{Binding IsPoiTabActive}"
+                          RowDefinitions="Auto,Auto,Auto,*"
+                          RowSpacing="6">
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="0,0,0,4">
+                            <Label Text="Language"
+                                   VerticalOptions="Center"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" />
+
+                            <Picker Grid.Column="1"
+                                    HeightRequest="40"
+                                    BackgroundColor="#F2FBFB"
+                                    TextColor="{StaticResource PrimaryAquaDark}"
+                                    Title="Select language"
+                                    ItemsSource="{Binding AvailableLanguages}"
+                                    SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
+                        </Grid>
+
+                        <SearchBar Grid.Row="1"
+                                   HeightRequest="42"
+                                   Placeholder="Tìm POI theo tên hoặc mô tả"
+                                   Text="{Binding SearchQuery, Mode=TwoWay}"
+                                   BackgroundColor="#F2FBFB"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   PlaceholderColor="{StaticResource TextMuted}"
+                                   CancelButtonColor="{StaticResource PrimaryAquaDark}" />
+
+                        <Border Grid.Row="2"
+                                IsVisible="{Binding IsTtsPlaying}"
+                                Stroke="#A9E1E2"
+                                StrokeThickness="1"
+                                BackgroundColor="#F2FBFB"
+                                Padding="10,8">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="4" ColumnSpacing="8">
+                                <Label Grid.Row="0"
+                                       Grid.Column="0"
+                                       Text="{Binding CurrentTtsTitle}"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+
+                                <Button Grid.Row="0"
+                                        Grid.Column="1"
+                                        Text="Stop"
+                                        WidthRequest="74"
+                                        HeightRequest="34"
+                                        CornerRadius="10"
+                                        Command="{Binding StopTtsCommand}"
+                                        BackgroundColor="#D94A4A"
+                                        TextColor="White" />
+
+                                <ProgressBar Grid.Row="1"
+                                             Grid.ColumnSpan="2"
+                                             Progress="{Binding TtsProgress}"
+                                             ProgressColor="{StaticResource PrimaryAquaDark}"
+                                             BackgroundColor="#D6ECEC"
+                                             HeightRequest="6" />
+
+                                    <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto">
+                                     <Label Grid.Column="0"
+                                         Text="{Binding TtsElapsedText, StringFormat='Đã phát: {0}'}"
+                                         FontSize="12"
+                                         TextColor="{StaticResource TextMuted}" />
+
+                                     <Label Grid.Column="1"
+                                         Text="{Binding TtsTotalText, StringFormat='Ước tính: {0}'}"
+                                         FontSize="12"
+                                         TextColor="{StaticResource TextMuted}" />
+                                    </Grid>
+                            </Grid>
+                        </Border>
+
+                        <CollectionView x:Name="PoiCollectionView"
+                                        Grid.Row="3"
+                                        ItemsSource="{Binding PoiItems}"
+                                        SelectionMode="Single"
+                                        SelectionChanged="OnPoiSelectionChanged">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="viewModels:PoiListItemViewModel">
+                                    <Border Stroke="#A9E1E2"
+                                            StrokeThickness="1"
+                                            Padding="12,10"
+                                            Margin="0,0,0,7">
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsNearest}" Value="True">
+                                                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryAquaDark}" />
+                                                <Setter Property="Stroke" Value="#066D72" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsNearest}" Value="False">
+                                                <Setter Property="BackgroundColor" Value="{StaticResource SurfaceWhite}" />
+                                                <Setter Property="Stroke" Value="#A9E1E2" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="14" />
+                                        </Border.StrokeShape>
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="{Binding Name}"
+                                                       FontSize="15"
+                                                       FontAttributes="Bold">
+                                                    <Label.Triggers>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsNearest}" Value="True">
+                                                            <Setter Property="TextColor" Value="White" />
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsNearest}" Value="False">
+                                                            <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+                                                        </DataTrigger>
+                                                    </Label.Triggers>
+                                                </Label>
+
+                                                <Label Text="Đã ghé"
+                                                       FontSize="11"
+                                                       IsVisible="{Binding IsVisited}">
+                                                    <Label.Triggers>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsNearest}" Value="True">
+                                                            <Setter Property="TextColor" Value="#FFF2B2" />
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsNearest}" Value="False">
+                                                            <Setter Property="TextColor" Value="#C68400" />
+                                                        </DataTrigger>
+                                                    </Label.Triggers>
+                                                </Label>
+
+                                                <Label Text="{Binding Description}"
+                                                       FontSize="12"
+                                                       LineBreakMode="TailTruncation">
+                                                    <Label.Triggers>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsNearest}" Value="True">
+                                                            <Setter Property="TextColor" Value="#E5FFFF" />
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsNearest}" Value="False">
+                                                            <Setter Property="TextColor" Value="#678384" />
+                                                        </DataTrigger>
+                                                    </Label.Triggers>
+                                                </Label>
+                                            </VerticalStackLayout>
+
+                                                <Button Grid.Column="1"
+                                                    Text="Play"
+                                                    WidthRequest="72"
+                                                    HeightRequest="38"
+                                                    CornerRadius="10"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.PlayPoiCommand}"
+                                                    CommandParameter="{Binding}">
+                                                <Button.Triggers>
+                                                    <DataTrigger TargetType="Button" Binding="{Binding IsNearest}" Value="True">
+                                                        <Setter Property="BackgroundColor" Value="White" />
+                                                        <Setter Property="TextColor" Value="{StaticResource PrimaryAquaDark}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Button" Binding="{Binding IsNearest}" Value="False">
+                                                        <Setter Property="BackgroundColor" Value="#D7F1F2" />
+                                                        <Setter Property="TextColor" Value="{StaticResource PrimaryAquaDark}" />
+                                                    </DataTrigger>
+                                                </Button.Triggers>
+                                            </Button>
+
+                                            <Button Grid.Column="2"
+                                                    WidthRequest="72"
+                                                    HeightRequest="38"
+                                                    CornerRadius="10"
+                                                    Text="{Binding FavoriteButtonText}"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleFavoriteCommand}"
+                                                    CommandParameter="{Binding}">
+                                                <Button.Triggers>
+                                                    <DataTrigger TargetType="Button" Binding="{Binding IsFavorite}" Value="True">
+                                                        <Setter Property="BackgroundColor" Value="#F9B233" />
+                                                        <Setter Property="TextColor" Value="White" />
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Button" Binding="{Binding IsFavorite}" Value="False">
+                                                        <Setter Property="BackgroundColor" Value="#F2FBFB" />
+                                                        <Setter Property="TextColor" Value="{StaticResource PrimaryAquaDark}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Button" Binding="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.IsAuthenticatedUser}" Value="False">
+                                                        <Setter Property="IsEnabled" Value="False" />
+                                                        <Setter Property="Opacity" Value="0.55" />
+                                                    </DataTrigger>
+                                                </Button.Triggers>
+                                            </Button>
+
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </Grid>
+
+                    <Border x:Name="CameraTabContent"
+                            IsVisible="{Binding IsCameraTabActive}"
+                            Stroke="#A9E1E2"
+                            StrokeThickness="1"
+                            BackgroundColor="{StaticResource SurfaceWhite}"
+                            Padding="12,10">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="8" VerticalOptions="Center">
+                            <Label Text="QR Camera"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" />
+                            <Label Text="Open camera to scan QR and play audio instantly"
+                                   FontSize="13"
+                                   TextColor="{StaticResource TextMuted}" />
+                            <Label Text="{Binding CameraStatusText}"
+                                   FontSize="13"
+                                   TextColor="{StaticResource TextMuted}" />
+                            <Button Text="{Binding CameraButtonText}"
+                                    HeightRequest="40"
+                                    CornerRadius="12"
+                                    BackgroundColor="{StaticResource PrimaryAquaDark}"
+                                    TextColor="White"
+                                    Command="{Binding ToggleCameraCommand}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Grid x:Name="SelectedPoiOverlay"
+              Grid.RowSpan="2"
+              IsVisible="False"
+              Opacity="0"
+              InputTransparent="False"
+              BackgroundColor="#9A000000"
+              Padding="14,24,14,14">
+            <Border x:Name="SelectedPoiCard"
+                    HorizontalOptions="Fill"
+                    VerticalOptions="Fill"
+                    Stroke="#A9E1E2"
+                    StrokeThickness="1"
+                    BackgroundColor="White"
+                    Padding="14">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="20" />
+                </Border.StrokeShape>
+
+                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label x:Name="SelectedPoiNameLabel"
+                               Grid.Column="0"
+                               FontSize="20"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <Button Grid.Column="1"
+                                WidthRequest="38"
+                                HeightRequest="38"
+                                CornerRadius="19"
+                                FontSize="16"
+                                Text="✕"
+                                BackgroundColor="#E6F6F7"
+                                TextColor="{StaticResource PrimaryAquaDark}"
+                                Clicked="OnCloseSelectedPoiClicked" />
+                    </Grid>
+
+                    <Border Grid.Row="1"
+                            HeightRequest="220"
+                            Stroke="#B8E4E5"
+                            StrokeThickness="1"
+                            BackgroundColor="#F2FBFB">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+                        <Grid>
+                            <Image x:Name="SelectedPoiImage"
+                                   Aspect="AspectFill" />
+
+                            <Label x:Name="SelectedPoiNoImageLabel"
+                                   IsVisible="False"
+                                   Text="No image available"
+                                   FontSize="13"
+                                   TextColor="{StaticResource TextMuted}"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
+                    <Label x:Name="SelectedPoiDistanceLabel"
+                           Grid.Row="2"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource PrimaryAquaDark}" />
+
+                    <ScrollView Grid.Row="3">
+                        <Label x:Name="SelectedPoiDescriptionLabel"
+                               FontSize="14"
+                               LineBreakMode="WordWrap"
+                               TextColor="{StaticResource TextMuted}" />
+                    </ScrollView>
+
+                    <Button Grid.Row="4"
+                            Text="Directions"
+                            HeightRequest="44"
+                            CornerRadius="12"
+                            BackgroundColor="{StaticResource PrimaryAquaDark}"
+                            TextColor="White"
+                            Clicked="OnNavigateToSelectedPoiClicked" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

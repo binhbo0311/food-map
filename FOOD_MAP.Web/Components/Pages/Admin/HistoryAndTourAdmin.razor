@@ -1,0 +1,423 @@
+@page "/admin/history-tour"
+@using FOOD_MAP.Shared.Data
+@using Microsoft.EntityFrameworkCore
+@using System.ComponentModel.DataAnnotations
+@inject IDbContextFactory<AppDbContext> DbContextFactory
+
+<PageTitle>History & Tour Admin</PageTitle>
+
+<h1>History & Tour Admin</h1>
+<p class="text-muted">Monitor user activity, favorites, and tour visit history.</p>
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <div class="alert @(isErrorStatus ? "alert-danger" : "alert-success")" role="alert">
+        @statusMessage
+    </div>
+}
+
+<EditForm Model="filterModel" OnValidSubmit="ApplyFilterAsync" class="border rounded p-3 mb-3 bg-light-subtle">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label">Time Window (days)</label>
+            <InputNumber @bind-Value="filterModel.Days" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Recent Rows</label>
+            <InputNumber @bind-Value="filterModel.RecentLimit" class="form-control" />
+        </div>
+        <div class="col-md-6 d-flex gap-2">
+            <button type="submit" class="btn btn-primary" disabled="@isBusy">Apply Filter</button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="ResetFilterAsync" disabled="@isBusy">Reset</button>
+        </div>
+    </div>
+</EditForm>
+
+@if (isBusy)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6 col-xl-2">
+            <div class="border rounded p-3 bg-white h-100">
+                <div class="text-muted">Total Users</div>
+                <div class="fs-4 fw-semibold">@summary.TotalUsers</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-2">
+            <div class="border rounded p-3 bg-white h-100">
+                <div class="text-muted">Total Favorites</div>
+                <div class="fs-4 fw-semibold">@summary.TotalFavorites</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-2">
+            <div class="border rounded p-3 bg-white h-100">
+                <div class="text-muted">Total Tours</div>
+                <div class="fs-4 fw-semibold">@summary.TotalTours</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-2">
+            <div class="border rounded p-3 bg-white h-100">
+                <div class="text-muted">Active Users (@filterModel.Days d)</div>
+                <div class="fs-4 fw-semibold">@summary.ActiveUsersInWindow</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-2">
+            <div class="border rounded p-3 bg-white h-100">
+                <div class="text-muted">Favorites (@filterModel.Days d)</div>
+                <div class="fs-4 fw-semibold">@summary.FavoritesInWindow</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-2">
+            <div class="border rounded p-3 bg-white h-100">
+                <div class="text-muted">Tours (@filterModel.Days d)</div>
+                <div class="fs-4 fw-semibold">@summary.ToursInWindow</div>
+            </div>
+        </div>
+    </div>
+
+    <section class="border rounded p-3 bg-white mb-3">
+        <h2 class="h5 mb-3">Top Users By Tours (@filterModel.Days days)</h2>
+        @if (topUsersByTours.Count == 0)
+        {
+            <p class="text-muted mb-0">No tour data in selected period.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Username</th>
+                            <th>Tours</th>
+                            <th>Last Visit (UTC)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in topUsersByTours)
+                        {
+                            <tr>
+                                <td>@item.DisplayName</td>
+                                <td>@item.UserName</td>
+                                <td>@item.TourCount</td>
+                                <td>@item.LastVisitedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="border rounded p-3 bg-white mb-3">
+        <h2 class="h5 mb-3">Recent Favorites</h2>
+        @if (recentFavorites.Count == 0)
+        {
+            <p class="text-muted mb-0">No favorite data found.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Created (UTC)</th>
+                            <th>User</th>
+                            <th>POI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in recentFavorites)
+                        {
+                            <tr>
+                                <td>@item.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td>@item.DisplayName (@item.UserName)</td>
+                                <td>@item.PoiDisplayName</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="border rounded p-3 bg-white">
+        <h2 class="h5 mb-3">Recent Tour History</h2>
+        @if (recentTours.Count == 0)
+        {
+            <p class="text-muted mb-0">No tour history data found.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Visited (UTC)</th>
+                            <th>User</th>
+                            <th>POI</th>
+                            <th>Language</th>
+                            <th>Trigger</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in recentTours)
+                        {
+                            <tr>
+                                <td>@item.VisitedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td>@item.DisplayName (@item.UserName)</td>
+                                <td>@item.PoiDisplayName</td>
+                                <td>@item.LanguageCode</td>
+                                <td>@item.TriggerType</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private readonly DashboardFilterModel filterModel = new();
+
+    private DashboardSummary summary = new();
+    private readonly List<TopUserRow> topUsersByTours = [];
+    private readonly List<FavoriteRow> recentFavorites = [];
+    private readonly List<TourRow> recentTours = [];
+
+    private bool isBusy;
+    private bool isErrorStatus;
+    private string statusMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardAsync();
+    }
+
+    private async Task ApplyFilterAsync()
+    {
+        await LoadDashboardAsync();
+    }
+
+    private async Task ResetFilterAsync()
+    {
+        filterModel.Days = 30;
+        filterModel.RecentLimit = 20;
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        isBusy = true;
+        statusMessage = string.Empty;
+
+        try
+        {
+            var windowStart = DateTimeOffset.UtcNow.AddDays(-filterModel.Days);
+            var windowEnd = DateTimeOffset.UtcNow;
+
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            var poiNameLookup = await dbContext.Pois
+                .AsNoTracking()
+                .Select(p => new
+                {
+                    p.Id,
+                    Name = p.PoiTranslations
+                        .Where(t => t.Language != null && t.Language.LanguageCode == "vi")
+                        .Select(t => t.LocationName)
+                        .FirstOrDefault()
+                        ?? p.PoiTranslations
+                            .OrderBy(t => t.LanguageId)
+                            .Select(t => t.LocationName)
+                            .FirstOrDefault()
+                        ?? $"POI #{p.Id}"
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+
+            summary = new DashboardSummary
+            {
+                TotalUsers = await dbContext.Users.AsNoTracking().CountAsync(),
+                TotalFavorites = await dbContext.UserFavorites.AsNoTracking().CountAsync(),
+                TotalTours = await dbContext.UserTours.AsNoTracking().CountAsync(),
+                ActiveUsersInWindow = await dbContext.UserTours
+                    .AsNoTracking()
+                    .Where(x => x.VisitedUtc >= windowStart && x.VisitedUtc <= windowEnd)
+                    .Select(x => x.UserId)
+                    .Distinct()
+                    .CountAsync(),
+                FavoritesInWindow = await dbContext.UserFavorites
+                    .AsNoTracking()
+                    .CountAsync(x => x.CreatedUtc >= windowStart && x.CreatedUtc <= windowEnd),
+                ToursInWindow = await dbContext.UserTours
+                    .AsNoTracking()
+                    .CountAsync(x => x.VisitedUtc >= windowStart && x.VisitedUtc <= windowEnd)
+            };
+
+            var topUsers = await (
+                from tour in dbContext.UserTours.AsNoTracking()
+                join user in dbContext.Users.AsNoTracking() on tour.UserId equals user.Id
+                where tour.VisitedUtc >= windowStart && tour.VisitedUtc <= windowEnd
+                group new { tour, user } by new { user.Id, user.UserName, user.DisplayName }
+                into g
+                orderby g.Count() descending, g.Key.Id
+                select new TopUserRow
+                {
+                    UserId = g.Key.Id,
+                    UserName = g.Key.UserName,
+                    DisplayName = g.Key.DisplayName,
+                    TourCount = g.Count(),
+                    LastVisitedUtc = g.Max(x => x.tour.VisitedUtc)
+                })
+                .Take(10)
+                .ToListAsync();
+
+            var favoriteRows = await (
+                from favorite in dbContext.UserFavorites.AsNoTracking()
+                join user in dbContext.Users.AsNoTracking() on favorite.UserId equals user.Id
+                where favorite.CreatedUtc >= windowStart && favorite.CreatedUtc <= windowEnd
+                orderby favorite.CreatedUtc descending
+                select new FavoriteRow
+                {
+                    UserId = favorite.UserId,
+                    UserName = user.UserName,
+                    DisplayName = user.DisplayName,
+                    PoiId = favorite.PoiId,
+                    CreatedUtc = favorite.CreatedUtc
+                })
+                .Take(filterModel.RecentLimit)
+                .ToListAsync();
+
+            foreach (var row in favoriteRows)
+            {
+                row.PoiDisplayName = poiNameLookup.TryGetValue(row.PoiId, out var poiName)
+                    ? poiName
+                    : $"POI #{row.PoiId}";
+            }
+
+            var tourRows = await (
+                from tour in dbContext.UserTours.AsNoTracking()
+                join user in dbContext.Users.AsNoTracking() on tour.UserId equals user.Id
+                where tour.VisitedUtc >= windowStart && tour.VisitedUtc <= windowEnd
+                orderby tour.VisitedUtc descending
+                select new TourRow
+                {
+                    UserId = tour.UserId,
+                    UserName = user.UserName,
+                    DisplayName = user.DisplayName,
+                    PoiId = tour.PoiId,
+                    LanguageCode = tour.LanguageCode,
+                    TriggerType = tour.TriggerType,
+                    VisitedUtc = tour.VisitedUtc
+                })
+                .Take(filterModel.RecentLimit)
+                .ToListAsync();
+
+            foreach (var row in tourRows)
+            {
+                row.PoiDisplayName = poiNameLookup.TryGetValue(row.PoiId, out var poiName)
+                    ? poiName
+                    : $"POI #{row.PoiId}";
+            }
+
+            topUsersByTours.Clear();
+            topUsersByTours.AddRange(topUsers);
+
+            recentFavorites.Clear();
+            recentFavorites.AddRange(favoriteRows);
+
+            recentTours.Clear();
+            recentTours.AddRange(tourRows);
+
+            isErrorStatus = false;
+            statusMessage = $"Loaded dashboard for last {filterModel.Days} days.";
+        }
+        catch (Exception ex)
+        {
+            isErrorStatus = true;
+            statusMessage = $"Unable to load dashboard: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private sealed class DashboardSummary
+    {
+        public int TotalUsers { get; set; }
+
+        public int TotalFavorites { get; set; }
+
+        public int TotalTours { get; set; }
+
+        public int ActiveUsersInWindow { get; set; }
+
+        public int FavoritesInWindow { get; set; }
+
+        public int ToursInWindow { get; set; }
+    }
+
+    private sealed class TopUserRow
+    {
+        public int UserId { get; set; }
+
+        public string UserName { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TourCount { get; set; }
+
+        public DateTimeOffset LastVisitedUtc { get; set; }
+    }
+
+    private sealed class FavoriteRow
+    {
+        public int UserId { get; set; }
+
+        public string UserName { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int PoiId { get; set; }
+
+        public string PoiDisplayName { get; set; } = string.Empty;
+
+        public DateTimeOffset CreatedUtc { get; set; }
+    }
+
+    private sealed class TourRow
+    {
+        public int UserId { get; set; }
+
+        public string UserName { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int PoiId { get; set; }
+
+        public string PoiDisplayName { get; set; } = string.Empty;
+
+        public string LanguageCode { get; set; } = string.Empty;
+
+        public string TriggerType { get; set; } = string.Empty;
+
+        public DateTimeOffset VisitedUtc { get; set; }
+    }
+
+    private sealed class DashboardFilterModel
+    {
+        [Range(1, 365)]
+        public int Days { get; set; } = 30;
+
+        [Range(5, 200)]
+        public int RecentLimit { get; set; } = 20;
+    }
+}

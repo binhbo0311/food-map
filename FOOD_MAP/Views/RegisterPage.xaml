@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FOOD_MAP.RegisterPage"
+             Title="Register"
+             BackgroundColor="#EAF8F8"
+             Padding="22,40,22,20">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="12">
+            <Label Text="Create Account"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="#066D72" />
+
+            <Label Text="Đăng ký tài khoản để lưu Favorites và Tour History vào PostgreSQL"
+                   FontSize="13"
+                   TextColor="#4D6B6C" />
+
+            <Label Text="Username"
+                   FontSize="13"
+                   FontAttributes="Bold"
+                   TextColor="#143536" />
+            <Entry Text="{Binding UserName}"
+                   Placeholder="new_user"
+                   BackgroundColor="#F2FBFB"
+                   TextColor="#143536" />
+
+            <Label Text="Display Name"
+                   FontSize="13"
+                   FontAttributes="Bold"
+                   TextColor="#143536" />
+            <Entry Text="{Binding DisplayName}"
+                   Placeholder="Your Name"
+                   BackgroundColor="#F2FBFB"
+                   TextColor="#143536" />
+
+            <Label Text="Password"
+                   FontSize="13"
+                   FontAttributes="Bold"
+                   TextColor="#143536" />
+            <Entry Text="{Binding Password}"
+                   IsPassword="True"
+                   Placeholder="At least 6 characters"
+                   BackgroundColor="#F2FBFB"
+                   TextColor="#143536" />
+
+            <Label Text="Confirm Password"
+                   FontSize="13"
+                   FontAttributes="Bold"
+                   TextColor="#143536" />
+            <Entry Text="{Binding ConfirmPassword}"
+                   IsPassword="True"
+                   Placeholder="Re-enter password"
+                   BackgroundColor="#F2FBFB"
+                   TextColor="#143536" />
+
+            <Button Text="Create Account"
+                    HeightRequest="44"
+                    CornerRadius="12"
+                    BackgroundColor="#066D72"
+                    TextColor="White"
+                    Command="{Binding RegisterCommand}" />
+
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="12"
+                   TextColor="#4D6B6C" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

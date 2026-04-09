@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FOOD_MAP.LoginPage"
+             BackgroundColor="#EAF8F8"
+             Padding="22,40,22,20">
+
+    <Grid RowDefinitions="*,Auto">
+        <Border Grid.Row="0"
+                BackgroundColor="White"
+                Stroke="#A9E1E2"
+                StrokeThickness="1"
+                Padding="18"
+                VerticalOptions="Center">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="20" />
+            </Border.StrokeShape>
+
+            <VerticalStackLayout Spacing="12">
+                <Label Text="Food Map Tour"
+                       FontSize="28"
+                       FontAttributes="Bold"
+                       TextColor="#066D72" />
+
+                <Label Text="Đăng nhập để lưu Favorites và Tour History trên PostgreSQL"
+                       FontSize="13"
+                       TextColor="#4D6B6C" />
+
+                <Label Text="Username"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       TextColor="#143536" />
+
+                <Entry Text="{Binding UserName}"
+                       Placeholder="demo"
+                       BackgroundColor="#F2FBFB"
+                       TextColor="#143536" />
+
+                <Label Text="Password"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       TextColor="#143536" />
+
+                <Entry Text="{Binding Password}"
+                       Placeholder="123456"
+                       IsPassword="True"
+                       BackgroundColor="#F2FBFB"
+                       TextColor="#143536" />
+
+                <Button Text="Login"
+                        Command="{Binding LoginCommand}"
+                        HeightRequest="44"
+                        CornerRadius="12"
+                        BackgroundColor="#066D72"
+                        TextColor="White" />
+
+                <Button Text="Continue As Guest"
+                        Command="{Binding ContinueAsGuestCommand}"
+                        HeightRequest="42"
+                        CornerRadius="12"
+                        BackgroundColor="#D7F1F2"
+                        TextColor="#066D72" />
+
+              <Button Text="Create Account"
+                     HeightRequest="42"
+                     CornerRadius="12"
+                     BackgroundColor="#F2FBFB"
+                     TextColor="#066D72"
+                     Clicked="OnCreateAccountClicked" />
+
+                <Label Text="{Binding StatusMessage}"
+                       FontSize="12"
+                       TextColor="#4D6B6C" />
+            </VerticalStackLayout>
+        </Border>
+
+        <Label Grid.Row="1"
+               HorizontalOptions="Center"
+               FontSize="12"
+               TextColor="#4D6B6C"
+               Text="Guest mode vẫn sử dụng app bình thường, nhưng không lưu dữ liệu cá nhân." />
+    </Grid>
+</ContentPage>
