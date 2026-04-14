@@ -38,4 +38,5 @@ C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Shared\obj\Debug\net10.0\
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Shared\obj\Debug\net10.0\ref\FOOD_MAP.Shared.dll
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Shared\obj\Debug\net10.0\compressed\l7bzbiktpz-{0}-wjwrrg6vye-wjwrrg6vye.gz
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Shared\obj\Debug\net10.0\compressed\4dplv2ska9-{0}-wjwrrg6vye-wjwrrg6vye.gz
+c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Shared\obj\Debug\net10.0\FOOD_MAP.Shared.sourcelink.json
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Shared\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt

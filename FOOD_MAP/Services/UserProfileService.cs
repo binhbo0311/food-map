@@ -19,7 +19,7 @@ public sealed class UserProfileService : IUserProfileService
         var profile = await dbContext.Users
             .AsNoTracking()
             .Where(x => x.Id == userId)
-            .Select(x => new UserProfileSnapshot(x.Id, x.UserName, x.DisplayName))
+            .Select(x => new UserProfileSnapshot(x.Id, x.UserName, x.DisplayName, x.Role, x.OwnerIdentificationCode))
             .FirstOrDefaultAsync(cancellationToken);
 
         return profile;

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using FOOD_MAP.Services;
+using FOOD_MAP.Shared.Models;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Storage;
 
@@ -27,10 +28,13 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
     private bool _isBusyFavorite;
     private bool _isAuthenticatedUser;
     private bool _isTtsPlaying;
+    private bool _isFoodMenuVisible;
     private string _searchQuery = string.Empty;
     private string _currentTtsTitle = "Chưa phát";
     private string _ttsElapsedText = "00:00";
     private string _ttsTotalText = "--:--";
+    private string _foodMenuHeader = "Menu";
+    private string _scannedQrPayload = string.Empty;
     private double _ttsProgress;
 
     private string _cameraStatusText = "Status: Off";
@@ -53,12 +57,13 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
         _userActivityRepository = userActivityRepository;
 
         PoiItems = new ObservableCollection<PoiListItemViewModel>();
+        FoodMenuItems = new ObservableCollection<FoodMenuItemViewModel>();
         AvailableLanguages = new ObservableCollection<string> { "vi", "en" };
 
         SelectPoiTabCommand = new Command(() => SetActiveTab(true));
         SelectCameraTabCommand = new Command(() => SetActiveTab(false));
         ToggleCameraCommand = new Command(ToggleCamera);
-        PlayPoiCommand = new Command<PoiListItemViewModel>(PlayPoi);
+        PlayPoiCommand = new Command<PoiListItemViewModel>(async poi => await PlayPoiAsync(poi));
         ToggleFavoriteCommand = new Command<PoiListItemViewModel>(ToggleFavorite);
         StopTtsCommand = new Command(async () => await StopTtsAsync(), () => IsTtsPlaying);
 
@@ -66,6 +71,8 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<PoiListItemViewModel> PoiItems { get; }
+
+    public ObservableCollection<FoodMenuItemViewModel> FoodMenuItems { get; }
 
     public ObservableCollection<string> AvailableLanguages { get; }
 
@@ -80,6 +87,51 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
     public ICommand ToggleFavoriteCommand { get; }
 
     public ICommand StopTtsCommand { get; }
+
+    public bool IsFoodMenuVisible
+    {
+        get => _isFoodMenuVisible;
+        private set
+        {
+            if (_isFoodMenuVisible == value)
+            {
+                return;
+            }
+
+            _isFoodMenuVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string FoodMenuHeader
+    {
+        get => _foodMenuHeader;
+        private set
+        {
+            if (_foodMenuHeader == value)
+            {
+                return;
+            }
+
+            _foodMenuHeader = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string ScannedQrPayload
+    {
+        get => _scannedQrPayload;
+        set
+        {
+            if (_scannedQrPayload == value)
+            {
+                return;
+            }
+
+            _scannedQrPayload = value;
+            OnPropertyChanged();
+        }
+    }
 
     public string SearchQuery
     {
@@ -327,8 +379,8 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
         var selectedLanguageCode = NormalizeLanguageCode(SelectedLanguage);
         var poiItems = await _poiRepository.GetPoiItemsAsync(selectedLanguageCode, cancellationToken);
 
-        HashSet<int> favoritePoiIds = [];
-        HashSet<int> visitedPoiIds = [];
+        HashSet<string> favoritePoiIds = [];
+        HashSet<string> visitedPoiIds = [];
         var totalTours = 0;
         var currentUserId = _userSessionService.CurrentUserId;
         if (IsAuthenticatedUser && currentUserId.HasValue)
@@ -476,7 +528,75 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
         CameraButtonText = "Open Camera";
     }
 
-    private void PlayPoi(PoiListItemViewModel? poi)
+    public async Task OnPoiSelectedAsync(PoiListItemViewModel? poi)
+    {
+        if (poi is null)
+        {
+            HideFoodMenu();
+            return;
+        }
+
+        await UpdateFoodMenuAsync(poi);
+    }
+
+    public async Task<IReadOnlyList<PoiAvailableLanguageOption>> GetAvailableLanguagesForQrAsync(string scannedPoiId, CancellationToken cancellationToken = default)
+    {
+        var options = await _poiRepository.GetAvailableLanguagesForPoiAsync(scannedPoiId, cancellationToken);
+
+        foreach (var option in options)
+        {
+            if (AvailableLanguages.Any(x => string.Equals(x, option.LanguageCode, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            AvailableLanguages.Add(option.LanguageCode);
+        }
+
+        return options;
+    }
+
+    public async Task HandleQrScanAsync(string scannedPoiId, string languageCode, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(scannedPoiId))
+        {
+            SelectedPoiText = "QR payload is empty.";
+            return;
+        }
+
+        var normalizedLanguageCode = NormalizeLanguageCode(languageCode);
+        if (!AvailableLanguages.Any(x => string.Equals(x, normalizedLanguageCode, StringComparison.OrdinalIgnoreCase)))
+        {
+            AvailableLanguages.Add(normalizedLanguageCode);
+        }
+
+        _selectedLanguage = normalizedLanguageCode;
+        OnPropertyChanged(nameof(SelectedLanguage));
+        Preferences.Default.Set("selected_language", normalizedLanguageCode);
+
+        var scanResult = await _poiRepository.GetPoiScanResultAsync(scannedPoiId, normalizedLanguageCode, cancellationToken);
+        if (scanResult is null)
+        {
+            SelectedPoiText = $"QR POI '{scannedPoiId}' not found or not approved.";
+            HideFoodMenu();
+            return;
+        }
+
+        SelectedPoiText = $"QR matched: {scanResult.LocationName} ({normalizedLanguageCode}).";
+
+        if (scanResult.PoiType == PoiType.Food)
+        {
+            ApplyFoodMenuItems(scanResult.LocationName, scanResult.FoodItems);
+        }
+        else
+        {
+            HideFoodMenu();
+        }
+
+        await _narrationService.PlayManualNarrationAsync(scanResult.TtsScript, normalizedLanguageCode, cancellationToken);
+    }
+
+    private async Task PlayPoiAsync(PoiListItemViewModel? poi)
     {
         if (poi is null)
         {
@@ -484,7 +604,42 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
         }
 
         SelectedPoiText = $"Selected: {poi.Name}";
+        await UpdateFoodMenuAsync(poi);
         _ = SpeakPoiAsync(poi);
+    }
+
+    private async Task UpdateFoodMenuAsync(PoiListItemViewModel poi)
+    {
+        if (!poi.IsFoodPoi)
+        {
+            HideFoodMenu();
+            return;
+        }
+
+        var items = await _poiRepository.GetFoodItemsByPoiIdAsync(poi.PoiId);
+        ApplyFoodMenuItems(poi.Name, items);
+    }
+
+    private void ApplyFoodMenuItems(string poiName, IReadOnlyList<FoodMenuItemViewModel> items)
+    {
+        FoodMenuItems.Clear();
+        foreach (var item in items)
+        {
+            FoodMenuItems.Add(item);
+        }
+
+        FoodMenuHeader = string.IsNullOrWhiteSpace(poiName)
+            ? "Food Menu"
+            : $"Food Menu - {poiName}";
+
+        IsFoodMenuVisible = FoodMenuItems.Count > 0;
+    }
+
+    private void HideFoodMenu()
+    {
+        FoodMenuItems.Clear();
+        FoodMenuHeader = "Food Menu";
+        IsFoodMenuVisible = false;
     }
 
     private async Task SpeakPoiAsync(PoiListItemViewModel poi)

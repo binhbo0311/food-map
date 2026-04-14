@@ -369,3 +369,4 @@ C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\obj\Debug\net10.0-ios\ios
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\obj\Debug\net10.0-ios\iossimulator-x64\FOOD_MAP.pdb
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\obj\Debug\net10.0-ios\iossimulator-x64\FOOD_MAP.genruntimeconfig.cache
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\obj\Debug\net10.0-ios\iossimulator-x64\ref\FOOD_MAP.dll
+c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\obj\Debug\net10.0-ios\iossimulator-x64\FOOD_MAP.sourcelink.json

@@ -2,15 +2,12 @@ C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\AboutAssets.txt
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_framework\blazor.modules.json
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_framework\blazor.webview.js
-C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\FOOD_MAP.Shared.c28f1xkwkt.bundle.scp.css.gz
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\app.css.gz
-C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\FOOD_MAP.Shared.c28f1xkwkt.bundle.scp.css.br
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\app.css.br
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\lib\bootstrap\dist\css\bootstrap.min.css.map.br
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\lib\bootstrap\dist\css\bootstrap.min.css.br
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\lib\bootstrap\dist\css\bootstrap.min.css.map.gz
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\lib\bootstrap\dist\css\bootstrap.min.css.gz
-C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\FOOD_MAP.Shared.c28f1xkwkt.bundle.scp.css
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\app.css
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\favicon.png
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\lib\bootstrap\dist\css\bootstrap.min.css
@@ -595,3 +592,7 @@ C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\Npgsql.dll
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\Npgsql.EntityFrameworkCore.PostgreSQL.dll
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\Microsoft.WindowsAppRuntime.pri
+c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\FOOD_MAP.Shared.wjwrrg6vye.bundle.scp.css.gz
+c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\FOOD_MAP.Shared.wjwrrg6vye.bundle.scp.css.br
+c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\FOOD_MAP.Shared.wjwrrg6vye.bundle.scp.css
+c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\obj\Debug\net10.0-windows10.0.19041.0\win-x64\FOOD_MAP.sourcelink.json

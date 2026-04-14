@@ -102,6 +102,457 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border BackgroundColor="White"
+                    Stroke="#A9E1E2"
+                    StrokeThickness="1"
+                    Padding="14">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Register As Owner Business"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="#066D72" />
+
+                    <Label Text="Business Name"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding BusinessName}"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="Address"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding BusinessAddress}"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="Contact Phone"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding ContactPhone}"
+                           Keyboard="Telephone"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="Note (optional)"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Editor Text="{Binding OwnerRegistrationNote}"
+                            AutoSize="TextChanges"
+                            HeightRequest="80"
+                            BackgroundColor="#F2FBFB"
+                            TextColor="#143536"
+                            IsEnabled="{Binding CanEditSettings}" />
+
+                                   <Button Text="{Binding OwnerRegistrationActionText}"
+                            HeightRequest="42"
+                            CornerRadius="12"
+                            BackgroundColor="#066D72"
+                            TextColor="White"
+                            Command="{Binding RegisterOwnerCommand}"
+                            IsEnabled="{Binding CanEditSettings}" />
+
+                                   <Button Text="Cancel Pending Request"
+                                                 HeightRequest="42"
+                                                 CornerRadius="12"
+                                                 BackgroundColor="#E7EFF0"
+                                                 TextColor="#143536"
+                                                 Command="{Binding CancelOwnerRequestCommand}"
+                                                 IsVisible="{Binding HasPendingOwnerRequest}"
+                                                 IsEnabled="{Binding CanEditSettings}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="White"
+                    Stroke="#A9E1E2"
+                    StrokeThickness="1"
+                    Padding="14"
+                    IsVisible="{Binding IsOwnerUser}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Owner Workspace"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="#066D72" />
+
+                    <Label Text="Manage your POI submissions and food menu items."
+                           FontSize="12"
+                           TextColor="#4D6B6C" />
+
+                    <Button Text="Refresh Owner Data"
+                            HeightRequest="40"
+                            CornerRadius="12"
+                            BackgroundColor="#E7EFF0"
+                            TextColor="#143536"
+                            Command="{Binding RefreshOwnerWorkspaceCommand}"
+                            IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="Owner POI Editor"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+
+                    <Label Text="POI Type"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Picker ItemsSource="{Binding OwnerPoiTypes}"
+                            SelectedItem="{Binding OwnerPoiType, Mode=TwoWay}"
+                            BackgroundColor="#F2FBFB"
+                            TextColor="#143536"
+                            IsEnabled="{Binding CanEditSettings}" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label Text="Latitude"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#143536" />
+                            <Entry Text="{Binding OwnerPoiLatitudeText}"
+                                   Keyboard="Numeric"
+                                   BackgroundColor="#F2FBFB"
+                                   TextColor="#143536"
+                                   IsEnabled="{Binding CanEditSettings}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Column="1" Spacing="4">
+                            <Label Text="Longitude"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#143536" />
+                            <Entry Text="{Binding OwnerPoiLongitudeText}"
+                                   Keyboard="Numeric"
+                                   BackgroundColor="#F2FBFB"
+                                   TextColor="#143536"
+                                   IsEnabled="{Binding CanEditSettings}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label Text="Activation Radius"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#143536" />
+                            <Entry Text="{Binding OwnerPoiActivationRadiusText}"
+                                   Keyboard="Numeric"
+                                   BackgroundColor="#F2FBFB"
+                                   TextColor="#143536"
+                                   IsEnabled="{Binding CanEditSettings}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Column="1" Spacing="4">
+                            <Label Text="Priority"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#143536" />
+                            <Entry Text="{Binding OwnerPoiPriorityText}"
+                                   Keyboard="Numeric"
+                                   BackgroundColor="#F2FBFB"
+                                   TextColor="#143536"
+                                   IsEnabled="{Binding CanEditSettings}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <Label Text="QRCode Id (optional)"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding OwnerPoiQrCodeId}"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="Base Language Code"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding OwnerPoiBaseLanguageCode}"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="POI Name"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding OwnerPoiName}"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="POI Description"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Editor Text="{Binding OwnerPoiDescription}"
+                            AutoSize="TextChanges"
+                            HeightRequest="70"
+                            BackgroundColor="#F2FBFB"
+                            TextColor="#143536"
+                            IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="Image Url"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding OwnerPoiImageUrl}"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="Audio Url"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding OwnerPoiAudioFileUrl}"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="TTS Script"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Editor Text="{Binding OwnerPoiTtsScript}"
+                            AutoSize="TextChanges"
+                            HeightRequest="70"
+                            BackgroundColor="#F2FBFB"
+                            TextColor="#143536"
+                            IsEnabled="{Binding CanEditSettings}" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Grid.Column="0"
+                                Text="{Binding OwnerPoiActionText}"
+                                HeightRequest="42"
+                                CornerRadius="12"
+                                BackgroundColor="#066D72"
+                                TextColor="White"
+                                Command="{Binding SubmitOwnerPoiCommand}"
+                                IsEnabled="{Binding CanEditSettings}" />
+
+                        <Button Grid.Column="1"
+                                Text="Reset POI Editor"
+                                HeightRequest="42"
+                                CornerRadius="12"
+                                BackgroundColor="#E7EFF0"
+                                TextColor="#143536"
+                                Command="{Binding ResetOwnerPoiEditorCommand}"
+                                IsEnabled="{Binding CanEditSettings}" />
+                    </Grid>
+
+                    <CollectionView ItemsSource="{Binding OwnerPoiItems}"
+                                    SelectionMode="None"
+                                    HeightRequest="180">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Stroke="#A9E1E2"
+                                        StrokeThickness="1"
+                                        Padding="8"
+                                        Margin="0,0,0,6"
+                                        BackgroundColor="#F9FFFF">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="{Binding BaseLocationName}"
+                                               FontSize="13"
+                                               FontAttributes="Bold"
+                                               TextColor="#143536" />
+                                        <Label Text="{Binding StatusText}"
+                                               FontSize="11"
+                                               TextColor="#4D6B6C" />
+                                        <Label Text="{Binding Id, StringFormat='POI: {0}'}"
+                                               FontSize="11"
+                                               TextColor="#4D6B6C" />
+
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                            <Button Grid.Column="0"
+                                                    Text="Edit Basic Info"
+                                                    HeightRequest="36"
+                                                    CornerRadius="10"
+                                                    FontSize="12"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectOwnerPoiForEditCommand}"
+                                                    CommandParameter="{Binding}" />
+                                            <Button Grid.Column="1"
+                                                    Text="Use For Menu"
+                                                    HeightRequest="36"
+                                                    CornerRadius="10"
+                                                    FontSize="12"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectOwnerPoiForFoodCommand}"
+                                                    CommandParameter="{Binding}" />
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Label Text="Food Menu Manager"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+
+                    <Entry Text="{Binding SelectedOwnerPoiIdForFood}"
+                           IsReadOnly="True"
+                           Placeholder="Select a food POI above"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536" />
+
+                    <Label Text="Food Item Name"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Entry Text="{Binding FoodItemName}"
+                           BackgroundColor="#F2FBFB"
+                           TextColor="#143536"
+                           IsEnabled="{Binding CanEditSettings}" />
+
+                    <Label Text="Description"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+                    <Editor Text="{Binding FoodItemDescription}"
+                            AutoSize="TextChanges"
+                            HeightRequest="60"
+                            BackgroundColor="#F2FBFB"
+                            TextColor="#143536"
+                            IsEnabled="{Binding CanEditSettings}" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label Text="Price"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#143536" />
+                            <Entry Text="{Binding FoodItemPriceText}"
+                                   Keyboard="Numeric"
+                                   BackgroundColor="#F2FBFB"
+                                   TextColor="#143536"
+                                   IsEnabled="{Binding CanEditSettings}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Column="1" Spacing="4">
+                            <Label Text="Currency"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#143536" />
+                            <Entry Text="{Binding FoodItemCurrency}"
+                                   BackgroundColor="#F2FBFB"
+                                   TextColor="#143536"
+                                   IsEnabled="{Binding CanEditSettings}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label Text="Display Order"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#143536" />
+                            <Entry Text="{Binding FoodItemDisplayOrderText}"
+                                   Keyboard="Numeric"
+                                   BackgroundColor="#F2FBFB"
+                                   TextColor="#143536"
+                                   IsEnabled="{Binding CanEditSettings}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="End">
+                            <Label Text="Available"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#143536" />
+                            <Switch IsToggled="{Binding FoodItemIsAvailable, Mode=TwoWay}"
+                                    IsEnabled="{Binding CanEditSettings}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Grid.Column="0"
+                                Text="{Binding FoodItemActionText}"
+                                HeightRequest="42"
+                                CornerRadius="12"
+                                BackgroundColor="#066D72"
+                                TextColor="White"
+                                Command="{Binding SaveOwnerFoodItemCommand}"
+                                IsEnabled="{Binding CanEditSettings}" />
+                        <Button Grid.Column="1"
+                                Text="Reset Food Editor"
+                                HeightRequest="42"
+                                CornerRadius="12"
+                                BackgroundColor="#E7EFF0"
+                                TextColor="#143536"
+                                Command="{Binding ResetOwnerFoodItemEditorCommand}"
+                                IsEnabled="{Binding CanEditSettings}" />
+                    </Grid>
+
+                    <CollectionView ItemsSource="{Binding OwnerFoodItems}"
+                                    SelectionMode="None"
+                                    HeightRequest="180">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Stroke="#A9E1E2"
+                                        StrokeThickness="1"
+                                        Padding="8"
+                                        Margin="0,0,0,6"
+                                        BackgroundColor="#F9FFFF">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="{Binding Name}"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#143536" />
+                                            <Label Text="{Binding Description}"
+                                                   FontSize="11"
+                                                   LineBreakMode="TailTruncation"
+                                                   TextColor="#4D6B6C" />
+                                            <Label Text="{Binding PriceText}"
+                                                   FontSize="11"
+                                                   TextColor="#066D72" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                            <Button Text="Edit"
+                                                    HeightRequest="34"
+                                                    CornerRadius="10"
+                                                    FontSize="12"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditOwnerFoodItemCommand}"
+                                                    CommandParameter="{Binding}" />
+                                            <Button Text="Delete"
+                                                    HeightRequest="34"
+                                                    CornerRadius="10"
+                                                    FontSize="12"
+                                                    BackgroundColor="#D94A4A"
+                                                    TextColor="White"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteOwnerFoodItemCommand}"
+                                                    CommandParameter="{Binding}" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
             <Label Text="{Binding StatusMessage}"
                    FontSize="12"
                    TextColor="#4D6B6C" />

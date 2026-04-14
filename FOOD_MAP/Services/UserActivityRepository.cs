@@ -37,7 +37,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
         }
     }
 
-    public async Task<HashSet<int>> GetFavoritePoiIdsAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task<HashSet<string>> GetFavoritePoiIdsAsync(int userId, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -50,7 +50,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
         return favoritePoiIds.ToHashSet();
     }
 
-    public async Task<HashSet<int>> GetVisitedPoiIdsAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task<HashSet<string>> GetVisitedPoiIdsAsync(int userId, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -73,15 +73,16 @@ public sealed class UserActivityRepository : IUserActivityRepository
             .CountAsync(x => x.UserId == userId, cancellationToken);
     }
 
-    public async Task<bool> SetFavoriteAsync(int userId, int poiId, bool isFavorite, CancellationToken cancellationToken = default)
+    public async Task<bool> SetFavoriteAsync(int userId, string poiId, bool isFavorite, CancellationToken cancellationToken = default)
     {
+        var normalizedPoiId = NormalizePoiId(poiId);
         var syncType = isFavorite ? "FavoriteAdd" : "FavoriteRemove";
 
         try
         {
             if (!CanAttemptNetworkSync())
             {
-                await EnqueueFavoriteOperationAsync(userId, poiId, isFavorite, cancellationToken);
+                await EnqueueFavoriteOperationAsync(userId, normalizedPoiId, isFavorite, cancellationToken);
                 await WriteSyncHistoryAsync(
                     syncType: syncType,
                     isSuccess: false,
@@ -92,7 +93,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
             }
 
             await ExecuteWithRetryAsync(
-                async token => await ApplyFavoriteStateAsync(userId, poiId, isFavorite, token),
+                async token => await ApplyFavoriteStateAsync(userId, normalizedPoiId, isFavorite, token),
                 cancellationToken);
 
             await WriteSyncHistoryAsync(
@@ -106,7 +107,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
         }
         catch (Exception ex)
         {
-            await EnqueueFavoriteOperationAsync(userId, poiId, isFavorite, cancellationToken);
+            await EnqueueFavoriteOperationAsync(userId, normalizedPoiId, isFavorite, cancellationToken);
 
             await WriteSyncHistoryAsync(
                 syncType: syncType,
@@ -118,11 +119,12 @@ public sealed class UserActivityRepository : IUserActivityRepository
         }
     }
 
-    public async Task AddTourAsync(int userId, int poiId, string languageCode, string triggerType, CancellationToken cancellationToken = default)
+    public async Task AddTourAsync(int userId, string poiId, string languageCode, string triggerType, CancellationToken cancellationToken = default)
     {
+        var normalizedPoiId = NormalizePoiId(poiId);
         var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? "vi" : languageCode;
         var normalizedTriggerType = string.IsNullOrWhiteSpace(triggerType) ? "manual" : triggerType;
-        if (IsDuplicateTourRequest(userId, poiId, normalizedTriggerType))
+        if (IsDuplicateTourRequest(userId, normalizedPoiId, normalizedTriggerType))
         {
             return;
         }
@@ -131,7 +133,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
         {
             if (!CanAttemptNetworkSync())
             {
-                await EnqueueTourOperationAsync(userId, poiId, normalizedLanguageCode, normalizedTriggerType, cancellationToken);
+                await EnqueueTourOperationAsync(userId, normalizedPoiId, normalizedLanguageCode, normalizedTriggerType, cancellationToken);
                 await WriteSyncHistoryAsync(
                     syncType: "TourAdd",
                     isSuccess: false,
@@ -142,7 +144,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
             }
 
             await ExecuteWithRetryAsync(
-                async token => await AddTourRecordAsync(userId, poiId, normalizedLanguageCode, normalizedTriggerType, token),
+                async token => await AddTourRecordAsync(userId, normalizedPoiId, normalizedLanguageCode, normalizedTriggerType, token),
                 cancellationToken);
 
             await WriteSyncHistoryAsync(
@@ -155,7 +157,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
         }
         catch (Exception ex)
         {
-            await EnqueueTourOperationAsync(userId, poiId, normalizedLanguageCode, normalizedTriggerType, cancellationToken);
+            await EnqueueTourOperationAsync(userId, normalizedPoiId, normalizedLanguageCode, normalizedTriggerType, cancellationToken);
 
             await WriteSyncHistoryAsync(
                 syncType: "TourAdd",
@@ -264,7 +266,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
         }
     }
 
-    private async Task ApplyFavoriteStateAsync(int userId, int poiId, bool isFavorite, CancellationToken cancellationToken)
+    private async Task ApplyFavoriteStateAsync(int userId, string poiId, bool isFavorite, CancellationToken cancellationToken)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -289,7 +291,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task AddTourRecordAsync(int userId, int poiId, string languageCode, string triggerType, CancellationToken cancellationToken)
+    private async Task AddTourRecordAsync(int userId, string poiId, string languageCode, string triggerType, CancellationToken cancellationToken)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -321,7 +323,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task EnqueueFavoriteOperationAsync(int userId, int poiId, bool isFavorite, CancellationToken cancellationToken)
+    private async Task EnqueueFavoriteOperationAsync(int userId, string poiId, bool isFavorite, CancellationToken cancellationToken)
     {
         await _pendingOperationLock.WaitAsync(cancellationToken);
         try
@@ -355,7 +357,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
 
     private async Task EnqueueTourOperationAsync(
         int userId,
-        int poiId,
+        string poiId,
         string languageCode,
         string triggerType,
         CancellationToken cancellationToken)
@@ -397,7 +399,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
         }
     }
 
-    private bool IsDuplicateTourRequest(int userId, int poiId, string triggerType)
+    private bool IsDuplicateTourRequest(int userId, string poiId, string triggerType)
     {
         var normalizedTriggerType = string.IsNullOrWhiteSpace(triggerType) ? "manual" : triggerType;
         var key = $"{userId}:{poiId}:{normalizedTriggerType.ToLowerInvariant()}";
@@ -581,13 +583,20 @@ public sealed class UserActivityRepository : IUserActivityRepository
         return string.IsNullOrWhiteSpace(rootMessage) ? ex.Message : rootMessage;
     }
 
+    private static string NormalizePoiId(string poiId)
+    {
+        return string.IsNullOrWhiteSpace(poiId)
+            ? string.Empty
+            : poiId.Trim().ToUpperInvariant();
+    }
+
     private sealed class PendingSyncOperation
     {
         public string OperationType { get; set; } = string.Empty;
 
         public int UserId { get; set; }
 
-        public int PoiId { get; set; }
+        public string PoiId { get; set; } = string.Empty;
 
         public bool? IsFavorite { get; set; }
 

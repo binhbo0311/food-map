@@ -26,6 +26,7 @@ namespace FOOD_MAP
             // Đăng ký các service phụ thuộc thiết bị được dùng bởi dự án shared.
             builder.Services.AddSingleton<IFormFactor, FormFactor>();
             builder.Services.AddSingleton<IDataService, DataService>();
+            builder.Services.AddSingleton<IPoiWorkflowRepository, PoiWorkflowRepository>();
 
             builder.Services.AddSingleton<IPoiRepository, PoiRepository>();
             builder.Services.AddSingleton<INarrationService, NarrationService>();

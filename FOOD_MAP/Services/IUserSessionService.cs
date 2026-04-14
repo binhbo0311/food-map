@@ -1,5 +1,7 @@
 namespace FOOD_MAP.Services;
 
+using FOOD_MAP.Shared.Models;
+
 public interface IUserSessionService
 {
     bool IsGuest { get; }
@@ -8,7 +10,9 @@ public interface IUserSessionService
 
     string DisplayName { get; }
 
-    void SignIn(int userId, string displayName);
+    UserRole CurrentRole { get; }
+
+    void SignIn(int userId, string displayName, UserRole role = UserRole.User);
 
     void UseGuestMode();
 }

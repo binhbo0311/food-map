@@ -141,7 +141,7 @@
                 <!-- Noi dung theo tab POI/Camera -->
                   <Grid Grid.Row="3">
                       <Grid IsVisible="{Binding IsPoiTabActive}"
-                          RowDefinitions="Auto,Auto,Auto,*"
+                          RowDefinitions="Auto,Auto,Auto,Auto,*"
                           RowSpacing="6">
                         <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="0,0,0,4">
                             <Label Text="Language"
@@ -216,8 +216,61 @@
                             </Grid>
                         </Border>
 
+                        <Border Grid.Row="3"
+                                IsVisible="{Binding IsFoodMenuVisible}"
+                                Stroke="#A9E1E2"
+                                StrokeThickness="1"
+                                BackgroundColor="#F2FBFB"
+                                Padding="10,8">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="{Binding FoodMenuHeader}"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+
+                                <CollectionView ItemsSource="{Binding FoodMenuItems}"
+                                                SelectionMode="None"
+                                                HeightRequest="130">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                                                <VerticalStackLayout Spacing="1">
+                                                    <Label Text="{Binding Name}"
+                                                           FontSize="12"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{StaticResource TextPrimary}" />
+                                                    <Label Text="{Binding Description}"
+                                                           FontSize="11"
+                                                           TextColor="{StaticResource TextMuted}"
+                                                           LineBreakMode="TailTruncation" />
+                                                </VerticalStackLayout>
+
+                                                <VerticalStackLayout Grid.Column="1"
+                                                                    Spacing="1"
+                                                                    HorizontalOptions="End"
+                                                                    VerticalOptions="Center">
+                                                    <Label Text="{Binding PriceText}"
+                                                           FontSize="11"
+                                                           HorizontalTextAlignment="End"
+                                                           TextColor="{StaticResource PrimaryAquaDark}" />
+                                                    <Label Text="{Binding AvailabilityText}"
+                                                           FontSize="10"
+                                                           HorizontalTextAlignment="End"
+                                                           TextColor="{StaticResource TextMuted}" />
+                                                </VerticalStackLayout>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                            </VerticalStackLayout>
+                        </Border>
+
                         <CollectionView x:Name="PoiCollectionView"
-                                        Grid.Row="3"
+                                        Grid.Row="4"
                                         ItemsSource="{Binding PoiItems}"
                                         SelectionMode="Single"
                                         SelectionChanged="OnPoiSelectionChanged">
@@ -357,6 +410,19 @@
                                     BackgroundColor="{StaticResource PrimaryAquaDark}"
                                     TextColor="White"
                                     Command="{Binding ToggleCameraCommand}" />
+
+                                <Entry x:Name="QrPayloadEntry"
+                                   Placeholder="Enter scanned POI id (example: VS-002)"
+                                   Text="{Binding ScannedQrPayload, Mode=TwoWay}"
+                                   BackgroundColor="#F2FBFB"
+                                   TextColor="{StaticResource TextPrimary}" />
+
+                                <Button Text="Process QR"
+                                    HeightRequest="40"
+                                    CornerRadius="12"
+                                    BackgroundColor="#0B949A"
+                                    TextColor="White"
+                                    Clicked="OnProcessQrClicked" />
                         </VerticalStackLayout>
                     </Border>
                 </Grid>

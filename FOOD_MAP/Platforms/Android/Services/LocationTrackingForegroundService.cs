@@ -29,9 +29,9 @@ public sealed class LocationTrackingForegroundService : Service
     private static readonly TimeSpan TriggerCooldown = TimeSpan.FromSeconds(15);
     private const int DebounceHitsRequired = 1;
 
-    private readonly Dictionary<int, DateTimeOffset> _lastTriggeredUtcByPoiId = new();
-    private readonly Dictionary<int, bool> _isInsidePoiById = new();
-    private readonly Dictionary<int, int> _insideDebounceHitsByPoiId = new();
+    private readonly Dictionary<string, DateTimeOffset> _lastTriggeredUtcByPoiId = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, bool> _isInsidePoiById = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _insideDebounceHitsByPoiId = new(StringComparer.Ordinal);
 
     private IFusedLocationProviderClient? _fusedClient;
     private LocationRequest? _locationRequest;
@@ -266,7 +266,7 @@ public sealed class LocationTrackingForegroundService : Service
                     if (notificationManager is not null)
                     {
                         // Dùng ID riêng để thông báo geofence không bị ghi đè ngay bởi tracking notification.
-                        var triggerNotificationId = TriggerNotificationBaseId + poi.Id;
+                        var triggerNotificationId = TriggerNotificationBaseId + Math.Abs(poi.Id.GetHashCode(StringComparison.Ordinal) % 1000);
                         notificationManager.Notify(triggerNotificationId, BuildTriggerNotification(triggerText));
                     }
                 }
@@ -288,7 +288,7 @@ public sealed class LocationTrackingForegroundService : Service
         }
     }
 
-    private static async Task TriggerProximityNarrationAsync(IServiceProvider serviceProvider, int poiId)
+    private static async Task TriggerProximityNarrationAsync(IServiceProvider serviceProvider, string poiId)
     {
         try
         {

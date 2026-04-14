@@ -64,29 +64,41 @@ public sealed class DataService : IDataService
 
         var poiOperaHouse = new POI
         {
+            Id = "VS-001",
+            Type = PoiType.Visit,
             Latitude = 10.776889,
             Longitude = 106.700806,
             ActivationRadius = 120,
             Priority = 1,
-            QRCodeId = "QR-ND-001"
+            QRCodeId = "QR-ND-001",
+            ApprovalStatus = PoiApprovalStatus.Approved,
+            SubmittedUtc = DateTimeOffset.UtcNow
         };
 
         var poiMuseum = new POI
         {
+            Id = "VS-002",
+            Type = PoiType.Visit,
             Latitude = 10.780245,
             Longitude = 106.699020,
             ActivationRadius = 150,
             Priority = 2,
-            QRCodeId = "QR-BT-002"
+            QRCodeId = "QR-BT-002",
+            ApprovalStatus = PoiApprovalStatus.Approved,
+            SubmittedUtc = DateTimeOffset.UtcNow
         };
 
         var poiBenThanh = new POI
         {
+            Id = "FD-001",
+            Type = PoiType.Food,
             Latitude = 10.773500,
             Longitude = 106.704200,
             ActivationRadius = 100,
             Priority = 3,
-            QRCodeId = "QR-CH-003"
+            QRCodeId = "QR-CH-003",
+            ApprovalStatus = PoiApprovalStatus.Approved,
+            SubmittedUtc = DateTimeOffset.UtcNow
         };
 
         dbContext.Pois.AddRange(poiOperaHouse, poiMuseum, poiBenThanh);

@@ -8,7 +8,7 @@ public class POITranslation
 {
     public int Id { get; set; }
 
-    public int PoiId { get; set; }
+    public string PoiId { get; set; } = string.Empty;
 
     public int LanguageId { get; set; }
 

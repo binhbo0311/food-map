@@ -1,4 +1,5 @@
 using FOOD_MAP.Shared.Data;
+using FOOD_MAP.Shared.Models;
 using FOOD_MAP.ViewModels;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +23,7 @@ public sealed class PoiRepository : IPoiRepository
         {
             var pois = await dbContext.Pois
                 .AsNoTracking()
+                .Where(x => x.ApprovalStatus == PoiApprovalStatus.Approved)
                 .OrderBy(x => x.Priority)
                 .ThenBy(x => x.Id)
                 .ToListAsync(cancellationToken);
@@ -57,6 +59,7 @@ public sealed class PoiRepository : IPoiRepository
 
                 items.Add(new PoiListItemViewModel(
                     poi.Id,
+                    poi.Type,
                     poi.Latitude,
                     poi.Longitude,
                     displayName,
@@ -84,6 +87,150 @@ public sealed class PoiRepository : IPoiRepository
                 "Không thể tải POI từ PostgreSQL. Hãy kiểm tra POSTGRES_HOST/POSTGRES_PORT và kết nối mạng từ thiết bị.",
                 ex);
         }
+    }
+
+    public async Task<IReadOnlyList<FoodMenuItemViewModel>> GetFoodItemsByPoiIdAsync(string poiId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(poiId))
+        {
+            return Array.Empty<FoodMenuItemViewModel>();
+        }
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var items = await dbContext.FoodItems
+            .AsNoTracking()
+            .Where(x => x.PoiId == poiId)
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Id)
+            .Select(x => new FoodMenuItemViewModel(
+                x.Id,
+                x.Name,
+                x.Description ?? string.Empty,
+                x.Price,
+                x.Currency,
+                x.IsAvailable))
+            .ToListAsync(cancellationToken);
+
+        return items;
+    }
+
+    public async Task<IReadOnlyList<PoiAvailableLanguageOption>> GetAvailableLanguagesForPoiAsync(string poiId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(poiId))
+        {
+            return Array.Empty<PoiAvailableLanguageOption>();
+        }
+
+        var normalizedPoiId = poiId.Trim().ToUpperInvariant();
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var poiExists = await dbContext.Pois
+            .AsNoTracking()
+            .AnyAsync(
+                x => x.Id == normalizedPoiId && x.ApprovalStatus == PoiApprovalStatus.Approved,
+                cancellationToken);
+
+        if (!poiExists)
+        {
+            return Array.Empty<PoiAvailableLanguageOption>();
+        }
+
+        var translations = await dbContext.PoiTranslations
+            .AsNoTracking()
+            .Include(x => x.Language)
+            .Where(x => x.PoiId == normalizedPoiId)
+            .ToListAsync(cancellationToken);
+
+        var languageOptions = translations
+            .Where(x => !string.IsNullOrWhiteSpace(x.Language?.LanguageCode))
+            .Select(x =>
+            {
+                var normalizedCode = NormalizeLanguageCode(x.Language!.LanguageCode);
+                var languageName = string.IsNullOrWhiteSpace(x.Language.LanguageName)
+                    ? normalizedCode.ToUpperInvariant()
+                    : x.Language.LanguageName.Trim();
+
+                return new PoiAvailableLanguageOption
+                {
+                    LanguageCode = normalizedCode,
+                    LanguageName = languageName
+                };
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x.LanguageCode))
+            .GroupBy(x => x.LanguageCode, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .OrderBy(x => GetLanguagePriority(x.LanguageCode))
+            .ThenBy(x => x.LanguageName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return languageOptions;
+    }
+
+    private static int GetLanguagePriority(string languageCode)
+    {
+        var normalized = NormalizeLanguageCode(languageCode);
+        return normalized switch
+        {
+            "vi" => 0,
+            "en" => 1,
+            _ => 2
+        };
+    }
+
+    public async Task<PoiScanResult?> GetPoiScanResultAsync(string poiId, string languageCode, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(poiId))
+        {
+            return null;
+        }
+
+        var normalizedPoiId = poiId.Trim().ToUpperInvariant();
+        var normalizedLanguageCode = NormalizeLanguageCode(languageCode);
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var poi = await dbContext.Pois
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                x => x.Id == normalizedPoiId && x.ApprovalStatus == PoiApprovalStatus.Approved,
+                cancellationToken);
+
+        if (poi is null)
+        {
+            return null;
+        }
+
+        var translations = await dbContext.PoiTranslations
+            .AsNoTracking()
+            .Include(x => x.Language)
+            .Where(x => x.PoiId == poi.Id)
+            .ToListAsync(cancellationToken);
+
+        var translation = translations.FirstOrDefault(x => IsLanguageMatch(x.Language?.LanguageCode, normalizedLanguageCode))
+                          ?? translations.FirstOrDefault(x => IsLanguageMatch(x.Language?.LanguageCode, "en"))
+                          ?? translations.FirstOrDefault(x => IsLanguageMatch(x.Language?.LanguageCode, "vi"))
+                          ?? translations.FirstOrDefault();
+
+        if (translation is null)
+        {
+            return null;
+        }
+
+        var foodItems = poi.Type == PoiType.Food
+            ? await GetFoodItemsByPoiIdAsync(poi.Id, cancellationToken)
+            : Array.Empty<FoodMenuItemViewModel>();
+
+        return new PoiScanResult
+        {
+            PoiId = poi.Id,
+            PoiType = poi.Type,
+            LocationName = translation.LocationName,
+            Description = translation.Description,
+            TtsScript = string.IsNullOrWhiteSpace(translation.TtsScript) ? translation.Description : translation.TtsScript,
+            FoodItems = foodItems
+        };
     }
 
     private static bool IsLanguageMatch(string? candidateLanguageCode, string expectedLanguageCode)

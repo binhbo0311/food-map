@@ -91,7 +91,7 @@ namespace FOOD_MAP
             await ExpandBottomSheetAsync();
         }
 
-        private void OnPoiSelectionChanged(object? sender, SelectionChangedEventArgs e)
+        private async void OnPoiSelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
             if (e.CurrentSelection.FirstOrDefault() is not PoiListItemViewModel selectedPoi)
             {
@@ -99,6 +99,7 @@ namespace FOOD_MAP
             }
 
             SetSelectedPoi(selectedPoi);
+            await _viewModel.OnPoiSelectedAsync(selectedPoi);
 
             // Tu dong dua camera ban do den POI vua chon de nguoi dung khong can tu keo tay.
             MoveMapToPoi(selectedPoi, 400);
@@ -108,6 +109,44 @@ namespace FOOD_MAP
 
             // Bo chon de lan cham tiep theo van kich hoat scroll lai.
             PoiCollectionView.SelectedItem = null;
+        }
+
+        private async void OnProcessQrClicked(object? sender, EventArgs e)
+        {
+            var scannedPoiId = QrPayloadEntry.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(scannedPoiId))
+            {
+                await DisplayAlertAsync("QR", "Please provide a POI id to simulate scan.", "OK");
+                return;
+            }
+
+            var languageOptions = await _viewModel.GetAvailableLanguagesForQrAsync(scannedPoiId);
+            if (languageOptions.Count == 0)
+            {
+                await DisplayAlertAsync("QR", $"No translation language is available in database for POI '{scannedPoiId}'.", "OK");
+                return;
+            }
+
+            var optionLabels = languageOptions.Select(x => x.PromptLabel).ToArray();
+            var selectedLabel = await DisplayActionSheetAsync(
+                "Which language group do you belong to?",
+                "Cancel",
+                null,
+                optionLabels);
+
+            if (string.IsNullOrWhiteSpace(selectedLabel) || string.Equals(selectedLabel, "Cancel", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var selectedLanguage = languageOptions.FirstOrDefault(x => string.Equals(x.PromptLabel, selectedLabel, StringComparison.Ordinal));
+            if (selectedLanguage is null)
+            {
+                await DisplayAlertAsync("QR", "Selected language is invalid.", "OK");
+                return;
+            }
+
+            await _viewModel.HandleQrScanAsync(scannedPoiId, selectedLanguage.LanguageCode);
         }
 
         private void MoveMapToPoi(PoiListItemViewModel poi, double radiusInMeters)
@@ -149,6 +188,9 @@ namespace FOOD_MAP
                     Location = new Location(poi.Latitude, poi.Longitude)
                 };
 
+                pin.BindingContext = poi;
+                pin.MarkerClicked += OnPoiPinMarkerClicked;
+
                 map.Pins.Add(pin);
             }
 
@@ -174,6 +216,19 @@ namespace FOOD_MAP
             }
 
             RenderPoiPins();
+        }
+
+        private async void OnPoiPinMarkerClicked(object? sender, PinClickedEventArgs e)
+        {
+            if (sender is not Pin { BindingContext: PoiListItemViewModel poi })
+            {
+                return;
+            }
+
+            SetSelectedPoi(poi);
+            await _viewModel.OnPoiSelectedAsync(poi);
+            MoveMapToPoi(poi, 320);
+            e.HideInfoWindow = false;
         }
 
         private void HideSelectedPoiCard()

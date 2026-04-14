@@ -106,7 +106,7 @@ else
                     <div class="col-md-6">
                         <label class="form-label">POI</label>
                         <InputSelect @bind-Value="translationFormModel.PoiId" class="form-select">
-                            <option value="0">-- Select POI --</option>
+                            <option value="">-- Select POI --</option>
                             @foreach (var poi in poiItems)
                             {
                                 <option value="@poi.Id">@poi.DisplayName</option>
@@ -172,7 +172,7 @@ else
             <div class="col-md-3">
                 <label class="form-label">Filter POI</label>
                 <InputSelect @bind-Value="translationPoiFilterId" class="form-select">
-                    <option value="0">All POI</option>
+                    <option value="">All POI</option>
                     @foreach (var poi in poiItems)
                     {
                         <option value="@poi.Id">@poi.DisplayName</option>
@@ -258,7 +258,7 @@ else
     private bool isErrorStatus;
     private int? editingTranslationId;
     private string translationSearchKeyword = string.Empty;
-    private int translationPoiFilterId;
+    private string translationPoiFilterId = string.Empty;
     private int translationLanguageFilterId;
     private string statusMessage = string.Empty;
 
@@ -410,7 +410,7 @@ else
 
     private async Task HandleSaveTranslationAsync()
     {
-        if (translationFormModel.PoiId <= 0 || translationFormModel.LanguageId <= 0)
+        if (string.IsNullOrWhiteSpace(translationFormModel.PoiId) || translationFormModel.LanguageId <= 0)
         {
             isErrorStatus = true;
             statusMessage = "Please choose both POI and language.";
@@ -545,7 +545,7 @@ else
         editingTranslationId = null;
         isEditMode = false;
 
-        translationFormModel.PoiId = 0;
+        translationFormModel.PoiId = string.Empty;
         translationFormModel.LanguageId = 0;
         translationFormModel.LocationName = string.Empty;
         translationFormModel.Description = string.Empty;
@@ -572,7 +572,7 @@ else
     private void ResetTranslationFilters()
     {
         translationSearchKeyword = string.Empty;
-        translationPoiFilterId = 0;
+        translationPoiFilterId = string.Empty;
         translationLanguageFilterId = 0;
     }
 
@@ -580,7 +580,7 @@ else
     {
         IEnumerable<TranslationRow> query = translationItems;
 
-        if (translationPoiFilterId > 0)
+        if (!string.IsNullOrWhiteSpace(translationPoiFilterId))
         {
             query = query.Where(x => x.PoiId == translationPoiFilterId);
         }
@@ -614,7 +614,7 @@ else
 
     private sealed class PoiOption
     {
-        public int Id { get; set; }
+        public string Id { get; set; } = string.Empty;
 
         public string DisplayName { get; set; } = string.Empty;
     }
@@ -623,7 +623,7 @@ else
     {
         public int Id { get; set; }
 
-        public int PoiId { get; set; }
+        public string PoiId { get; set; } = string.Empty;
 
         public int LanguageId { get; set; }
 
@@ -657,8 +657,8 @@ else
 
     private sealed class TranslationFormModel
     {
-        [Range(1, int.MaxValue, ErrorMessage = "Please select a POI.")]
-        public int PoiId { get; set; }
+        [Required(ErrorMessage = "Please select a POI.")]
+        public string PoiId { get; set; } = string.Empty;
 
         [Range(1, int.MaxValue, ErrorMessage = "Please select a language.")]
         public int LanguageId { get; set; }

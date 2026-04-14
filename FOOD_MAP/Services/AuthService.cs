@@ -45,7 +45,7 @@ public sealed class AuthService : IAuthService
             return (false, "Thông tin đăng nhập không đúng.");
         }
 
-        _userSessionService.SignIn(user.Id, user.DisplayName);
+        _userSessionService.SignIn(user.Id, user.DisplayName, user.Role);
         return (true, $"Xin chào {user.DisplayName}.");
     }
 

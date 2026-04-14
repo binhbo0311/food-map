@@ -6,7 +6,7 @@ public class UserFavorite
 
     public int UserId { get; set; }
 
-    public int PoiId { get; set; }
+    public string PoiId { get; set; } = string.Empty;
 
     public DateTimeOffset CreatedUtc { get; set; }
 

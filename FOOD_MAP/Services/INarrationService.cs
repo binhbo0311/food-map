@@ -9,7 +9,7 @@ public interface INarrationService
     Task PlayProximityNarrationAsync(string shortIntro, string languageCode, CancellationToken cancellationToken = default);
 
     // Thêm một điểm POI vào hàng đợi phát nội dung.
-    Task EnqueuePoiNarrationAsync(int poiId, int languageId, CancellationToken cancellationToken = default);
+    Task EnqueuePoiNarrationAsync(string poiId, int languageId, CancellationToken cancellationToken = default);
 
     // Phát audio file local nếu tồn tại.
     Task PlayAudioFileAsync(string localAudioFilePath, CancellationToken cancellationToken = default);

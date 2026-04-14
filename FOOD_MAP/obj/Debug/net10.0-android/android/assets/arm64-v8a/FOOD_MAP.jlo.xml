@@ -1,0 +1,36 @@
+<api>
+  <jcw-types>
+    <type name="MainActivity" package="crc64f0883f9022e0d266" application_java_class="android.app.Application" mono_runtime_initialization="mono.MonoPackageManager.LoadApplication (context);" extends_type="crc6488302ad6e9e4df1a.MauiAppCompatActivity" partial_assembly_qualified_name="FOOD_MAP.MainActivity, FOOD_MAP">
+      <constructors>
+        <constructor name="MainActivity" method="n_.ctor:()V:" jni_signature="()V" managed_parameters="" retval="void" is_dynamically_registered="True" />
+        <constructor name="MainActivity" method="n_.ctor:(I)V:" jni_signature="(I)V" managed_parameters="System.Int32, System.Private.CoreLib" params="int p0" retval="void" is_dynamically_registered="True" super_call="p0" activate_call="p0" />
+      </constructors>
+    </type>
+    <type name="MainApplication" package="crc64f0883f9022e0d266" application_java_class="android.app.Application" mono_runtime_initialization="mono.MonoPackageManager.LoadApplication (context);" extends_type="crc6488302ad6e9e4df1a.MauiApplication" is_application="True" partial_assembly_qualified_name="FOOD_MAP.MainApplication, FOOD_MAP" application_constructor="MainApplication" />
+    <type name="LocationTrackingForegroundService" package="crc647734b4bd6c272a5b" application_java_class="android.app.Application" mono_runtime_initialization="mono.MonoPackageManager.LoadApplication (context);" extends_type="android.app.Service" partial_assembly_qualified_name="FOOD_MAP.Services.LocationTrackingForegroundService, FOOD_MAP">
+      <constructors>
+        <constructor name="LocationTrackingForegroundService" method="n_.ctor:()V:" jni_signature="()V" managed_parameters="" retval="void" is_dynamically_registered="True" />
+      </constructors>
+      <methods>
+        <method name="onCreate" method="n_onCreate:()V:GetOnCreateHandler" jni_signature="()V" retval="void" is_dynamically_registered="True" />
+        <method name="onStartCommand" method="n_onStartCommand:(Landroid/content/Intent;II)I:GetOnStartCommand_Landroid_content_Intent_IIHandler" jni_signature="(Landroid/content/Intent;II)I" params="android.content.Intent p0, int p1, int p2" retval="int" is_dynamically_registered="True" super_call="p0, p1, p2" activate_call="p0, p1, p2" />
+        <method name="onBind" method="n_onBind:(Landroid/content/Intent;)Landroid/os/IBinder;:GetOnBind_Landroid_content_Intent_Handler" jni_signature="(Landroid/content/Intent;)Landroid/os/IBinder;" params="android.content.Intent p0" retval="android.os.IBinder" is_dynamically_registered="True" super_call="p0" activate_call="p0" />
+        <method name="onDestroy" method="n_onDestroy:()V:GetOnDestroyHandler" jni_signature="()V" retval="void" is_dynamically_registered="True" />
+      </methods>
+    </type>
+    <type name="LocationTrackingForegroundService_TrackingLocationCallback" package="crc647734b4bd6c272a5b" application_java_class="android.app.Application" mono_runtime_initialization="mono.MonoPackageManager.LoadApplication (context);" extends_type="crc64e95e69e34d869711.LocationCallback" partial_assembly_qualified_name="FOOD_MAP.Services.LocationTrackingForegroundService+TrackingLocationCallback, FOOD_MAP">
+      <constructors>
+        <constructor name="LocationTrackingForegroundService_TrackingLocationCallback" method="n_.ctor:()V:" jni_signature="()V" managed_parameters="" retval="void" is_dynamically_registered="True" />
+      </constructors>
+      <methods>
+        <method name="onLocationResult" method="n_onLocationResult:(Lcom/google/android/gms/location/LocationResult;)V:GetOnLocationResult_Lcom_google_android_gms_location_LocationResult_Handler" jni_signature="(Lcom/google/android/gms/location/LocationResult;)V" params="com.google.android.gms.location.LocationResult p0" retval="void" is_dynamically_registered="True" super_call="p0" activate_call="p0" />
+      </methods>
+    </type>
+  </jcw-types>
+  <acw-types partial-assembly-name="FOOD_MAP" module-name="FOOD_MAP.dll">
+    <type assembly-qualified-name="FOOD_MAP.MainActivity, FOOD_MAP, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" compat-jni-name="food_map.MainActivity" java-key="crc64f0883f9022e0d266.MainActivity" managed-key="FOOD_MAP.MainActivity" partial-assembly-qualified-name="FOOD_MAP.MainActivity, FOOD_MAP" />
+    <type assembly-qualified-name="FOOD_MAP.MainApplication, FOOD_MAP, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" compat-jni-name="food_map.MainApplication" java-key="crc64f0883f9022e0d266.MainApplication" managed-key="FOOD_MAP.MainApplication" partial-assembly-qualified-name="FOOD_MAP.MainApplication, FOOD_MAP" />
+    <type assembly-qualified-name="FOOD_MAP.Services.LocationTrackingForegroundService, FOOD_MAP, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" compat-jni-name="food_map.services.LocationTrackingForegroundService" java-key="crc647734b4bd6c272a5b.LocationTrackingForegroundService" managed-key="FOOD_MAP.Services.LocationTrackingForegroundService" partial-assembly-qualified-name="FOOD_MAP.Services.LocationTrackingForegroundService, FOOD_MAP" />
+    <type assembly-qualified-name="FOOD_MAP.Services.LocationTrackingForegroundService+TrackingLocationCallback, FOOD_MAP, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" compat-jni-name="food_map.services.LocationTrackingForegroundService_TrackingLocationCallback" java-key="crc647734b4bd6c272a5b.LocationTrackingForegroundService_TrackingLocationCallback" managed-key="FOOD_MAP.Services.LocationTrackingForegroundService.TrackingLocationCallback" partial-assembly-qualified-name="FOOD_MAP.Services.LocationTrackingForegroundService+TrackingLocationCallback, FOOD_MAP" />
+  </acw-types>
+</api>

@@ -15,6 +15,7 @@ builder.Services.AddRazorComponents()
 
 // Đăng ký dịch vụ phụ thuộc thiết bị được dùng bởi dự án dùng chung.
 builder.Services.AddSingleton<IFormFactor, FormFactor>();
+builder.Services.AddSingleton<IPoiWorkflowRepository, PoiWorkflowRepository>();
 
 // Liên kết chung cơ sở dữ liệu PostgreSQL để Web và App dùng cùng nguồn dữ liệu.
 var postgresConnectionString = BuildPostgresConnectionString();

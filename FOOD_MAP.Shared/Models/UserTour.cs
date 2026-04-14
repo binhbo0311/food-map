@@ -6,7 +6,7 @@ public class UserTour
 
     public int UserId { get; set; }
 
-    public int PoiId { get; set; }
+    public string PoiId { get; set; } = string.Empty;
 
     public string LanguageCode { get; set; } = string.Empty;
 

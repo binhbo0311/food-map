@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using FOOD_MAP.Shared.Models;
 
 namespace FOOD_MAP.ViewModels;
 
@@ -9,7 +10,9 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
     private bool _isFavorite;
     private bool _isVisited;
 
-    public int PoiId { get; }
+    public string PoiId { get; }
+
+    public PoiType PoiType { get; }
 
     public double Latitude { get; }
 
@@ -26,7 +29,8 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
     public string ImageUrl { get; }
 
     public PoiListItemViewModel(
-        int poiId,
+        string poiId,
+        PoiType poiType,
         double latitude,
         double longitude,
         string name,
@@ -37,6 +41,7 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
         bool isNearest = false)
     {
         PoiId = poiId;
+        PoiType = poiType;
         Latitude = latitude;
         Longitude = longitude;
         Name = name;
@@ -79,6 +84,8 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
     }
 
     public string FavoriteButtonText => _isFavorite ? "Unfav" : "Fav";
+
+    public bool IsFoodPoi => PoiType == PoiType.Food;
 
     public bool IsVisited
     {

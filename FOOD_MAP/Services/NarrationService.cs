@@ -21,7 +21,7 @@ public sealed class NarrationService : INarrationService
         return SpeakTextAsync(shortIntro, languageCode, cancellationToken);
     }
 
-    public async Task EnqueuePoiNarrationAsync(int poiId, int languageId, CancellationToken cancellationToken = default)
+    public async Task EnqueuePoiNarrationAsync(string poiId, int languageId, CancellationToken cancellationToken = default)
     {
         // Phương án này sẽ được nâng cấp ở bước sau khi có repository lookup riêng cho narration.
         await SpeakTextAsync($"POI {poiId}", "vi", cancellationToken);
