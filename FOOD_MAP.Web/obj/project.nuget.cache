@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "YUHWzYYVsX4=",
+  "dgSpecHash": "FQJCrgOu1dA=",
   "success": true,
-  "projectFilePath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\FOOD_MAP.Web.csproj",
+  "projectFilePath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\FOOD_MAP.Web.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\binhb\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.5\\microsoft.aspnetcore.app.internal.assets.10.0.5.nupkg.sha512",
     "C:\\Users\\binhb\\.nuget\\packages\\microsoft.entityframeworkcore\\10.0.0\\microsoft.entityframeworkcore.10.0.0.nupkg.sha512",

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FOOD_MAP.Shared")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0449c53096ce11a4f8d1d919ba821b21b3bfa02a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c17af8ab4409d202e17d7217220315265ab3efe7")]
 [assembly: System.Reflection.AssemblyProductAttribute("FOOD_MAP.Shared")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FOOD_MAP.Shared")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

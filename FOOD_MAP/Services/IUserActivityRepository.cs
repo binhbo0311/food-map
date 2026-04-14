@@ -13,4 +13,6 @@ public interface IUserActivityRepository
     Task AddTourAsync(int userId, string poiId, string languageCode, string triggerType, CancellationToken cancellationToken = default);
 
     Task<int> FlushPendingOperationsAsync(CancellationToken cancellationToken = default);
+
+    Task ClearLocalCacheAsync(CancellationToken cancellationToken = default);
 }

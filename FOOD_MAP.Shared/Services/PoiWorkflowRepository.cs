@@ -29,6 +29,11 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
+        var normalizedBusinessName = TextInputNormalizer.NormalizeSingleLine(businessName);
+        var normalizedBusinessAddress = TextInputNormalizer.NormalizeSingleLine(businessAddress);
+        var normalizedContactPhone = TextInputNormalizer.NormalizeSingleLine(contactPhone);
+        var normalizedNotes = TextInputNormalizer.NormalizeNullableMultiline(notes);
+
         var existingPendingRequest = await dbContext.OwnerRegistrationRequests
             .FirstOrDefaultAsync(
                 x => x.UserId == userId && x.Status == OwnerRegistrationStatus.Pending,
@@ -37,10 +42,10 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         if (existingPendingRequest is not null)
         {
             // Khi user đang có pending request, chỉ cho phép chỉnh sửa chính request đang chờ duyệt.
-            existingPendingRequest.BusinessName = businessName.Trim();
-            existingPendingRequest.BusinessAddress = businessAddress.Trim();
-            existingPendingRequest.ContactPhone = contactPhone.Trim();
-            existingPendingRequest.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+            existingPendingRequest.BusinessName = normalizedBusinessName;
+            existingPendingRequest.BusinessAddress = normalizedBusinessAddress;
+            existingPendingRequest.ContactPhone = normalizedContactPhone;
+            existingPendingRequest.Notes = normalizedNotes;
             existingPendingRequest.RequestedUtc = DateTimeOffset.UtcNow;
             existingPendingRequest.ReviewedUtc = null;
             existingPendingRequest.ReviewedByAdminUserId = null;
@@ -54,10 +59,10 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         var request = new OwnerRegistrationRequest
         {
             UserId = userId,
-            BusinessName = businessName.Trim(),
-            BusinessAddress = businessAddress.Trim(),
-            ContactPhone = contactPhone.Trim(),
-            Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
+            BusinessName = normalizedBusinessName,
+            BusinessAddress = normalizedBusinessAddress,
+            ContactPhone = normalizedContactPhone,
+            Notes = normalizedNotes,
             Status = OwnerRegistrationStatus.Pending,
             RequestedUtc = DateTimeOffset.UtcNow
         };
@@ -190,9 +195,10 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         request.Status = OwnerRegistrationStatus.Rejected;
         request.ReviewedUtc = DateTimeOffset.UtcNow;
         request.ReviewedByAdminUserId = adminUserId;
-        request.RejectionReason = string.IsNullOrWhiteSpace(rejectionReason)
+        var normalizedRejectionReason = TextInputNormalizer.NormalizeNullableMultiline(rejectionReason);
+        request.RejectionReason = string.IsNullOrWhiteSpace(normalizedRejectionReason)
             ? "Rejected by administrator."
-            : rejectionReason.Trim();
+            : normalizedRejectionReason;
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return (true, "Owner registration request rejected.");
@@ -218,7 +224,13 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
         var poiId = await GenerateNextPoiIdInternalAsync(dbContext, type, cancellationToken);
-        var normalizedLanguageCode = NormalizeLanguageCode(baseLanguageCode);
+        var normalizedLanguageCode = NormalizeLanguageCode(TextInputNormalizer.NormalizeSingleLine(baseLanguageCode));
+        var normalizedLocationName = TextInputNormalizer.NormalizeSingleLine(locationName);
+        var normalizedDescription = TextInputNormalizer.NormalizeMultiline(description);
+        var normalizedImageUrl = TextInputNormalizer.NormalizeSingleLine(imageUrl);
+        var normalizedAudioFileUrl = TextInputNormalizer.NormalizeSingleLine(audioFileUrl);
+        var normalizedTtsScript = TextInputNormalizer.NormalizeMultiline(ttsScript);
+        var normalizedQrCodeId = TextInputNormalizer.NormalizeNullableSingleLine(qrCodeId);
 
         var language = await dbContext.Languages
             .FirstOrDefaultAsync(x => x.LanguageCode == normalizedLanguageCode, cancellationToken);
@@ -243,7 +255,7 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
             Longitude = longitude,
             ActivationRadius = activationRadius,
             Priority = priority,
-            QRCodeId = string.IsNullOrWhiteSpace(qrCodeId) ? null : qrCodeId.Trim(),
+            QRCodeId = normalizedQrCodeId,
             ApprovalStatus = PoiApprovalStatus.Pending,
             SubmittedUtc = DateTimeOffset.UtcNow,
             OwnerId = ownerUserId
@@ -255,11 +267,11 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         {
             PoiId = poi.Id,
             LanguageId = language.Id,
-            LocationName = locationName.Trim(),
-            Description = description.Trim(),
-            ImageUrl = imageUrl.Trim(),
-            AudioFileUrl = audioFileUrl.Trim(),
-            TtsScript = ttsScript.Trim()
+            LocationName = normalizedLocationName,
+            Description = normalizedDescription,
+            ImageUrl = normalizedImageUrl,
+            AudioFileUrl = normalizedAudioFileUrl,
+            TtsScript = normalizedTtsScript
         });
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -315,7 +327,7 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         poi.Longitude = longitude;
         poi.ActivationRadius = activationRadius;
         poi.Priority = priority;
-        poi.QRCodeId = string.IsNullOrWhiteSpace(qrCodeId) ? null : qrCodeId.Trim();
+        poi.QRCodeId = TextInputNormalizer.NormalizeNullableSingleLine(qrCodeId);
 
         // Owner chỉnh sửa thông tin cơ bản sẽ quay lại trạng thái chờ admin duyệt.
         poi.ApprovalStatus = PoiApprovalStatus.Pending;
@@ -374,7 +386,8 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
             throw new InvalidOperationException("POI id is required.");
         }
 
-        if (string.IsNullOrWhiteSpace(name))
+        var normalizedName = TextInputNormalizer.NormalizeSingleLine(name);
+        if (string.IsNullOrWhiteSpace(normalizedName))
         {
             throw new InvalidOperationException("Food item name is required.");
         }
@@ -395,9 +408,12 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
             throw new InvalidOperationException("Food items can only be managed for food POIs.");
         }
 
-        var normalizedCurrency = string.IsNullOrWhiteSpace(currency)
+        var normalizedCurrencyInput = TextInputNormalizer.NormalizeSingleLine(currency);
+        var normalizedCurrency = string.IsNullOrWhiteSpace(normalizedCurrencyInput)
             ? "VND"
-            : currency.Trim().ToUpperInvariant();
+            : normalizedCurrencyInput.ToUpperInvariant();
+
+        var normalizedDescription = TextInputNormalizer.NormalizeNullableMultiline(description);
 
         if (foodItemId.HasValue && foodItemId.Value > 0)
         {
@@ -409,8 +425,8 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
                 throw new InvalidOperationException("Food item not found for this POI.");
             }
 
-            existingItem.Name = name.Trim();
-            existingItem.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+            existingItem.Name = normalizedName;
+            existingItem.Description = normalizedDescription;
             existingItem.Price = price;
             existingItem.Currency = normalizedCurrency;
             existingItem.IsAvailable = isAvailable;
@@ -426,8 +442,8 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         {
             PoiId = normalizedPoiId,
             OwnerId = ownerUserId,
-            Name = name.Trim(),
-            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+            Name = normalizedName,
+            Description = normalizedDescription,
             Price = price,
             Currency = normalizedCurrency,
             IsAvailable = isAvailable,

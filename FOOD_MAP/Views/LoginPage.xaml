@@ -32,7 +32,7 @@
                        TextColor="#143536" />
 
                 <Entry Text="{Binding UserName}"
-                       Placeholder="demo"
+                       Placeholder="Nhập tên đăng nhập"
                        BackgroundColor="#F2FBFB"
                        TextColor="#143536" />
 
@@ -42,7 +42,7 @@
                        TextColor="#143536" />
 
                 <Entry Text="{Binding Password}"
-                       Placeholder="123456"
+                       Placeholder="Nhập mật khẩu"
                        IsPassword="True"
                        BackgroundColor="#F2FBFB"
                        TextColor="#143536" />

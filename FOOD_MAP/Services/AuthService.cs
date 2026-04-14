@@ -1,5 +1,6 @@
 using FOOD_MAP.Shared.Data;
 using FOOD_MAP.Shared.Models;
+using FOOD_MAP.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FOOD_MAP.Services;
@@ -9,20 +10,24 @@ public sealed class AuthService : IAuthService
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly IUserSessionService _userSessionService;
     private readonly IDataService _dataService;
+    private readonly IUserActivityRepository _userActivityRepository;
 
     public AuthService(
         IDbContextFactory<AppDbContext> dbContextFactory,
         IUserSessionService userSessionService,
-        IDataService dataService)
+        IDataService dataService,
+        IUserActivityRepository userActivityRepository)
     {
         _dbContextFactory = dbContextFactory;
         _userSessionService = userSessionService;
         _dataService = dataService;
+        _userActivityRepository = userActivityRepository;
     }
 
     public async Task<(bool IsSuccess, string Message)> LoginAsync(string userName, string password, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
+        var normalizedUserName = TextInputNormalizer.NormalizeSingleLine(userName).ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalizedUserName) || string.IsNullOrWhiteSpace(password))
         {
             return (false, "Vui lòng nhập đầy đủ tài khoản và mật khẩu.");
         }
@@ -31,7 +36,6 @@ public sealed class AuthService : IAuthService
         await _dataService.SeedDataAsync(cancellationToken);
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var normalizedUserName = userName.Trim().ToLowerInvariant();
         var passwordHash = PasswordHasher.Hash(password);
 
         var user = await dbContext.Users
@@ -51,8 +55,10 @@ public sealed class AuthService : IAuthService
 
     public async Task<(bool IsSuccess, string Message)> RegisterAsync(string userName, string displayName, string password, CancellationToken cancellationToken = default)
     {
-        var normalizedUserName = userName.Trim().ToLowerInvariant();
-        var normalizedDisplayName = string.IsNullOrWhiteSpace(displayName) ? userName.Trim() : displayName.Trim();
+        var normalizedUserName = TextInputNormalizer.NormalizeSingleLine(userName).ToLowerInvariant();
+        var normalizedDisplayName = string.IsNullOrWhiteSpace(displayName)
+            ? TextInputNormalizer.NormalizeSingleLine(userName)
+            : TextInputNormalizer.NormalizeSingleLine(displayName);
 
         if (string.IsNullOrWhiteSpace(normalizedUserName) || string.IsNullOrWhiteSpace(password))
         {
@@ -92,7 +98,13 @@ public sealed class AuthService : IAuthService
 
     public Task ContinueAsGuestAsync(CancellationToken cancellationToken = default)
     {
+        // Guest mode không giữ dữ liệu cá nhân, xóa cache local trước khi chuyển session.
+        return ContinueAsGuestInternalAsync(cancellationToken);
+    }
+
+    private async Task ContinueAsGuestInternalAsync(CancellationToken cancellationToken)
+    {
+        await _userActivityRepository.ClearLocalCacheAsync(cancellationToken);
         _userSessionService.UseGuestMode();
-        return Task.CompletedTask;
     }
 }

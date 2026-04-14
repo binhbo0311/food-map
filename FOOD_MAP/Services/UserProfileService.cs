@@ -1,4 +1,5 @@
 using FOOD_MAP.Shared.Data;
+using FOOD_MAP.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FOOD_MAP.Services;
@@ -27,7 +28,8 @@ public sealed class UserProfileService : IUserProfileService
 
     public async Task<(bool IsSuccess, string Message)> UpdateDisplayNameAsync(int userId, string displayName, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(displayName))
+        var normalizedDisplayName = TextInputNormalizer.NormalizeSingleLine(displayName);
+        if (string.IsNullOrWhiteSpace(normalizedDisplayName))
         {
             return (false, "Display name cannot be empty.");
         }
@@ -40,7 +42,7 @@ public sealed class UserProfileService : IUserProfileService
             return (false, "User was not found.");
         }
 
-        user.DisplayName = displayName.Trim();
+        user.DisplayName = normalizedDisplayName;
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return (true, "Profile updated successfully.");

@@ -1,7 +1,7 @@
--- Run all seed scripts in order (psql)
+-- Run schema migration + test seed scripts in order (psql)
 -- Usage example:
--- psql -h <host> -p <port> -U <user> -d food_map -f seed-all.sql
+-- 1) psql -h <host> -p <port> -U <user> -f postgresql-init.sql
+-- 2) psql -h <host> -p <port> -U <user> -d food_map -f seed-all.sql
 
-\i 01-seed-poi-data.sql
-\i 02-seed-user-data.sql
-\i 03-seed-new-zones.sql
+-- Dùng script Phase 2 làm nguồn chuẩn để đảm bảo schema và dữ liệu test đồng nhất.
+\i 04-phase2-schema-update.sql

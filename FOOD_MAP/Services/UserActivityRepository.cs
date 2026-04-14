@@ -266,6 +266,26 @@ public sealed class UserActivityRepository : IUserActivityRepository
         }
     }
 
+    public async Task ClearLocalCacheAsync(CancellationToken cancellationToken = default)
+    {
+        await _pendingOperationLock.WaitAsync(cancellationToken);
+        try
+        {
+            // Xóa queue pending trong local storage để Guest mode không giữ dữ liệu cá nhân chưa đồng bộ.
+            Preferences.Default.Remove(PendingOperationsPreferenceKey);
+        }
+        finally
+        {
+            _pendingOperationLock.Release();
+        }
+
+        lock (_recentTourLock)
+        {
+            // Xóa bộ nhớ chống duplicate tour đã ghi theo user để tránh rò rỉ trạng thái cá nhân.
+            _recentTourByKey.Clear();
+        }
+    }
+
     private async Task ApplyFavoriteStateAsync(int userId, string poiId, bool isFavorite, CancellationToken cancellationToken)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
