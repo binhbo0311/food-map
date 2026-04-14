@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Windows.Input;
 using FOOD_MAP.Services;
 using FOOD_MAP.Shared.Models;
@@ -11,6 +12,8 @@ namespace FOOD_MAP.ViewModels;
 
 public sealed class MainPageViewModel : INotifyPropertyChanged
 {
+    private static readonly Regex PoiIdPattern = new("[A-Za-z]{2}-\\d{1,6}", RegexOptions.Compiled);
+
     private readonly IPoiRepository _poiRepository;
     private readonly INarrationService _narrationService;
     private readonly IDataService _dataService;
@@ -556,12 +559,48 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
         return options;
     }
 
-    public async Task HandleQrScanAsync(string scannedPoiId, string languageCode, CancellationToken cancellationToken = default)
+    public static string? ExtractPoiIdFromQrPayload(string? qrPayload)
     {
-        if (string.IsNullOrWhiteSpace(scannedPoiId))
+        if (string.IsNullOrWhiteSpace(qrPayload))
         {
-            SelectedPoiText = "QR payload is empty.";
-            return;
+            return null;
+        }
+
+        var normalizedPayload = qrPayload.Trim();
+
+        if (Uri.TryCreate(normalizedPayload, UriKind.Absolute, out var absoluteUri))
+        {
+            var poiIdFromQuery = TryGetPoiIdFromQuery(absoluteUri.Query);
+            if (!string.IsNullOrWhiteSpace(poiIdFromQuery))
+            {
+                normalizedPayload = poiIdFromQuery;
+            }
+            else
+            {
+                var lastSegment = absoluteUri.Segments.LastOrDefault();
+                if (!string.IsNullOrWhiteSpace(lastSegment))
+                {
+                    normalizedPayload = Uri.UnescapeDataString(lastSegment).Trim('/');
+                }
+            }
+        }
+
+        var matchedPoiId = PoiIdPattern.Match(normalizedPayload);
+        if (!matchedPoiId.Success)
+        {
+            return null;
+        }
+
+        return matchedPoiId.Value.ToUpperInvariant();
+    }
+
+    public async Task<PoiScanResult?> HandleQrScanAsync(string scannedPoiId, string languageCode, CancellationToken cancellationToken = default)
+    {
+        var normalizedPoiId = ExtractPoiIdFromQrPayload(scannedPoiId);
+        if (string.IsNullOrWhiteSpace(normalizedPoiId))
+        {
+            SelectedPoiText = "QR payload does not contain a valid POI id.";
+            return null;
         }
 
         var normalizedLanguageCode = NormalizeLanguageCode(languageCode);
@@ -570,16 +609,24 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
             AvailableLanguages.Add(normalizedLanguageCode);
         }
 
-        _selectedLanguage = normalizedLanguageCode;
-        OnPropertyChanged(nameof(SelectedLanguage));
-        Preferences.Default.Set("selected_language", normalizedLanguageCode);
+        var languageChanged = !string.Equals(_selectedLanguage, normalizedLanguageCode, StringComparison.OrdinalIgnoreCase);
+        if (languageChanged)
+        {
+            _selectedLanguage = normalizedLanguageCode;
+            OnPropertyChanged(nameof(SelectedLanguage));
+            Preferences.Default.Set("selected_language", normalizedLanguageCode);
 
-        var scanResult = await _poiRepository.GetPoiScanResultAsync(scannedPoiId, normalizedLanguageCode, cancellationToken);
+            // QR điều hướng ngôn ngữ sẽ đồng bộ lại danh sách POI theo locale mới.
+            _isLoaded = false;
+            await LoadPoisAsync(cancellationToken);
+        }
+
+        var scanResult = await _poiRepository.GetPoiScanResultAsync(normalizedPoiId, normalizedLanguageCode, cancellationToken);
         if (scanResult is null)
         {
-            SelectedPoiText = $"QR POI '{scannedPoiId}' not found or not approved.";
+            SelectedPoiText = $"QR POI '{normalizedPoiId}' not found or not approved.";
             HideFoodMenu();
-            return;
+            return null;
         }
 
         SelectedPoiText = $"QR matched: {scanResult.LocationName} ({normalizedLanguageCode}).";
@@ -593,7 +640,38 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
             HideFoodMenu();
         }
 
+        await _narrationService.StopAsync();
         await _narrationService.PlayManualNarrationAsync(scanResult.TtsScript, normalizedLanguageCode, cancellationToken);
+        return scanResult;
+    }
+
+    private static string? TryGetPoiIdFromQuery(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return null;
+        }
+
+        var segments = query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var segment in segments)
+        {
+            var keyValue = segment.Split('=', 2, StringSplitOptions.TrimEntries);
+            if (keyValue.Length != 2)
+            {
+                continue;
+            }
+
+            if (!string.Equals(keyValue[0], "poiId", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(keyValue[0], "poi", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(keyValue[0], "id", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            return Uri.UnescapeDataString(keyValue[1]);
+        }
+
+        return null;
     }
 
     private async Task PlayPoiAsync(PoiListItemViewModel? poi)

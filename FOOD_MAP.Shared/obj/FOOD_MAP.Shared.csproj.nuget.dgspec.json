@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {}
+    "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {}
   },
   "projects": {
-    "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
+    "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
+        "projectUniqueName": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
         "projectName": "FOOD_MAP.Shared",
-        "projectPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
+        "projectPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
         "packagesPath": "C:\\Users\\binhb\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\obj\\",
+        "outputPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -31,7 +31,6 @@
         },
         "frameworks": {
           "net10.0": {
-            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {}
           }
@@ -50,7 +49,6 @@
       },
       "frameworks": {
         "net10.0": {
-          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "Microsoft.AspNetCore.Components.Web": {

@@ -10,7 +10,7 @@
       <dSYMInfoPlistRelativePath>FOOD_MAP.app.dSYM\Contents\Info.plist</dSYMInfoPlistRelativePath>
       <SymbolFile></SymbolFile>
       <DSymName>FOOD_MAP.app.dSYM</DSymName>
-      <SourceProjectPath>c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP</SourceProjectPath>
+      <SourceProjectPath>C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP</SourceProjectPath>
       <IsXPCService></IsXPCService>
     </_PostProcessingItem>
   </ItemGroup>

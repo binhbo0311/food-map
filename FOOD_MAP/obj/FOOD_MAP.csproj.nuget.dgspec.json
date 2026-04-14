@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.csproj": {}
+    "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.csproj": {}
   },
   "projects": {
-    "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
+    "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
+        "projectUniqueName": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
         "projectName": "FOOD_MAP.Shared",
-        "projectPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
+        "projectPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
         "packagesPath": "C:\\Users\\binhb\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\obj\\",
+        "outputPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -31,7 +31,6 @@
         },
         "frameworks": {
           "net10.0": {
-            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {}
           }
@@ -50,7 +49,6 @@
       },
       "frameworks": {
         "net10.0": {
-          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "Microsoft.AspNetCore.Components.Web": {
@@ -360,14 +358,14 @@
         }
       }
     },
-    "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.csproj": {
+    "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.csproj",
+        "projectUniqueName": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.csproj",
         "projectName": "FOOD_MAP",
-        "projectPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.csproj",
+        "projectPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.csproj",
         "packagesPath": "C:\\Users\\binhb\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP\\obj\\",
+        "outputPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP\\obj\\",
         "projectStyle": "PackageReference",
         "crossTargeting": true,
         "fallbackFolders": [
@@ -390,39 +388,35 @@
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net10.0-android": {
-            "framework": "net10.0-android36.0",
+          "net10.0-android36.0": {
             "targetAlias": "net10.0-android",
             "projectReferences": {
-              "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
-                "projectPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj"
+              "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
+                "projectPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj"
               }
             }
           },
-          "net10.0-ios": {
-            "framework": "net10.0-ios26.2",
+          "net10.0-ios26.2": {
             "targetAlias": "net10.0-ios",
             "projectReferences": {
-              "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
-                "projectPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj"
+              "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
+                "projectPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj"
               }
             }
           },
-          "net10.0-maccatalyst": {
-            "framework": "net10.0-maccatalyst26.2",
+          "net10.0-maccatalyst26.2": {
             "targetAlias": "net10.0-maccatalyst",
             "projectReferences": {
-              "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
-                "projectPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj"
+              "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
+                "projectPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj"
               }
             }
           },
-          "net10.0-windows10.0.19041.0": {
-            "framework": "net10.0-windows10.0.19041",
+          "net10.0-windows10.0.19041": {
             "targetAlias": "net10.0-windows10.0.19041.0",
             "projectReferences": {
-              "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
-                "projectPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj"
+              "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
+                "projectPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj"
               }
             }
           }
@@ -440,8 +434,7 @@
         "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
-        "net10.0-android": {
-          "framework": "net10.0-android36.0",
+        "net10.0-android36.0": {
           "targetAlias": "net10.0-android",
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
@@ -777,8 +770,7 @@
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
         },
-        "net10.0-ios": {
-          "framework": "net10.0-ios26.2",
+        "net10.0-ios26.2": {
           "targetAlias": "net10.0-ios",
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
@@ -1110,8 +1102,7 @@
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
         },
-        "net10.0-maccatalyst": {
-          "framework": "net10.0-maccatalyst26.2",
+        "net10.0-maccatalyst26.2": {
           "targetAlias": "net10.0-maccatalyst",
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
@@ -1444,8 +1435,7 @@
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
         },
-        "net10.0-windows10.0.19041.0": {
-          "framework": "net10.0-windows10.0.19041",
+        "net10.0-windows10.0.19041": {
           "targetAlias": "net10.0-windows10.0.19041.0",
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
@@ -1486,8 +1476,24 @@
           "warn": true,
           "downloadDependencies": [
             {
+              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+              "version": "[10.0.5, 10.0.5]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Crossgen2.win-x64",
+              "version": "[10.0.5, 10.0.5]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.win-x64",
+              "version": "[10.0.5, 10.0.5]"
+            },
+            {
               "name": "Microsoft.Windows.SDK.NET.Ref",
               "version": "[10.0.19041.57, 10.0.19041.57]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+              "version": "[10.0.5, 10.0.5]"
             }
           ],
           "frameworkReferences": {
@@ -1783,6 +1789,9 @@
           "#import": []
         },
         "iossimulator-x64": {
+          "#import": []
+        },
+        "maccatalyst-arm64": {
           "#import": []
         },
         "maccatalyst-x64": {

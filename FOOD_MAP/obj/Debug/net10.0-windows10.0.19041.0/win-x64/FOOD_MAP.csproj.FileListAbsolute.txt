@@ -596,3 +596,8 @@ c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows
 c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\FOOD_MAP.Shared.wjwrrg6vye.bundle.scp.css.br
 c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\wwwroot\_content\FOOD_MAP.Shared\FOOD_MAP.Shared.wjwrrg6vye.bundle.scp.css
 c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\obj\Debug\net10.0-windows10.0.19041.0\win-x64\FOOD_MAP.sourcelink.json
+C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\Microsoft.Maui.Controls.HotReload.Forms.dll
+C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\Microsoft.VisualStudio.DesignTools.MobileTapContracts.dll
+C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\Microsoft.VisualStudio.DesignTools.TapContract.dll
+C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\bin\Debug\net10.0-windows10.0.19041.0\win-x64\Microsoft.VisualStudio.DesignTools.XamlTapContract.dll
+C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP\obj\Debug\net10.0-windows10.0.19041.0\win-x64\staticwebassets.upToDateCheck.txt

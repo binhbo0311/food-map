@@ -113,12 +113,15 @@ namespace FOOD_MAP
 
         private async void OnProcessQrClicked(object? sender, EventArgs e)
         {
-            var scannedPoiId = QrPayloadEntry.Text?.Trim();
+            var rawQrPayload = QrPayloadEntry.Text;
+            var scannedPoiId = MainPageViewModel.ExtractPoiIdFromQrPayload(rawQrPayload);
             if (string.IsNullOrWhiteSpace(scannedPoiId))
             {
-                await DisplayAlertAsync("QR", "Please provide a POI id to simulate scan.", "OK");
+                await DisplayAlertAsync("QR", "QR payload is invalid. Please scan a valid POI id (example: VS-002).", "OK");
                 return;
             }
+
+            QrPayloadEntry.Text = scannedPoiId;
 
             var languageOptions = await _viewModel.GetAvailableLanguagesForQrAsync(scannedPoiId);
             if (languageOptions.Count == 0)
@@ -146,7 +149,22 @@ namespace FOOD_MAP
                 return;
             }
 
-            await _viewModel.HandleQrScanAsync(scannedPoiId, selectedLanguage.LanguageCode);
+            var scanResult = await _viewModel.HandleQrScanAsync(scannedPoiId, selectedLanguage.LanguageCode);
+            if (scanResult is null)
+            {
+                return;
+            }
+
+            var scannedPoiItem = _viewModel.PoiItems.FirstOrDefault(x => string.Equals(x.PoiId, scanResult.PoiId, StringComparison.OrdinalIgnoreCase));
+            if (scannedPoiItem is null)
+            {
+                return;
+            }
+
+            SetSelectedPoi(scannedPoiItem);
+            await _viewModel.OnPoiSelectedAsync(scannedPoiItem);
+            MoveMapToPoi(scannedPoiItem, 320);
+            PoiCollectionView.ScrollTo(scannedPoiItem, position: ScrollToPosition.Center, animate: true);
         }
 
         private void MoveMapToPoi(PoiListItemViewModel poi, double radiusInMeters)

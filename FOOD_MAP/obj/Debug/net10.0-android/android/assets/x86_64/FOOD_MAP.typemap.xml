@@ -1,4 +1,4 @@
-<api type="debug" assembly-name="FOOD_MAP" mvid="56c67ddac4534d06beb9ca10b0d0156f">
+<api type="debug" assembly-name="FOOD_MAP" mvid="bdfe9fe183c14ea5927ed8fb415809f1">
   <java-to-managed>
     <entry java-name="crc64f0883f9022e0d266/MainActivity" managed-name="FOOD_MAP.MainActivity, FOOD_MAP" managed-type-token-id="33554442" />
     <entry java-name="crc64f0883f9022e0d266/MainApplication" managed-name="FOOD_MAP.MainApplication, FOOD_MAP" managed-type-token-id="33554443" />
