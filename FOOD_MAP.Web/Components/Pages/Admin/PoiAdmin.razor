@@ -203,6 +203,11 @@
             <label class="form-label">Vietnamese TTS Script (Base)</label>
             <InputTextArea @bind-Value="editorModel.VietnameseTtsScript" class="form-control" rows="3" />
         </div>
+
+        <div class="col-12">
+            <label class="form-label">Vietnamese Rich Content (Base, HTML/text)</label>
+            <InputTextArea @bind-Value="editorModel.VietnameseRichContentHtml" class="form-control" rows="6" />
+        </div>
     </div>
 
     <div class="d-flex gap-2 mt-3">
@@ -316,6 +321,10 @@ else
                     VietnameseTtsScript = x.PoiTranslations
                         .Where(t => t.LanguageId == vietnameseLanguageId)
                         .Select(t => t.TtsScript)
+                        .FirstOrDefault() ?? string.Empty,
+                    VietnameseRichContentHtml = x.PoiTranslations
+                        .Where(t => t.LanguageId == vietnameseLanguageId)
+                        .Select(t => t.RichContentHtml)
                         .FirstOrDefault() ?? string.Empty
                 })
                 .OrderBy(x => x.Priority)
@@ -416,6 +425,7 @@ else
                 vietnameseTranslation.ImageUrl = editorModel.VietnameseImageUrl.Trim();
                 vietnameseTranslation.AudioFileUrl = editorModel.VietnameseAudioFileUrl.Trim();
                 vietnameseTranslation.TtsScript = editorModel.VietnameseTtsScript.Trim();
+                vietnameseTranslation.RichContentHtml = editorModel.VietnameseRichContentHtml.Trim();
 
                 await dbContext.SaveChangesAsync();
 
@@ -450,7 +460,8 @@ else
                     Description = editorModel.VietnameseDescription.Trim(),
                     ImageUrl = editorModel.VietnameseImageUrl.Trim(),
                     AudioFileUrl = editorModel.VietnameseAudioFileUrl.Trim(),
-                    TtsScript = editorModel.VietnameseTtsScript.Trim()
+                    TtsScript = editorModel.VietnameseTtsScript.Trim(),
+                    RichContentHtml = editorModel.VietnameseRichContentHtml.Trim()
                 };
 
                 dbContext.PoiTranslations.Add(vietnameseTranslation);
@@ -492,6 +503,7 @@ else
         editorModel.VietnameseImageUrl = poi.VietnameseImageUrl;
         editorModel.VietnameseAudioFileUrl = poi.VietnameseAudioFileUrl;
         editorModel.VietnameseTtsScript = poi.VietnameseTtsScript;
+        editorModel.VietnameseRichContentHtml = poi.VietnameseRichContentHtml;
 
         isErrorStatus = false;
         statusMessage = $"Editing POI #{poi.Id}";
@@ -554,6 +566,7 @@ else
         editorModel.VietnameseImageUrl = string.Empty;
         editorModel.VietnameseAudioFileUrl = string.Empty;
         editorModel.VietnameseTtsScript = string.Empty;
+        editorModel.VietnameseRichContentHtml = string.Empty;
     }
 
     private async Task RefreshPendingWorkflowsAsync()
@@ -749,6 +762,8 @@ else
         public string VietnameseAudioFileUrl { get; set; } = string.Empty;
 
         public string VietnameseTtsScript { get; set; } = string.Empty;
+
+        public string VietnameseRichContentHtml { get; set; } = string.Empty;
     }
 
     private sealed class PoiFormModel
@@ -781,5 +796,7 @@ else
 
         [Required]
         public string VietnameseTtsScript { get; set; } = string.Empty;
+
+        public string VietnameseRichContentHtml { get; set; } = string.Empty;
     }
 }

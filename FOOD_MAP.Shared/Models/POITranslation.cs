@@ -22,6 +22,9 @@ public class POITranslation
 
     public string TtsScript { get; set; } = string.Empty;
 
+    // Nội dung mô tả mở rộng (HTML/text) để hiển thị chi tiết POI trên app.
+    public string RichContentHtml { get; set; } = string.Empty;
+
     public POI? Poi { get; set; }
 
     public Language? Language { get; set; }

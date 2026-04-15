@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS "POITranslations" (
     "ImageUrl" varchar(500) NOT NULL,
     "AudioFileUrl" varchar(500) NOT NULL,
     "TtsScript" text NOT NULL,
+    "RichContentHtml" text NOT NULL DEFAULT '',
     CONSTRAINT "FK_POITranslations_POIs_PoiId" FOREIGN KEY ("PoiId") REFERENCES "POIs" ("Id") ON DELETE CASCADE,
     CONSTRAINT "FK_POITranslations_Languages_LanguageId" FOREIGN KEY ("LanguageId") REFERENCES "Languages" ("Id") ON DELETE RESTRICT,
     CONSTRAINT "UX_POITranslations_PoiId_LanguageId" UNIQUE ("PoiId", "LanguageId")

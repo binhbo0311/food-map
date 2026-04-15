@@ -1,6 +1,8 @@
 using FOOD_MAP.Services;
 using FOOD_MAP.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Text.RegularExpressions;
 using AppModel = Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Devices.Sensors;
@@ -12,10 +14,29 @@ namespace FOOD_MAP
     {
         private const double CollapsedBottomRatio = 0.25;
         private const double ExpandedBottomRatio = 0.75;
+        private const double TourArrivalRadiusMeters = 20;
+        private static readonly TimeSpan MarkerDoubleTapWindow = TimeSpan.FromMilliseconds(700);
+        private static readonly TimeSpan RouteArrivalPollInterval = TimeSpan.FromSeconds(4);
+        private static readonly Regex HtmlTagRegex = new("<[^>]+>", RegexOptions.Compiled);
+        private static readonly Regex ScriptTagRegex = new("<script\\b[^<]*(?:(?!</script>)<[^<]*)*</script>", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        private static readonly Regex StyleTagRegex = new("<style\\b[^<]*(?:(?!</style>)<[^<]*)*</style>", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        private static readonly Regex OnEventAttributeRegex = new("\\son[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*')", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex JavascriptHrefRegex = new("(href|src)\\s*=\\s*(\"|')\\s*javascript:[^\"']*(\"|')", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private readonly MainPageViewModel _viewModel;
         private readonly ILocationService _locationService;
+        private readonly IUserSessionService _userSessionService;
+        private readonly IUserActivityRepository _userActivityRepository;
+        private readonly HashSet<string> _routeArrivalLatchByPoiId = new(StringComparer.OrdinalIgnoreCase);
         private PoiListItemViewModel? _selectedPoi;
+        private Location? _activeRouteDestination;
+        private string? _activeRoutePoiId;
+        private string? _activeRoutePoiName;
+        private string? _lastMarkerTapPoiId;
+        private DateTimeOffset _lastMarkerTapUtc;
+        private CancellationTokenSource? _routeArrivalMonitorCts;
+        private bool _isRouteArrivalSavedForCurrentSession;
+        private bool _isSavingRouteArrival;
         private double _bottomSheetRatio = CollapsedBottomRatio;
         private bool _isAnimatingSheet;
     #if ANDROID
@@ -42,6 +63,8 @@ namespace FOOD_MAP
             var userSessionService = services.GetRequiredService<IUserSessionService>();
             var userActivityRepository = services.GetRequiredService<IUserActivityRepository>();
             _locationService = services.GetRequiredService<ILocationService>();
+            _userSessionService = userSessionService;
+            _userActivityRepository = userActivityRepository;
             _viewModel = new MainPageViewModel(poiRepository, narrationService, dataService, userSessionService, userActivityRepository);
             BindingContext = _viewModel;
 
@@ -225,6 +248,7 @@ namespace FOOD_MAP
             SelectedPoiDistanceLabel.Text = poi.DistanceText;
             SelectedPoiDescriptionLabel.Text = poi.Description;
             ApplySelectedPoiImage(poi.ImageUrl);
+            ApplySelectedPoiRichContent(poi.RichContentHtml);
 
             if (!SelectedPoiOverlay.IsVisible)
             {
@@ -243,10 +267,33 @@ namespace FOOD_MAP
                 return;
             }
 
+            var nowUtc = DateTimeOffset.UtcNow;
+            var isSecondTapOnSamePoi =
+                string.Equals(_lastMarkerTapPoiId, poi.PoiId, StringComparison.OrdinalIgnoreCase)
+                && (nowUtc - _lastMarkerTapUtc) <= MarkerDoubleTapWindow;
+
+            _lastMarkerTapPoiId = poi.PoiId;
+            _lastMarkerTapUtc = nowUtc;
+
+            // Khóa popup mặc định của marker để bắt buộc user chạm lần 2 mới mở card chi tiết.
+            e.HideInfoWindow = true;
+
+            if (!isSecondTapOnSamePoi)
+            {
+                _selectedPoi = poi;
+                HideSelectedPoiCard();
+                RenderPoiPins();
+                MoveMapToPoi(poi, 320);
+                _viewModel.SetStatusMessage($"Nhấn lại marker '{poi.Name}' để mở chi tiết.");
+                return;
+            }
+
+            _lastMarkerTapPoiId = null;
+            _lastMarkerTapUtc = DateTimeOffset.MinValue;
+
             SetSelectedPoi(poi);
             await _viewModel.OnPoiSelectedAsync(poi);
             MoveMapToPoi(poi, 320);
-            e.HideInfoWindow = false;
         }
 
         private void HideSelectedPoiCard()
@@ -259,6 +306,59 @@ namespace FOOD_MAP
             SelectedPoiImage.Source = null;
             SelectedPoiImage.IsVisible = false;
             SelectedPoiNoImageLabel.IsVisible = true;
+            SelectedPoiRichContentView.Source = new HtmlWebViewSource { Html = "<html><body></body></html>" };
+            SelectedPoiRichContentContainer.IsVisible = false;
+        }
+
+        private void ApplySelectedPoiRichContent(string richContent)
+        {
+            var htmlDocument = BuildRichContentDocument(richContent);
+            if (string.IsNullOrWhiteSpace(htmlDocument))
+            {
+                SelectedPoiRichContentView.Source = new HtmlWebViewSource { Html = "<html><body></body></html>" };
+                SelectedPoiRichContentContainer.IsVisible = false;
+                return;
+            }
+
+            SelectedPoiRichContentView.Source = new HtmlWebViewSource
+            {
+                Html = htmlDocument
+            };
+            SelectedPoiRichContentContainer.IsVisible = true;
+        }
+
+        private static string BuildRichContentDocument(string richContent)
+        {
+            var normalized = richContent?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return string.Empty;
+            }
+
+            var sanitized = ScriptTagRegex.Replace(normalized, string.Empty);
+            sanitized = StyleTagRegex.Replace(sanitized, string.Empty);
+            sanitized = OnEventAttributeRegex.Replace(sanitized, string.Empty);
+            sanitized = JavascriptHrefRegex.Replace(sanitized, string.Empty);
+
+            var looksLikeHtml = HtmlTagRegex.IsMatch(sanitized);
+            var safeBody = looksLikeHtml
+                ? sanitized
+                : $"<p>{WebUtility.HtmlEncode(sanitized).Replace("\n", "<br/>")}</p>";
+
+                        return "<!DOCTYPE html>"
+                                     + "<html><head>"
+                                     + "<meta charset=\"utf-8\" />"
+                                     + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />"
+                                     + "<style>"
+                                     + "body { margin: 0; font-family: 'Segoe UI', sans-serif; color: #275355; line-height: 1.45; font-size: 14px; }"
+                                     + "p { margin: 0 0 10px 0; }"
+                                     + "ul, ol { margin: 0 0 10px 20px; padding: 0; }"
+                                     + "h1, h2, h3, h4 { margin: 0 0 8px 0; color: #154D50; }"
+                                     + "img { max-width: 100%; height: auto; border-radius: 8px; }"
+                                     + "a { color: #0B949A; }"
+                                     + "</style></head><body>"
+                                     + safeBody
+                                     + "</body></html>";
         }
 
         private void ApplySelectedPoiImage(string imageUrl)
@@ -357,6 +457,10 @@ namespace FOOD_MAP
                     Name = _selectedPoi.Name,
                     NavigationMode = AppModel.NavigationMode.Driving
                 });
+
+                // Bắt đầu một lượt điều hướng mới để chỉ cộng tour khi user thực sự đến trong bán kính 20m.
+                BeginRouteArrivalSession(_selectedPoi);
+                _viewModel.SetStatusMessage($"Đang theo dõi đến nơi: {_selectedPoi.Name} (<= {TourArrivalRadiusMeters:0}m).");
             }
             catch
             {
@@ -456,6 +560,165 @@ namespace FOOD_MAP
         {
             // Áp dụng animation thay đổi RowDefinitions để bản đồ trở thành vùng hiển thị chính.
             return AnimateBottomSheetRatioAsync(CollapsedBottomRatio);
+        }
+
+        private void BeginRouteArrivalSession(PoiListItemViewModel destinationPoi)
+        {
+            StopRouteArrivalMonitor(clearSessionState: true);
+
+            _activeRouteDestination = new Location(destinationPoi.Latitude, destinationPoi.Longitude);
+            _activeRoutePoiId = destinationPoi.PoiId;
+            _activeRoutePoiName = destinationPoi.Name;
+            _isRouteArrivalSavedForCurrentSession = false;
+
+            _routeArrivalMonitorCts = new CancellationTokenSource();
+            _ = MonitorRouteArrivalAsync(_routeArrivalMonitorCts.Token);
+        }
+
+        private void StopRouteArrivalMonitor(bool clearSessionState)
+        {
+            if (_routeArrivalMonitorCts is not null)
+            {
+                _routeArrivalMonitorCts.Cancel();
+                _routeArrivalMonitorCts.Dispose();
+                _routeArrivalMonitorCts = null;
+            }
+
+            if (!clearSessionState)
+            {
+                return;
+            }
+
+            _activeRouteDestination = null;
+            _activeRoutePoiId = null;
+            _activeRoutePoiName = null;
+            _isRouteArrivalSavedForCurrentSession = false;
+            _isSavingRouteArrival = false;
+        }
+
+        private async Task MonitorRouteArrivalAsync(CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var destination = _activeRouteDestination;
+                var activePoiId = _activeRoutePoiId;
+                if (destination is null || string.IsNullOrWhiteSpace(activePoiId))
+                {
+                    return;
+                }
+
+                try
+                {
+                    var currentLocation = await _locationService.GetLastKnownLocationAsync(cancellationToken);
+                    if (currentLocation is not null)
+                    {
+                        var distanceKm = Location.CalculateDistance(currentLocation, destination, DistanceUnits.Kilometers);
+                        var distanceMeters = distanceKm * 1000d;
+                        var isInsideArrivalRadius = distanceMeters <= TourArrivalRadiusMeters;
+
+                        if (!isInsideArrivalRadius)
+                        {
+                            // Khi user đã ra khỏi vùng 20m, mở khóa để lượt ghé kế tiếp có thể được cộng tour lại.
+                            _routeArrivalLatchByPoiId.Remove(activePoiId);
+
+                            if (_isRouteArrivalSavedForCurrentSession)
+                            {
+                                StopRouteArrivalMonitor(clearSessionState: true);
+                                return;
+                            }
+                        }
+                        else if (!_isRouteArrivalSavedForCurrentSession
+                                 && !_routeArrivalLatchByPoiId.Contains(activePoiId))
+                        {
+                            _routeArrivalLatchByPoiId.Add(activePoiId);
+                            await SaveRouteArrivalTourAsync(activePoiId, _activeRoutePoiName ?? activePoiId, cancellationToken);
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                catch
+                {
+                    // Bỏ qua lỗi tức thời của GPS để vòng kiểm tra kế tiếp vẫn tiếp tục.
+                }
+
+                try
+                {
+                    await Task.Delay(RouteArrivalPollInterval, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+        }
+
+        private async Task SaveRouteArrivalTourAsync(string poiId, string poiName, CancellationToken cancellationToken)
+        {
+            if (_isSavingRouteArrival)
+            {
+                return;
+            }
+
+            _isSavingRouteArrival = true;
+            try
+            {
+                var currentUserId = _userSessionService.CurrentUserId;
+                if (_userSessionService.IsGuest || !currentUserId.HasValue)
+                {
+                    _isRouteArrivalSavedForCurrentSession = true;
+
+                    await AppModel.MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        _viewModel.SetStatusMessage($"Đã đến {poiName} trong 20m. Đăng nhập để lưu tour.");
+                    });
+
+                    return;
+                }
+
+                await _userActivityRepository.AddTourAsync(
+                    currentUserId.Value,
+                    poiId,
+                    _viewModel.SelectedLanguage,
+                    "route_arrival",
+                    cancellationToken);
+
+                _isRouteArrivalSavedForCurrentSession = true;
+
+                await AppModel.MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    var visitedPoi = _viewModel.PoiItems.FirstOrDefault(x =>
+                        string.Equals(x.PoiId, poiId, StringComparison.OrdinalIgnoreCase));
+
+                    if (visitedPoi is not null)
+                    {
+                        visitedPoi.IsVisited = true;
+                    }
+
+                    if (_selectedPoi is not null
+                        && string.Equals(_selectedPoi.PoiId, poiId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _selectedPoi.IsVisited = true;
+                    }
+
+                    _viewModel.SetStatusMessage($"Đã ghi nhận tour đến nơi: {poiName} (<= {TourArrivalRadiusMeters:0}m).");
+                });
+            }
+            catch
+            {
+                _isRouteArrivalSavedForCurrentSession = true;
+
+                await AppModel.MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    _viewModel.SetStatusMessage("Không thể lưu tour đến nơi lúc này.");
+                });
+            }
+            finally
+            {
+                _isSavingRouteArrival = false;
+            }
         }
     }
 }

@@ -13,13 +13,14 @@ public sealed class UserActivityRepository : IUserActivityRepository
     private const string TourOperationType = "tour";
     private const string PendingOperationsPreferenceKey = "user_activity_pending_sync_v1";
     private static readonly TimeSpan TourDuplicateWindow = TimeSpan.FromSeconds(12);
+    private static readonly TimeSpan RouteArrivalDuplicateWindow = TimeSpan.FromMinutes(6);
     private static readonly JsonSerializerOptions PendingOperationJsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly SemaphoreSlim _pendingOperationLock = new(1, 1);
     private readonly SemaphoreSlim _flushLock = new(1, 1);
     private readonly object _recentTourLock = new();
-    private readonly Dictionary<string, DateTimeOffset> _recentTourByKey = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, DateTimeOffset> _recentTourExpiryByKey = new(StringComparer.Ordinal);
 
     public UserActivityRepository(IDbContextFactory<AppDbContext> dbContextFactory)
     {
@@ -282,7 +283,7 @@ public sealed class UserActivityRepository : IUserActivityRepository
         lock (_recentTourLock)
         {
             // Xóa bộ nhớ chống duplicate tour đã ghi theo user để tránh rò rỉ trạng thái cá nhân.
-            _recentTourByKey.Clear();
+            _recentTourExpiryByKey.Clear();
         }
     }
 
@@ -315,8 +316,9 @@ public sealed class UserActivityRepository : IUserActivityRepository
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        // Chặn duplicate do thao tác nhanh bằng cách bỏ qua bản ghi trùng trong cửa sổ thời gian ngắn.
-        var duplicateThresholdUtc = DateTimeOffset.UtcNow - TourDuplicateWindow;
+        // Trigger route_arrival dùng cửa sổ dài hơn để đảm bảo một lượt ghé chỉ cộng một lần.
+        var duplicateWindow = ResolveTourDuplicateWindow(triggerType);
+        var duplicateThresholdUtc = DateTimeOffset.UtcNow - duplicateWindow;
         var isDuplicateTour = await dbContext.UserTours
             .AsNoTracking()
             .AnyAsync(
@@ -387,13 +389,14 @@ public sealed class UserActivityRepository : IUserActivityRepository
         {
             var pendingOperations = await LoadPendingOperationsUnsafeAsync();
             var now = DateTimeOffset.UtcNow;
+            var duplicateWindow = ResolveTourDuplicateWindow(triggerType);
 
             var hasSameRecentQueuedTour = pendingOperations.Any(x =>
                 string.Equals(x.OperationType, TourOperationType, StringComparison.Ordinal)
                 && x.UserId == userId
                 && x.PoiId == poiId
                 && string.Equals(x.TriggerType, triggerType, StringComparison.OrdinalIgnoreCase)
-                && (now - x.CreatedUtc) <= TourDuplicateWindow);
+                && (now - x.CreatedUtc) <= duplicateWindow);
 
             if (!hasSameRecentQueuedTour)
             {
@@ -424,27 +427,29 @@ public sealed class UserActivityRepository : IUserActivityRepository
         var normalizedTriggerType = string.IsNullOrWhiteSpace(triggerType) ? "manual" : triggerType;
         var key = $"{userId}:{poiId}:{normalizedTriggerType.ToLowerInvariant()}";
         var now = DateTimeOffset.UtcNow;
+        var duplicateWindow = ResolveTourDuplicateWindow(normalizedTriggerType);
+        var expiresUtc = now.Add(duplicateWindow);
 
         lock (_recentTourLock)
         {
-            var staleThreshold = now - TourDuplicateWindow;
-            var staleKeys = _recentTourByKey
-                .Where(x => x.Value < staleThreshold)
+            // Lưu thời điểm hết hạn theo từng key để trigger window dài/ngắn không ảnh hưởng lẫn nhau.
+            var staleKeys = _recentTourExpiryByKey
+                .Where(x => x.Value < now)
                 .Select(x => x.Key)
                 .ToList();
 
             foreach (var staleKey in staleKeys)
             {
-                _recentTourByKey.Remove(staleKey);
+                _recentTourExpiryByKey.Remove(staleKey);
             }
 
-            if (_recentTourByKey.TryGetValue(key, out var lastOperationUtc)
-                && (now - lastOperationUtc) <= TourDuplicateWindow)
+            if (_recentTourExpiryByKey.TryGetValue(key, out var existingExpiresUtc)
+                && existingExpiresUtc >= now)
             {
                 return true;
             }
 
-            _recentTourByKey[key] = now;
+            _recentTourExpiryByKey[key] = expiresUtc;
             return false;
         }
     }
@@ -520,7 +525,8 @@ public sealed class UserActivityRepository : IUserActivityRepository
                 x.UserId == operation.UserId
                 && x.PoiId == operation.PoiId
                 && string.Equals(x.TriggerType, operation.TriggerType, StringComparison.OrdinalIgnoreCase)
-                && Math.Abs((x.CreatedUtc - operation.CreatedUtc).TotalSeconds) <= TourDuplicateWindow.TotalSeconds);
+                && Math.Abs((x.CreatedUtc - operation.CreatedUtc).TotalSeconds)
+                    <= ResolveTourDuplicateWindow(operation.TriggerType).TotalSeconds);
 
             if (!hasNearDuplicate)
             {
@@ -538,6 +544,13 @@ public sealed class UserActivityRepository : IUserActivityRepository
     {
         var clampedRetry = Math.Clamp(retryCount, 1, 6);
         return (int)Math.Pow(2, clampedRetry);
+    }
+
+    private static TimeSpan ResolveTourDuplicateWindow(string? triggerType)
+    {
+        return string.Equals(triggerType, "route_arrival", StringComparison.OrdinalIgnoreCase)
+            ? RouteArrivalDuplicateWindow
+            : TourDuplicateWindow;
     }
 
     private static async Task ExecuteWithRetryAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken)

@@ -28,6 +28,8 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
 
     public string ImageUrl { get; }
 
+    public string RichContentHtml { get; }
+
     public PoiListItemViewModel(
         string poiId,
         PoiType poiType,
@@ -38,6 +40,7 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
         string description,
         string narrationText,
         string imageUrl,
+        string richContentHtml,
         bool isNearest = false)
     {
         PoiId = poiId;
@@ -49,6 +52,7 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
         Description = description;
         NarrationText = narrationText;
         ImageUrl = imageUrl;
+        RichContentHtml = richContentHtml;
         _isNearest = isNearest;
     }
 

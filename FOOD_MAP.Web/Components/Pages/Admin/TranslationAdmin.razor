@@ -149,6 +149,11 @@ else
                         <label class="form-label">TTS Script</label>
                         <InputTextArea @bind-Value="translationFormModel.TtsScript" class="form-control" rows="3" />
                     </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Rich Content (HTML/text)</label>
+                        <InputTextArea @bind-Value="translationFormModel.RichContentHtml" class="form-control" rows="6" />
+                    </div>
                 </div>
 
                 <div class="d-flex gap-2 mt-3">
@@ -322,7 +327,8 @@ else
                     Description = x.Description,
                     ImageUrl = x.ImageUrl,
                     AudioFileUrl = x.AudioFileUrl,
-                    TtsScript = x.TtsScript
+                    TtsScript = x.TtsScript,
+                    RichContentHtml = x.RichContentHtml
                 })
                 .ToListAsync();
 
@@ -460,6 +466,7 @@ else
             translation.ImageUrl = imageUrl;
             translation.AudioFileUrl = audioFileUrl;
             translation.TtsScript = translationFormModel.TtsScript.Trim();
+            translation.RichContentHtml = translationFormModel.RichContentHtml.Trim();
 
             await dbContext.SaveChangesAsync();
 
@@ -494,6 +501,7 @@ else
         translationFormModel.ImageUrl = item.ImageUrl;
         translationFormModel.AudioFileUrl = item.AudioFileUrl;
         translationFormModel.TtsScript = item.TtsScript;
+        translationFormModel.RichContentHtml = item.RichContentHtml;
 
         isErrorStatus = false;
         statusMessage = $"Editing translation #{item.Id}.";
@@ -552,6 +560,7 @@ else
         translationFormModel.ImageUrl = string.Empty;
         translationFormModel.AudioFileUrl = string.Empty;
         translationFormModel.TtsScript = string.Empty;
+        translationFormModel.RichContentHtml = string.Empty;
     }
 
     private static bool IsValidAbsoluteHttpUrl(string url)
@@ -642,6 +651,8 @@ else
         public string AudioFileUrl { get; set; } = string.Empty;
 
         public string TtsScript { get; set; } = string.Empty;
+
+        public string RichContentHtml { get; set; } = string.Empty;
     }
 
     private sealed class LanguageFormModel
@@ -680,6 +691,8 @@ else
 
         [Required]
         public string TtsScript { get; set; } = string.Empty;
+
+        public string RichContentHtml { get; set; } = string.Empty;
     }
 
     private enum AdminTab

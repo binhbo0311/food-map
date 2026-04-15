@@ -114,7 +114,8 @@ public sealed class DataService : IDataService
                 Description = "Công trình kiến trúc biểu tượng ở trung tâm Sài Gòn.",
                 ImageUrl = "https://picsum.photos/seed/nha_hat_thanh_pho/1200/800",
                 AudioFileUrl = "audio/vi/nha-hat-thanh-pho.mp3",
-                TtsScript = "Bạn đang ở gần Nhà hát Thành phố. Đây là điểm đến nổi bật của khu trung tâm."
+                TtsScript = "Bạn đang ở gần Nhà hát Thành phố. Đây là điểm đến nổi bật của khu trung tâm.",
+                RichContentHtml = "<h3>Lịch sử nhanh</h3><p>Nhà hát Thành phố là công trình kiến trúc tiêu biểu tại trung tâm.</p>"
             },
             new POITranslation
             {
@@ -124,7 +125,8 @@ public sealed class DataService : IDataService
                 Description = "Bảo tàng lưu giữ nhiều hiện vật lịch sử và văn hóa.",
                 ImageUrl = "https://picsum.photos/seed/bao_tang_thanh_pho/1200/800",
                 AudioFileUrl = "audio/vi/bao-tang-thanh-pho.mp3",
-                TtsScript = "Bạn đã đến gần Bảo tàng Thành phố. Hãy khám phá những câu chuyện lịch sử tại đây."
+                TtsScript = "Bạn đã đến gần Bảo tàng Thành phố. Hãy khám phá những câu chuyện lịch sử tại đây.",
+                RichContentHtml = "<h3>Gợi ý tham quan</h3><ul><li>Khu hiện vật cổ</li><li>Khu lịch sử đô thị</li></ul>"
             },
             new POITranslation
             {
@@ -134,7 +136,8 @@ public sealed class DataService : IDataService
                 Description = "Khu chợ nổi tiếng với ẩm thực và đặc sản địa phương.",
                 ImageUrl = "https://picsum.photos/seed/cho_ben_thanh/1200/800",
                 AudioFileUrl = "audio/vi/cho-ben-thanh.mp3",
-                TtsScript = "Bạn đang ở gần Chợ Bến Thành. Đây là nơi lý tưởng để trải nghiệm ẩm thực Sài Gòn."
+                TtsScript = "Bạn đang ở gần Chợ Bến Thành. Đây là nơi lý tưởng để trải nghiệm ẩm thực Sài Gòn.",
+                RichContentHtml = "<h3>Mẹo ăn uống</h3><p>Nên đi vào buổi chiều để trải nghiệm khu ẩm thực sôi động.</p>"
             },
             new POITranslation
             {
@@ -144,7 +147,8 @@ public sealed class DataService : IDataService
                 Description = "A landmark architecture in the heart of Ho Chi Minh City.",
                 ImageUrl = "https://picsum.photos/seed/city_opera_house/1200/800",
                 AudioFileUrl = "audio/en/city-opera-house.mp3",
-                TtsScript = "You are near the City Opera House, one of the most iconic spots in downtown Ho Chi Minh City."
+                TtsScript = "You are near the City Opera House, one of the most iconic spots in downtown Ho Chi Minh City.",
+                RichContentHtml = "<h3>Quick history</h3><p>The City Opera House is one of the best-known colonial-era buildings downtown.</p>"
             },
             new POITranslation
             {
@@ -154,7 +158,8 @@ public sealed class DataService : IDataService
                 Description = "A museum preserving historical and cultural collections.",
                 ImageUrl = "https://picsum.photos/seed/city_museum/1200/800",
                 AudioFileUrl = "audio/en/city-museum.mp3",
-                TtsScript = "You are close to the City Museum. Explore the historical stories preserved here."
+                TtsScript = "You are close to the City Museum. Explore the historical stories preserved here.",
+                RichContentHtml = "<h3>Visitor tips</h3><ul><li>Start from floor one</li><li>Allocate 45-60 minutes</li></ul>"
             },
             new POITranslation
             {
@@ -164,7 +169,8 @@ public sealed class DataService : IDataService
                 Description = "A famous market known for local food and souvenirs.",
                 ImageUrl = "https://picsum.photos/seed/ben_thanh_market/1200/800",
                 AudioFileUrl = "audio/en/ben-thanh-market.mp3",
-                TtsScript = "You are near Ben Thanh Market, a great place to enjoy local food and shopping."
+                TtsScript = "You are near Ben Thanh Market, a great place to enjoy local food and shopping.",
+                RichContentHtml = "<h3>What to try</h3><p>Look for local snacks and handmade souvenirs in the central lanes.</p>"
             });
 
         await dbContext.SaveChangesAsync(cancellationToken);

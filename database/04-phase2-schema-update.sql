@@ -131,6 +131,20 @@ ALTER TABLE "UserFavorites"
 ALTER TABLE "UserTours"
     ALTER COLUMN "PoiId" TYPE varchar(20);
 
+-- 3.1) POITranslations: rich content HTML cho popup chi tiet.
+ALTER TABLE "POITranslations"
+    ADD COLUMN IF NOT EXISTS "RichContentHtml" text;
+
+UPDATE "POITranslations"
+SET "RichContentHtml" = ''
+WHERE "RichContentHtml" IS NULL;
+
+ALTER TABLE "POITranslations"
+    ALTER COLUMN "RichContentHtml" SET DEFAULT '';
+
+ALTER TABLE "POITranslations"
+    ALTER COLUMN "RichContentHtml" SET NOT NULL;
+
 -- 4) POI owner/reviewer foreign keys
 DO $$
 BEGIN
@@ -346,7 +360,7 @@ WHERE o."UserName" = 'phase2_owner'
   AND NOT EXISTS (SELECT 1 FROM "POIs" p WHERE p."Id" = 'VS-902');
 
 INSERT INTO "POITranslations" (
-    "PoiId", "LanguageId", "LocationName", "Description", "ImageUrl", "AudioFileUrl", "TtsScript")
+    "PoiId", "LanguageId", "LocationName", "Description", "ImageUrl", "AudioFileUrl", "TtsScript", "RichContentHtml")
 SELECT
     'FD-901', l."Id",
     CASE WHEN l."LanguageCode" = 'vi' THEN 'Bếp Nhà Thử Nghiệm' ELSE 'Test Kitchen House' END,
@@ -357,7 +371,10 @@ SELECT
     'audio/' || l."LanguageCode" || '/fd-901.mp3',
     CASE WHEN l."LanguageCode" = 'vi'
          THEN 'Bạn đang ở điểm ăn uống thử nghiệm.'
-         ELSE 'You are near the test food location.' END
+            ELSE 'You are near the test food location.' END,
+        CASE WHEN l."LanguageCode" = 'vi'
+            THEN '<h3>Món nổi bật</h3><ul><li>Phở bò đặc biệt</li><li>Chả giò hải sản</li></ul><p>Không gian phù hợp nhóm 2-6 người.</p>'
+            ELSE '<h3>Featured dishes</h3><ul><li>Special beef pho</li><li>Seafood spring rolls</li></ul><p>Best for groups of 2-6 guests.</p>' END
 FROM "Languages" l
 WHERE l."LanguageCode" IN ('vi', 'en')
 ON CONFLICT ("PoiId", "LanguageId") DO UPDATE
@@ -366,10 +383,11 @@ SET
     "Description" = EXCLUDED."Description",
     "ImageUrl" = EXCLUDED."ImageUrl",
     "AudioFileUrl" = EXCLUDED."AudioFileUrl",
-    "TtsScript" = EXCLUDED."TtsScript";
+    "TtsScript" = EXCLUDED."TtsScript",
+    "RichContentHtml" = EXCLUDED."RichContentHtml";
 
 INSERT INTO "POITranslations" (
-    "PoiId", "LanguageId", "LocationName", "Description", "ImageUrl", "AudioFileUrl", "TtsScript")
+    "PoiId", "LanguageId", "LocationName", "Description", "ImageUrl", "AudioFileUrl", "TtsScript", "RichContentHtml")
 SELECT
     'VS-902', l."Id",
     CASE WHEN l."LanguageCode" = 'vi' THEN 'Điểm Tham Quan Chờ Duyệt' ELSE 'Pending Visit Spot' END,
@@ -380,7 +398,10 @@ SELECT
     'audio/' || l."LanguageCode" || '/vs-902.mp3',
     CASE WHEN l."LanguageCode" = 'vi'
          THEN 'POI này hiện đang chờ phê duyệt.'
-         ELSE 'This POI is currently pending approval.' END
+            ELSE 'This POI is currently pending approval.' END,
+        CASE WHEN l."LanguageCode" = 'vi'
+            THEN '<h3>Thông tin duyệt</h3><p>POI này đang chờ quản trị viên xét duyệt trước khi hiển thị công khai.</p>'
+            ELSE '<h3>Approval status</h3><p>This POI is waiting for admin review before it can be public.</p>' END
 FROM "Languages" l
 WHERE l."LanguageCode" IN ('vi', 'en')
 ON CONFLICT ("PoiId", "LanguageId") DO UPDATE
@@ -389,7 +410,8 @@ SET
     "Description" = EXCLUDED."Description",
     "ImageUrl" = EXCLUDED."ImageUrl",
     "AudioFileUrl" = EXCLUDED."AudioFileUrl",
-    "TtsScript" = EXCLUDED."TtsScript";
+    "TtsScript" = EXCLUDED."TtsScript",
+    "RichContentHtml" = EXCLUDED."RichContentHtml";
 
 INSERT INTO "FoodItems" (
     "PoiId", "OwnerId", "Name", "Description", "Price", "Currency", "IsAvailable", "DisplayOrder", "CreatedUtc", "UpdatedUtc")

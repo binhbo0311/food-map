@@ -56,6 +56,7 @@ public sealed class PoiRepository : IPoiRepository
                     ? description
                     : translation!.TtsScript;
                 var distanceText = $"Activation radius: {poi.ActivationRadius}m";
+                var richContentHtml = translation?.RichContentHtml ?? string.Empty;
 
                 items.Add(new PoiListItemViewModel(
                     poi.Id,
@@ -66,7 +67,8 @@ public sealed class PoiRepository : IPoiRepository
                     distanceText,
                     description,
                     narrationText,
-                    translation?.ImageUrl ?? string.Empty));
+                    translation?.ImageUrl ?? string.Empty,
+                    richContentHtml));
             }
 
             if (items.Count > 0)
@@ -229,6 +231,7 @@ public sealed class PoiRepository : IPoiRepository
             LocationName = translation.LocationName,
             Description = translation.Description,
             TtsScript = string.IsNullOrWhiteSpace(translation.TtsScript) ? translation.Description : translation.TtsScript,
+            RichContentHtml = translation.RichContentHtml,
             FoodItems = foodItems
         };
     }

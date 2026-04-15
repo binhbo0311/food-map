@@ -13,6 +13,8 @@ public sealed class PoiScanResult
 
     public string Description { get; init; } = string.Empty;
 
+    public string RichContentHtml { get; init; } = string.Empty;
+
     public string TtsScript { get; init; } = string.Empty;
 
     public IReadOnlyList<FoodMenuItemViewModel> FoodItems { get; init; } = Array.Empty<FoodMenuItemViewModel>();

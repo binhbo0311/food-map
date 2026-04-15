@@ -447,7 +447,7 @@
                     <RoundRectangle CornerRadius="20" />
                 </Border.StrokeShape>
 
-                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto" RowSpacing="10">
                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <Label x:Name="SelectedPoiNameLabel"
                                Grid.Column="0"
@@ -495,13 +495,89 @@
                            TextColor="{StaticResource PrimaryAquaDark}" />
 
                     <ScrollView Grid.Row="3">
-                        <Label x:Name="SelectedPoiDescriptionLabel"
-                               FontSize="14"
-                               LineBreakMode="WordWrap"
-                               TextColor="{StaticResource TextMuted}" />
+                        <VerticalStackLayout Spacing="10">
+                            <Label x:Name="SelectedPoiDescriptionLabel"
+                                   FontSize="14"
+                                   LineBreakMode="WordWrap"
+                                   TextColor="{StaticResource TextMuted}" />
+
+                            <Border x:Name="SelectedPoiRichContentContainer"
+                                    IsVisible="False"
+                                    Stroke="#D7ECEC"
+                                    StrokeThickness="1"
+                                    BackgroundColor="#FAFEFE"
+                                    Padding="8">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="Rich content"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+
+                                    <WebView x:Name="SelectedPoiRichContentView"
+                                             HeightRequest="230" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </VerticalStackLayout>
                     </ScrollView>
 
-                    <Button Grid.Row="4"
+                    <Border Grid.Row="4"
+                            IsVisible="{Binding IsFoodMenuVisible}"
+                            Stroke="#A9E1E2"
+                            StrokeThickness="1"
+                            BackgroundColor="#F2FBFB"
+                            Padding="10,8">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="{Binding FoodMenuHeader}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" />
+
+                            <CollectionView ItemsSource="{Binding FoodMenuItems}"
+                                            SelectionMode="None"
+                                            HeightRequest="150">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                                            <VerticalStackLayout Spacing="1">
+                                                <Label Text="{Binding Name}"
+                                                       FontSize="12"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{StaticResource TextPrimary}" />
+                                                <Label Text="{Binding Description}"
+                                                       FontSize="11"
+                                                       TextColor="{StaticResource TextMuted}"
+                                                       LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Column="1"
+                                                                 Spacing="1"
+                                                                 HorizontalOptions="End"
+                                                                 VerticalOptions="Center">
+                                                <Label Text="{Binding PriceText}"
+                                                       FontSize="11"
+                                                       HorizontalTextAlignment="End"
+                                                       TextColor="{StaticResource PrimaryAquaDark}" />
+                                                <Label Text="{Binding AvailabilityText}"
+                                                       FontSize="10"
+                                                       HorizontalTextAlignment="End"
+                                                       TextColor="{StaticResource TextMuted}" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Button Grid.Row="5"
                             Text="Directions"
                             HeightRequest="44"
                             CornerRadius="12"

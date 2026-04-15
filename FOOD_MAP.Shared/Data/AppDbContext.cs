@@ -101,6 +101,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.ImageUrl).IsRequired().HasMaxLength(500);
             entity.Property(x => x.AudioFileUrl).IsRequired().HasMaxLength(500);
             entity.Property(x => x.TtsScript).IsRequired();
+            entity.Property(x => x.RichContentHtml).IsRequired().HasDefaultValue(string.Empty);
 
             // Cấu hình khóa ngoại giữa POITranslation và POI.
             entity.HasOne(x => x.Poi)
