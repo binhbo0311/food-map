@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\FOOD_MAP.Web.csproj": {}
+    "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\FOOD_MAP.Web.csproj": {}
   },
   "projects": {
-    "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
+    "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
+        "projectUniqueName": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
         "projectName": "FOOD_MAP.Shared",
-        "projectPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
+        "projectPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
         "packagesPath": "C:\\Users\\binhb\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\obj\\",
+        "outputPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -358,14 +358,14 @@
         }
       }
     },
-    "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\FOOD_MAP.Web.csproj": {
+    "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\FOOD_MAP.Web.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\FOOD_MAP.Web.csproj",
+        "projectUniqueName": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\FOOD_MAP.Web.csproj",
         "projectName": "FOOD_MAP.Web",
-        "projectPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\FOOD_MAP.Web.csproj",
+        "projectPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\FOOD_MAP.Web.csproj",
         "packagesPath": "C:\\Users\\binhb\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\obj\\",
+        "outputPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Web\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -387,8 +387,8 @@
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
-                "projectPath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj"
+              "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj": {
+                "projectPath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj"
               }
             }
           }

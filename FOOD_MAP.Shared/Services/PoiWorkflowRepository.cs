@@ -19,6 +19,184 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         return await GenerateNextPoiIdInternalAsync(dbContext, type, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Language>> GetAvailableLanguagesAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        return await dbContext.Languages
+            .AsNoTracking()
+            .OrderBy(x => x.LanguageName)
+            .ThenBy(x => x.LanguageCode)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<int> SubmitLanguageOwnershipRequestAsync(
+        int ownerUserId,
+        string languageCode,
+        CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var owner = await dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == ownerUserId, cancellationToken);
+
+        if (owner is null)
+        {
+            throw new InvalidOperationException("Owner account no longer exists.");
+        }
+
+        if (owner.Role != UserRole.Owner)
+        {
+            throw new InvalidOperationException("Language ownership request is only available for owner accounts.");
+        }
+
+        var normalizedLanguageCode = NormalizeLanguageCode(TextInputNormalizer.NormalizeSingleLine(languageCode));
+        if (string.IsNullOrWhiteSpace(normalizedLanguageCode))
+        {
+            throw new InvalidOperationException("Language code is required.");
+        }
+
+        if (string.Equals(normalizedLanguageCode, "vi", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Vietnamese base language is already available and does not require approval.");
+        }
+
+        var language = await GetOrCreateLanguageAsync(dbContext, normalizedLanguageCode, cancellationToken);
+
+        var latestRequest = await dbContext.LanguageOwnershipRequests
+            .Where(x => x.OwnerUserId == ownerUserId && x.LanguageId == language.Id)
+            .OrderByDescending(x => x.RequestedUtc)
+            .ThenByDescending(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestRequest is not null)
+        {
+            if (latestRequest.Status == LanguageOwnershipRequestStatus.Approved)
+            {
+                return latestRequest.Id;
+            }
+
+            if (latestRequest.Status == LanguageOwnershipRequestStatus.Pending)
+            {
+                latestRequest.RequestedUtc = DateTimeOffset.UtcNow;
+                latestRequest.ReviewedUtc = null;
+                latestRequest.ReviewedByAdminUserId = null;
+                latestRequest.RejectionReason = null;
+
+                await dbContext.SaveChangesAsync(cancellationToken);
+                return latestRequest.Id;
+            }
+        }
+
+        var request = new LanguageOwnershipRequest
+        {
+            OwnerUserId = ownerUserId,
+            LanguageId = language.Id,
+            Status = LanguageOwnershipRequestStatus.Pending,
+            RequestedUtc = DateTimeOffset.UtcNow
+        };
+
+        dbContext.LanguageOwnershipRequests.Add(request);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return request.Id;
+    }
+
+    public async Task<IReadOnlyList<LanguageOwnershipRequest>> GetOwnerLanguageOwnershipRequestsAsync(
+        int ownerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        return await dbContext.LanguageOwnershipRequests
+            .AsNoTracking()
+            .Include(x => x.Language)
+            .Include(x => x.ReviewedByAdminUser)
+            .Where(x => x.OwnerUserId == ownerUserId)
+            .OrderByDescending(x => x.RequestedUtc)
+            .ThenByDescending(x => x.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<LanguageOwnershipRequest>> GetPendingLanguageOwnershipRequestsAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        return await dbContext.LanguageOwnershipRequests
+            .AsNoTracking()
+            .Include(x => x.Language)
+            .Include(x => x.OwnerUser)
+            .Where(x => x.Status == LanguageOwnershipRequestStatus.Pending)
+            .OrderBy(x => x.RequestedUtc)
+            .ThenBy(x => x.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<(bool IsSuccess, string Message)> ApproveLanguageOwnershipRequestAsync(
+        int requestId,
+        int adminUserId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var request = await dbContext.LanguageOwnershipRequests
+            .Include(x => x.Language)
+            .FirstOrDefaultAsync(x => x.Id == requestId, cancellationToken);
+
+        if (request is null)
+        {
+            return (false, "Language ownership request not found.");
+        }
+
+        if (request.Status != LanguageOwnershipRequestStatus.Pending)
+        {
+            return (false, "Language ownership request is already processed.");
+        }
+
+        request.Status = LanguageOwnershipRequestStatus.Approved;
+        request.ReviewedUtc = DateTimeOffset.UtcNow;
+        request.ReviewedByAdminUserId = adminUserId;
+        request.RejectionReason = null;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var languageCode = request.Language?.LanguageCode ?? request.LanguageId.ToString();
+        return (true, $"Approved language ownership request for {languageCode}.");
+    }
+
+    public async Task<(bool IsSuccess, string Message)> RejectLanguageOwnershipRequestAsync(
+        int requestId,
+        int adminUserId,
+        string rejectionReason,
+        CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var request = await dbContext.LanguageOwnershipRequests
+            .FirstOrDefaultAsync(x => x.Id == requestId, cancellationToken);
+
+        if (request is null)
+        {
+            return (false, "Language ownership request not found.");
+        }
+
+        if (request.Status != LanguageOwnershipRequestStatus.Pending)
+        {
+            return (false, "Language ownership request is already processed.");
+        }
+
+        request.Status = LanguageOwnershipRequestStatus.Rejected;
+        request.ReviewedUtc = DateTimeOffset.UtcNow;
+        request.ReviewedByAdminUserId = adminUserId;
+        var normalizedRejectionReason = TextInputNormalizer.NormalizeNullableMultiline(rejectionReason);
+        request.RejectionReason = string.IsNullOrWhiteSpace(normalizedRejectionReason)
+            ? "Rejected by administrator."
+            : normalizedRejectionReason;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return (true, "Language ownership request rejected.");
+    }
+
     public async Task<int> SubmitOwnerRegistrationRequestAsync(
         int userId,
         string businessName,
@@ -232,20 +410,9 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         var normalizedTtsScript = TextInputNormalizer.NormalizeMultiline(ttsScript);
         var normalizedQrCodeId = TextInputNormalizer.NormalizeNullableSingleLine(qrCodeId);
 
-        var language = await dbContext.Languages
-            .FirstOrDefaultAsync(x => x.LanguageCode == normalizedLanguageCode, cancellationToken);
+        await EnsureOwnerCanUseLanguageAsync(dbContext, ownerUserId, normalizedLanguageCode, cancellationToken);
 
-        if (language is null)
-        {
-            language = new Language
-            {
-                LanguageCode = normalizedLanguageCode,
-                LanguageName = normalizedLanguageCode.ToUpperInvariant()
-            };
-
-            dbContext.Languages.Add(language);
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
+        var language = await GetOrCreateLanguageAsync(dbContext, normalizedLanguageCode, cancellationToken);
 
         var poi = new POI
         {
@@ -558,7 +725,6 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         {
             PoiType.Food => "FD",
             PoiType.Visit => "VS",
-            PoiType.StayIn => "ST",
             _ => "VS"
         };
 
@@ -611,6 +777,64 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         }
 
         return $"OWN-{(maxSequence + 1):0000}";
+    }
+
+    private static async Task<Language> GetOrCreateLanguageAsync(
+        AppDbContext dbContext,
+        string normalizedLanguageCode,
+        CancellationToken cancellationToken)
+    {
+        var language = await dbContext.Languages
+            .FirstOrDefaultAsync(x => x.LanguageCode == normalizedLanguageCode, cancellationToken);
+
+        if (language is not null)
+        {
+            return language;
+        }
+
+        language = new Language
+        {
+            LanguageCode = normalizedLanguageCode,
+            LanguageName = normalizedLanguageCode.ToUpperInvariant()
+        };
+
+        dbContext.Languages.Add(language);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return language;
+    }
+
+    private static async Task EnsureOwnerCanUseLanguageAsync(
+        AppDbContext dbContext,
+        int ownerUserId,
+        string normalizedLanguageCode,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedLanguageCode) || string.Equals(normalizedLanguageCode, "vi", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var language = await dbContext.Languages
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.LanguageCode == normalizedLanguageCode, cancellationToken);
+
+        if (language is null)
+        {
+            throw new InvalidOperationException($"Language '{normalizedLanguageCode}' does not exist. Please request ownership first.");
+        }
+
+        var hasApprovedOwnership = await dbContext.LanguageOwnershipRequests
+            .AsNoTracking()
+            .AnyAsync(
+                x => x.OwnerUserId == ownerUserId
+                    && x.LanguageId == language.Id
+                    && x.Status == LanguageOwnershipRequestStatus.Approved,
+                cancellationToken);
+
+        if (!hasApprovedOwnership)
+        {
+            throw new InvalidOperationException($"Language '{normalizedLanguageCode}' is not approved for this owner account.");
+        }
     }
 
     private static string NormalizeLanguageCode(string? languageCode)

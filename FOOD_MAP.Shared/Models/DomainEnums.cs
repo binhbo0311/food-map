@@ -10,8 +10,7 @@ public enum UserRole
 public enum PoiType
 {
     Food = 0,
-    Visit = 1,
-    StayIn = 2
+    Visit = 1
 }
 
 public enum PoiApprovalStatus
@@ -22,6 +21,13 @@ public enum PoiApprovalStatus
 }
 
 public enum OwnerRegistrationStatus
+{
+    Pending = 0,
+    Approved = 1,
+    Rejected = 2
+}
+
+public enum LanguageOwnershipRequestStatus
 {
     Pending = 0,
     Approved = 1,

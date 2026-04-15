@@ -1,6 +1,0 @@
-Components\Layout\ReconnectModal.razor.js
-C:\Users\binhb\.nuget\packages\microsoft.aspnetcore.app.internal.assets\10.0.5\build\..\_framework\blazor.web.js
-C:\Users\binhb\.nuget\packages\microsoft.aspnetcore.app.internal.assets\10.0.5\build\..\_framework\blazor.server.js
-C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\Components\Layout\ReconnectModal.razor.js
-C:\Users\binhb\.nuget\packages\microsoft.aspnetcore.app.internal.assets\10.0.5\_framework\blazor.web.js
-C:\Users\binhb\.nuget\packages\microsoft.aspnetcore.app.internal.assets\10.0.5\_framework\blazor.server.js

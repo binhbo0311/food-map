@@ -200,6 +200,63 @@
                             Command="{Binding RefreshOwnerWorkspaceCommand}"
                             IsEnabled="{Binding CanEditSettings}" />
 
+                    <Label Text="Language Ownership"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+
+                    <Label Text="Request permission before creating POI in non-Vietnamese base language."
+                           FontSize="12"
+                           TextColor="#4D6B6C" />
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Entry Grid.Column="0"
+                               Text="{Binding RequestedLanguageOwnershipCode}"
+                               Placeholder="Language code (en, fr...)"
+                               BackgroundColor="#F2FBFB"
+                               TextColor="#143536"
+                               IsEnabled="{Binding CanEditSettings}" />
+                        <Button Grid.Column="1"
+                                Text="Request"
+                                HeightRequest="40"
+                                CornerRadius="12"
+                                BackgroundColor="#066D72"
+                                TextColor="White"
+                                Command="{Binding SubmitLanguageOwnershipRequestCommand}"
+                                IsEnabled="{Binding CanEditSettings}" />
+                    </Grid>
+
+                    <CollectionView ItemsSource="{Binding OwnerLanguageOwnershipRequests}"
+                                    SelectionMode="None"
+                                    HeightRequest="140">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Stroke="#A9E1E2"
+                                        StrokeThickness="1"
+                                        Padding="8"
+                                        Margin="0,0,0,6"
+                                        BackgroundColor="#F9FFFF">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Language.LanguageCode, StringFormat='Language: {0}'}"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="#143536" />
+                                        <Label Text="{Binding Status, StringFormat='Status: {0}'}"
+                                               FontSize="11"
+                                               TextColor="#4D6B6C" />
+                                        <Label Text="{Binding RequestedUtc, StringFormat='Requested: {0:yyyy-MM-dd HH:mm}'}"
+                                               FontSize="11"
+                                               TextColor="#4D6B6C" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
                     <Label Text="Owner POI Editor"
                            FontSize="14"
                            FontAttributes="Bold"

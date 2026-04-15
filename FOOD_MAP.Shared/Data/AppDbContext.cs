@@ -30,6 +30,8 @@ public class AppDbContext : DbContext
 
     public DbSet<OwnerRegistrationRequest> OwnerRegistrationRequests => Set<OwnerRegistrationRequest>();
 
+    public DbSet<LanguageOwnershipRequest> LanguageOwnershipRequests => Set<LanguageOwnershipRequest>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -208,6 +210,42 @@ public class AppDbContext : DbContext
             entity.HasIndex(x => new { x.UserId, x.Status, x.RequestedUtc });
         });
 
+        modelBuilder.Entity<LanguageOwnershipRequest>(entity =>
+        {
+            entity.ToTable("LanguageOwnershipRequests");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.OwnerUserId).IsRequired();
+            entity.Property(x => x.LanguageId).IsRequired();
+
+            entity.Property(x => x.Status)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion(x => ToDbLanguageOwnershipRequestStatus(x), x => FromDbLanguageOwnershipRequestStatus(x));
+
+            entity.Property(x => x.RequestedUtc).IsRequired();
+            entity.Property(x => x.ReviewedUtc);
+            entity.Property(x => x.ReviewedByAdminUserId);
+            entity.Property(x => x.RejectionReason).HasMaxLength(500);
+
+            entity.HasOne(x => x.OwnerUser)
+                .WithMany(x => x.LanguageOwnershipRequestsSubmitted)
+                .HasForeignKey(x => x.OwnerUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Language)
+                .WithMany(x => x.OwnershipRequests)
+                .HasForeignKey(x => x.LanguageId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.ReviewedByAdminUser)
+                .WithMany(x => x.LanguageOwnershipRequestsReviewed)
+                .HasForeignKey(x => x.ReviewedByAdminUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => new { x.OwnerUserId, x.LanguageId, x.Status, x.RequestedUtc });
+        });
+
         modelBuilder.Entity<UserFavorite>(entity =>
         {
             entity.ToTable("UserFavorites");
@@ -289,7 +327,6 @@ public class AppDbContext : DbContext
     {
         PoiType.Food => "food",
         PoiType.Visit => "visit",
-        PoiType.StayIn => "stayin",
         _ => "visit"
     };
 
@@ -297,7 +334,7 @@ public class AppDbContext : DbContext
     {
         "food" => PoiType.Food,
         "visit" => PoiType.Visit,
-        "stayin" => PoiType.StayIn,
+        "stayin" => PoiType.Visit,
         _ => PoiType.Visit
     };
 
@@ -344,5 +381,20 @@ public class AppDbContext : DbContext
         "approved" => OwnerRegistrationStatus.Approved,
         "rejected" => OwnerRegistrationStatus.Rejected,
         _ => OwnerRegistrationStatus.Pending
+    };
+
+    private static string ToDbLanguageOwnershipRequestStatus(LanguageOwnershipRequestStatus value) => value switch
+    {
+        LanguageOwnershipRequestStatus.Pending => "pending",
+        LanguageOwnershipRequestStatus.Approved => "approved",
+        LanguageOwnershipRequestStatus.Rejected => "rejected",
+        _ => "pending"
+    };
+
+    private static LanguageOwnershipRequestStatus FromDbLanguageOwnershipRequestStatus(string value) => value.Trim().ToLowerInvariant() switch
+    {
+        "approved" => LanguageOwnershipRequestStatus.Approved,
+        "rejected" => LanguageOwnershipRequestStatus.Rejected,
+        _ => LanguageOwnershipRequestStatus.Pending
     };
 }

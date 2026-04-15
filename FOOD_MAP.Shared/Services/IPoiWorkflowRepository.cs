@@ -6,6 +6,30 @@ public interface IPoiWorkflowRepository
 {
     Task<string> GenerateNextPoiIdAsync(PoiType type, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Language>> GetAvailableLanguagesAsync(CancellationToken cancellationToken = default);
+
+    Task<int> SubmitLanguageOwnershipRequestAsync(
+        int ownerUserId,
+        string languageCode,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<LanguageOwnershipRequest>> GetOwnerLanguageOwnershipRequestsAsync(
+        int ownerUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<LanguageOwnershipRequest>> GetPendingLanguageOwnershipRequestsAsync(CancellationToken cancellationToken = default);
+
+    Task<(bool IsSuccess, string Message)> ApproveLanguageOwnershipRequestAsync(
+        int requestId,
+        int adminUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<(bool IsSuccess, string Message)> RejectLanguageOwnershipRequestAsync(
+        int requestId,
+        int adminUserId,
+        string rejectionReason,
+        CancellationToken cancellationToken = default);
+
     Task<int> SubmitOwnerRegistrationRequestAsync(
         int userId,
         string businessName,

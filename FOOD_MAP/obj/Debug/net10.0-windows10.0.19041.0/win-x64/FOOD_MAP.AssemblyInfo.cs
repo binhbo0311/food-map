@@ -18,7 +18,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FOOD_MAP")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+0449c53096ce11a4f8d1d919ba821b21b3bfa02a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+c612ddfd6adeb379c7cce4cf8563919e22e09314")]
 [assembly: System.Reflection.AssemblyProductAttribute("FOOD_MAP")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FOOD_MAP")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

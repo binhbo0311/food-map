@@ -23,7 +23,7 @@ androidgeneratejnimarshalmethods=false
 os=windows_nt
 androidincludedebugsymbols=true
 androidpackagenamingpolicy=lowercasecrc64
-_nugetassetsfilehash=38511d5d33800fafb5f8d4fd5df60ba6c594c12626cb487551515035782cfc54
+_nugetassetsfilehash=bfadf2dedc577269a6764c6417d37b43bce50ae6b9489c2efda3789b543c8fe3
 typemapkind=strings-asm
 androidmanifestplaceholders=maps_api_key=
 projectfullpath=c:\users\binhb\source\repos\food_map\food_map\food_map\food_map.csproj

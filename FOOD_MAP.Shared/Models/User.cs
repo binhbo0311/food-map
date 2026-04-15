@@ -34,4 +34,8 @@ public class User
     public ICollection<POI> ReviewedPois { get; set; } = new List<POI>();
 
     public ICollection<FoodItem> ManagedFoodItems { get; set; } = new List<FoodItem>();
+
+    public ICollection<LanguageOwnershipRequest> LanguageOwnershipRequestsSubmitted { get; set; } = new List<LanguageOwnershipRequest>();
+
+    public ICollection<LanguageOwnershipRequest> LanguageOwnershipRequestsReviewed { get; set; } = new List<LanguageOwnershipRequest>();
 }

@@ -31,6 +31,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private OwnerRegistrationStatus? _latestOwnerRequestStatus;
     private UserRole _currentUserRole = UserRole.User;
     private bool _isOwnerUser;
+    private string _requestedLanguageOwnershipCode = "en";
 
     private string? _editingOwnerPoiId;
     private PoiType _ownerPoiType = PoiType.Food;
@@ -68,11 +69,11 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
         OwnerPoiItems = new ObservableCollection<OwnerPoiManagementItemViewModel>();
         OwnerFoodItems = new ObservableCollection<OwnerFoodItemEditorRowViewModel>();
+        OwnerLanguageOwnershipRequests = new ObservableCollection<LanguageOwnershipRequest>();
         OwnerPoiTypes = new ObservableCollection<PoiType>
         {
             PoiType.Food,
-            PoiType.Visit,
-            PoiType.StayIn
+            PoiType.Visit
         };
 
         SaveProfileCommand = new Command(async () => await SaveProfileAsync(), () => CanEditSettings && !IsBusy);
@@ -80,6 +81,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         RegisterOwnerCommand = new Command(async () => await RegisterOwnerAsync(), () => CanEditSettings && !IsBusy);
         CancelOwnerRequestCommand = new Command(async () => await CancelOwnerRequestAsync(), () => CanEditSettings && HasPendingOwnerRequest && !IsBusy);
         RefreshOwnerWorkspaceCommand = new Command(async () => await RefreshOwnerWorkspaceAsync(), () => CanEditSettings && IsOwnerUser && !IsBusy);
+        SubmitLanguageOwnershipRequestCommand = new Command(async () => await SubmitLanguageOwnershipRequestAsync(), () => CanEditSettings && IsOwnerUser && !IsBusy);
         SubmitOwnerPoiCommand = new Command(async () => await SubmitOrUpdateOwnerPoiAsync(), () => CanEditSettings && IsOwnerUser && !IsBusy);
         ResetOwnerPoiEditorCommand = new Command(ResetOwnerPoiEditor, () => CanEditSettings && IsOwnerUser && !IsBusy);
         SelectOwnerPoiForEditCommand = new Command<OwnerPoiManagementItemViewModel>(async item => await SelectOwnerPoiForEditAsync(item), _ => CanEditSettings && IsOwnerUser && !IsBusy);
@@ -102,6 +104,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
     public ICommand RefreshOwnerWorkspaceCommand { get; }
 
+    public ICommand SubmitLanguageOwnershipRequestCommand { get; }
+
     public ICommand SubmitOwnerPoiCommand { get; }
 
     public ICommand ResetOwnerPoiEditorCommand { get; }
@@ -123,6 +127,23 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     public ObservableCollection<OwnerPoiManagementItemViewModel> OwnerPoiItems { get; }
 
     public ObservableCollection<OwnerFoodItemEditorRowViewModel> OwnerFoodItems { get; }
+
+    public ObservableCollection<LanguageOwnershipRequest> OwnerLanguageOwnershipRequests { get; }
+
+    public string RequestedLanguageOwnershipCode
+    {
+        get => _requestedLanguageOwnershipCode;
+        set
+        {
+            if (_requestedLanguageOwnershipCode == value)
+            {
+                return;
+            }
+
+            _requestedLanguageOwnershipCode = value;
+            OnPropertyChanged();
+        }
+    }
 
     public string UserName
     {
@@ -676,6 +697,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             IsOwnerUser = false;
             OwnerPoiItems.Clear();
             OwnerFoodItems.Clear();
+            OwnerLanguageOwnershipRequests.Clear();
             SelectedOwnerPoiIdForFood = string.Empty;
             CanEditSettings = false;
             StatusMessage = "Guest mode cannot edit profile settings.";
@@ -744,6 +766,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             {
                 OwnerPoiItems.Clear();
                 OwnerFoodItems.Clear();
+                OwnerLanguageOwnershipRequests.Clear();
                 SelectedOwnerPoiIdForFood = string.Empty;
                 ResetOwnerPoiEditor();
                 ResetOwnerFoodItemEditor();
@@ -754,6 +777,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             IsOwnerUser = false;
             OwnerPoiItems.Clear();
             OwnerFoodItems.Clear();
+            OwnerLanguageOwnershipRequests.Clear();
             SelectedOwnerPoiIdForFood = string.Empty;
             CanEditSettings = false;
             StatusMessage = "An unexpected error occurred while loading profile.";
@@ -932,6 +956,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         {
             OwnerPoiItems.Clear();
             OwnerFoodItems.Clear();
+            OwnerLanguageOwnershipRequests.Clear();
             SelectedOwnerPoiIdForFood = string.Empty;
             return;
         }
@@ -973,7 +998,68 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             SelectedOwnerPoiIdForFood = firstFoodPoi?.Id ?? string.Empty;
         }
 
+        await LoadOwnerLanguageOwnershipRequestsAsync(cancellationToken);
         await LoadOwnerFoodItemsAsync(cancellationToken);
+    }
+
+    private async Task SubmitLanguageOwnershipRequestAsync()
+    {
+        var currentUserId = _userSessionService.CurrentUserId;
+        if (!CanEditSettings || !currentUserId.HasValue || !IsOwnerUser)
+        {
+            StatusMessage = "Language ownership request is only available for owner accounts.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(RequestedLanguageOwnershipCode))
+        {
+            StatusMessage = "Please enter a language code before submitting request.";
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var requestId = await _poiWorkflowRepository.SubmitLanguageOwnershipRequestAsync(
+                currentUserId.Value,
+                RequestedLanguageOwnershipCode);
+
+            await LoadOwnerLanguageOwnershipRequestsAsync();
+
+            var matchedRequest = OwnerLanguageOwnershipRequests.FirstOrDefault(x => x.Id == requestId);
+            if (matchedRequest?.Status == LanguageOwnershipRequestStatus.Approved)
+            {
+                StatusMessage = $"Language ownership for {matchedRequest.Language?.LanguageCode ?? RequestedLanguageOwnershipCode} is already approved.";
+                return;
+            }
+
+            StatusMessage = $"Language ownership request #{requestId} submitted and waiting for admin approval.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Unable to submit language ownership request: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task LoadOwnerLanguageOwnershipRequestsAsync(CancellationToken cancellationToken = default)
+    {
+        OwnerLanguageOwnershipRequests.Clear();
+
+        var currentUserId = _userSessionService.CurrentUserId;
+        if (!currentUserId.HasValue)
+        {
+            return;
+        }
+
+        var requests = await _poiWorkflowRepository.GetOwnerLanguageOwnershipRequestsAsync(currentUserId.Value, cancellationToken);
+        foreach (var request in requests)
+        {
+            OwnerLanguageOwnershipRequests.Add(request);
+        }
     }
 
     private async Task SubmitOrUpdateOwnerPoiAsync()
@@ -1325,6 +1411,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         (RegisterOwnerCommand as Command)?.ChangeCanExecute();
         (CancelOwnerRequestCommand as Command)?.ChangeCanExecute();
         (RefreshOwnerWorkspaceCommand as Command)?.ChangeCanExecute();
+        (SubmitLanguageOwnershipRequestCommand as Command)?.ChangeCanExecute();
         (SubmitOwnerPoiCommand as Command)?.ChangeCanExecute();
         (ResetOwnerPoiEditorCommand as Command)?.ChangeCanExecute();
         (SelectOwnerPoiForEditCommand as Command<OwnerPoiManagementItemViewModel>)?.ChangeCanExecute();

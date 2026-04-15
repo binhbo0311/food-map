@@ -2,7 +2,7 @@ namespace FOOD_MAP.Shared.Models;
 
 public class POI
 {
-    // ID dạng business key: FD-001, VS-002, ST-003.
+    // ID dạng business key: FD-001, VS-002.
     public string Id { get; set; } = string.Empty;
 
     public PoiType Type { get; set; } = PoiType.Visit;

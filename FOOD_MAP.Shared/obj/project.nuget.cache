@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "ZSLzfcU2EBY=",
+  "dgSpecHash": "xVQSPlbz2ho=",
   "success": true,
-  "projectFilePath": "c:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
+  "projectFilePath": "C:\\Users\\binhb\\source\\repos\\FOOD_MAP\\FOOD_MAP\\FOOD_MAP.Shared\\FOOD_MAP.Shared.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\binhb\\.nuget\\packages\\microsoft.aspnetcore.authorization\\10.0.5\\microsoft.aspnetcore.authorization.10.0.5.nupkg.sha512",
     "C:\\Users\\binhb\\.nuget\\packages\\microsoft.aspnetcore.components\\10.0.5\\microsoft.aspnetcore.components.10.0.5.nupkg.sha512",

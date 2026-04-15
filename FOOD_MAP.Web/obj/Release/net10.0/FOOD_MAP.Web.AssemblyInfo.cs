@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FOOD_MAP.Web")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c17af8ab4409d202e17d7217220315265ab3efe7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c612ddfd6adeb379c7cce4cf8563919e22e09314")]
 [assembly: System.Reflection.AssemblyProductAttribute("FOOD_MAP.Web")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FOOD_MAP.Web")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

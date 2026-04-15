@@ -10,4 +10,6 @@ public class Language
 
     // Quan hệ 1-n: một ngôn ngữ có nhiều bản dịch điểm đến.
     public ICollection<POITranslation> PoiTranslations { get; set; } = new List<POITranslation>();
+
+    public ICollection<LanguageOwnershipRequest> OwnershipRequests { get; set; } = new List<LanguageOwnershipRequest>();
 }
