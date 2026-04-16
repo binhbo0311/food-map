@@ -31,6 +31,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private OwnerRegistrationStatus? _latestOwnerRequestStatus;
     private UserRole _currentUserRole = UserRole.User;
     private bool _isOwnerUser;
+    private SettingsTab _activeSettingsTab = SettingsTab.Account;
     private string _requestedLanguageOwnershipCode = "en";
 
     private string? _editingOwnerPoiId;
@@ -80,6 +81,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         ChangePasswordCommand = new Command(async () => await ChangePasswordAsync(), () => CanEditSettings && !IsBusy);
         RegisterOwnerCommand = new Command(async () => await RegisterOwnerAsync(), () => CanEditSettings && !IsBusy);
         CancelOwnerRequestCommand = new Command(async () => await CancelOwnerRequestAsync(), () => CanEditSettings && HasPendingOwnerRequest && !IsBusy);
+        SwitchSettingsTabCommand = new Command<string>(SwitchSettingsTab);
         RefreshOwnerWorkspaceCommand = new Command(async () => await RefreshOwnerWorkspaceAsync(), () => CanEditSettings && IsOwnerUser && !IsBusy);
         SubmitLanguageOwnershipRequestCommand = new Command(async () => await SubmitLanguageOwnershipRequestAsync(), () => CanEditSettings && IsOwnerUser && !IsBusy);
         SubmitOwnerPoiCommand = new Command(async () => await SubmitOrUpdateOwnerPoiAsync(), () => CanEditSettings && IsOwnerUser && !IsBusy);
@@ -101,6 +103,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     public ICommand RegisterOwnerCommand { get; }
 
     public ICommand CancelOwnerRequestCommand { get; }
+
+    public ICommand SwitchSettingsTabCommand { get; }
 
     public ICommand RefreshOwnerWorkspaceCommand { get; }
 
@@ -129,6 +133,28 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     public ObservableCollection<OwnerFoodItemEditorRowViewModel> OwnerFoodItems { get; }
 
     public ObservableCollection<LanguageOwnershipRequest> OwnerLanguageOwnershipRequests { get; }
+
+    public bool IsOwnerTabSelectorVisible => IsOwnerUser;
+
+    public bool IsAccountTabActive => _activeSettingsTab == SettingsTab.Account;
+
+    public bool IsSecurityTabActive => _activeSettingsTab == SettingsTab.Security;
+
+    public bool IsOwnerRegistrationTabActive => _activeSettingsTab == SettingsTab.OwnerRegistration;
+
+    public bool IsOwnerWorkspaceTabActive => _activeSettingsTab == SettingsTab.OwnerWorkspace;
+
+    public bool IsFoodManagerTabActive => _activeSettingsTab == SettingsTab.FoodManager;
+
+    public string ActiveSettingsTabTitle => _activeSettingsTab switch
+    {
+        SettingsTab.Account => "Account",
+        SettingsTab.Security => "Security",
+        SettingsTab.OwnerRegistration => "Owner Registration",
+        SettingsTab.OwnerWorkspace => "Owner Workspace",
+        SettingsTab.FoodManager => "Food Menu Manager",
+        _ => "Settings"
+    };
 
     public string RequestedLanguageOwnershipCode
     {
@@ -322,6 +348,13 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
             _isOwnerUser = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsOwnerTabSelectorVisible));
+
+            if (!value && (_activeSettingsTab == SettingsTab.OwnerWorkspace || _activeSettingsTab == SettingsTab.FoodManager))
+            {
+                SetActiveSettingsTab(SettingsTab.Account);
+            }
+
             RefreshCommandStates();
         }
     }
@@ -695,6 +728,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         if (_userSessionService.IsGuest || !currentUserId.HasValue)
         {
             IsOwnerUser = false;
+            SetActiveSettingsTab(SettingsTab.Account);
             OwnerPoiItems.Clear();
             OwnerFoodItems.Clear();
             OwnerLanguageOwnershipRequests.Clear();
@@ -760,10 +794,12 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
             if (IsOwnerUser)
             {
+                SetActiveSettingsTab(SettingsTab.OwnerWorkspace);
                 await RefreshOwnerWorkspaceAsync(cancellationToken);
             }
             else
             {
+                SetActiveSettingsTab(SettingsTab.Account);
                 OwnerPoiItems.Clear();
                 OwnerFoodItems.Clear();
                 OwnerLanguageOwnershipRequests.Clear();
@@ -775,6 +811,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         catch
         {
             IsOwnerUser = false;
+            SetActiveSettingsTab(SettingsTab.Account);
             OwnerPoiItems.Clear();
             OwnerFoodItems.Clear();
             OwnerLanguageOwnershipRequests.Clear();
@@ -1404,6 +1441,42 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             || decimal.TryParse(rawValue, NumberStyles.Number, CultureInfo.CurrentCulture, out value);
     }
 
+    private void SwitchSettingsTab(string? tabKey)
+    {
+        var targetTab = tabKey?.Trim().ToLowerInvariant() switch
+        {
+            "account" => SettingsTab.Account,
+            "security" => SettingsTab.Security,
+            "ownerregistration" => SettingsTab.OwnerRegistration,
+            "ownerworkspace" => SettingsTab.OwnerWorkspace,
+            "foodmanager" => SettingsTab.FoodManager,
+            _ => SettingsTab.Account
+        };
+
+        SetActiveSettingsTab(targetTab);
+    }
+
+    private void SetActiveSettingsTab(SettingsTab tab)
+    {
+        if (!IsOwnerUser && (tab == SettingsTab.OwnerWorkspace || tab == SettingsTab.FoodManager))
+        {
+            tab = SettingsTab.OwnerRegistration;
+        }
+
+        if (_activeSettingsTab == tab)
+        {
+            return;
+        }
+
+        _activeSettingsTab = tab;
+        OnPropertyChanged(nameof(IsAccountTabActive));
+        OnPropertyChanged(nameof(IsSecurityTabActive));
+        OnPropertyChanged(nameof(IsOwnerRegistrationTabActive));
+        OnPropertyChanged(nameof(IsOwnerWorkspaceTabActive));
+        OnPropertyChanged(nameof(IsFoodManagerTabActive));
+        OnPropertyChanged(nameof(ActiveSettingsTabTitle));
+    }
+
     private void RefreshCommandStates()
     {
         (SaveProfileCommand as Command)?.ChangeCanExecute();
@@ -1439,5 +1512,14 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    private enum SettingsTab
+    {
+        Account,
+        Security,
+        OwnerRegistration,
+        OwnerWorkspace,
+        FoodManager
     }
 }

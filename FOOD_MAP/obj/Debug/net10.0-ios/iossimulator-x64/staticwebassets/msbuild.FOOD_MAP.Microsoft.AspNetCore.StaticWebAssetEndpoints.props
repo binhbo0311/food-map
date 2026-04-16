@@ -12,17 +12,17 @@
       <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"obgb1x923p"},{"Name":"integrity","Value":"sha256-nAPExVxs4MSkXKnxvGIYwMYuD37zfvuOz6q6ILLNXLU="},{"Name":"label","Value":"app.css"}]]]></EndpointProperties>
       <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"416"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022nAPExVxs4MSkXKnxvGIYwMYuD37zfvuOz6q6ILLNXLU=\u0022"},{"Name":"Last-Modified","Value":"Thu, 02 Apr 2026 07:57:16 GMT"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
-    <StaticWebAssetEndpoint Include="FOOD_MAP.4pvkvjeaaz.styles.css">
+    <StaticWebAssetEndpoint Include="FOOD_MAP.men1t2qvjj.styles.css">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\FOOD_MAP.styles.css'))</AssetFile>
       <Selectors><![CDATA[[]]]></Selectors>
-      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"4pvkvjeaaz"},{"Name":"integrity","Value":"sha256-eOjauOnxi55v9P1HZn80BJzbweUT6BUyDckkOJqtYDI="},{"Name":"label","Value":"FOOD_MAP.styles.css"}]]]></EndpointProperties>
-      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"81"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022eOjauOnxi55v9P1HZn80BJzbweUT6BUyDckkOJqtYDI=\u0022"},{"Name":"Last-Modified","Value":"Fri, 10 Apr 2026 03:21:53 GMT"},{"Name":"Link","Value":"\u003C_content/FOOD_MAP.Shared/FOOD_MAP.Shared.wjwrrg6vye.bundle.scp.css\u003E; rel=\u0022preload\u0022; as=\u0022style\u0022"}]]]></ResponseHeaders>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"men1t2qvjj"},{"Name":"integrity","Value":"sha256-vhHOa23MUZYX2cSJuhWru9SDMkbLdoBSe0W8aw07e7E="},{"Name":"label","Value":"FOOD_MAP.styles.css"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"81"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022vhHOa23MUZYX2cSJuhWru9SDMkbLdoBSe0W8aw07e7E=\u0022"},{"Name":"Last-Modified","Value":"Wed, 15 Apr 2026 10:53:17 GMT"},{"Name":"Link","Value":"\u003C_content/FOOD_MAP.Shared/FOOD_MAP.Shared.xh3h4afroy.bundle.scp.css\u003E; rel=\u0022preload\u0022; as=\u0022style\u0022"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="FOOD_MAP.styles.css">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\FOOD_MAP.styles.css'))</AssetFile>
       <Selectors><![CDATA[[]]]></Selectors>
-      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-eOjauOnxi55v9P1HZn80BJzbweUT6BUyDckkOJqtYDI="}]]]></EndpointProperties>
-      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"81"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022eOjauOnxi55v9P1HZn80BJzbweUT6BUyDckkOJqtYDI=\u0022"},{"Name":"Last-Modified","Value":"Fri, 10 Apr 2026 03:21:53 GMT"},{"Name":"Link","Value":"\u003C_content/FOOD_MAP.Shared/FOOD_MAP.Shared.wjwrrg6vye.bundle.scp.css\u003E; rel=\u0022preload\u0022; as=\u0022style\u0022"}]]]></ResponseHeaders>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-vhHOa23MUZYX2cSJuhWru9SDMkbLdoBSe0W8aw07e7E="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"81"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022vhHOa23MUZYX2cSJuhWru9SDMkbLdoBSe0W8aw07e7E=\u0022"},{"Name":"Last-Modified","Value":"Wed, 15 Apr 2026 10:53:17 GMT"},{"Name":"Link","Value":"\u003C_content/FOOD_MAP.Shared/FOOD_MAP.Shared.xh3h4afroy.bundle.scp.css\u003E; rel=\u0022preload\u0022; as=\u0022style\u0022"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="index.html">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\index.html'))</AssetFile>

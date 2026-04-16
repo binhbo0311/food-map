@@ -12,7 +12,7 @@
       <CodesignDisableTimestamp>true</CodesignDisableTimestamp>
       <CodesignKeychain></CodesignKeychain>
       <CodesignUseHardenedRuntime></CodesignUseHardenedRuntime>
-      <SourceProjectPath>C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP</SourceProjectPath>
+      <SourceProjectPath>c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP</SourceProjectPath>
     </_CodesignBundle>
   </ItemGroup>
 </Project>

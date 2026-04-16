@@ -13,7 +13,7 @@ androidlinkskip=
 androidsdkbuildtoolsversion=36.0.0
 androidsdkpath=c:\program files (x86)\android\android-sdk\
 androidndkpath=c:\program files (x86)\android\android-sdk\ndk-bundle\
-javasdkpath=c:\program files (x86)\android\openjdk\jdk-21.0.8\
+javasdkpath=c:\program files\android\openjdk\jdk-21.0.8\
 androidsequencepointsmode=none
 androidnetsdkversion=36.1.43
 androiduselatestplatformsdk=false
@@ -23,7 +23,7 @@ androidgeneratejnimarshalmethods=false
 os=windows_nt
 androidincludedebugsymbols=true
 androidpackagenamingpolicy=lowercasecrc64
-_nugetassetsfilehash=bfadf2dedc577269a6764c6417d37b43bce50ae6b9489c2efda3789b543c8fe3
+_nugetassetsfilehash=5b400ccb2ae62b64ca18504265deb08799a78229fc5cb6c2fe7f84e674f37877
 typemapkind=strings-asm
 androidmanifestplaceholders=maps_api_key=
 projectfullpath=c:\users\binhb\source\repos\food_map\food_map\food_map\food_map.csproj

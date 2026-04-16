@@ -1,0 +1,214 @@
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Cryptography
+@using System.Text
+@using FOOD_MAP.Shared.Data
+@using FOOD_MAP.Shared.Models
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<AppDbContext> DbContextFactory
+@inject ProtectedSessionStorage SessionStorage
+
+@if (!isInitialized)
+{
+    <div class="admin-gate-loading">
+        <div class="spinner-border text-info" role="status" aria-hidden="true"></div>
+        <span>Dang xac thuc quyen truy cap Admin...</span>
+    </div>
+}
+else if (!isAuthenticated)
+{
+    <section class="admin-gate-shell">
+        <div class="card admin-gate-card shadow-sm">
+            <div class="card-body">
+                <h1 class="h4 mb-2">Admin Sign In</h1>
+                <p class="text-muted mb-3">Chi tai khoan co role Admin moi truy cap duoc khu vuc nay.</p>
+
+                <EditForm Model="loginInput" OnValidSubmit="HandleLoginAsync">
+                    <DataAnnotationsValidator />
+
+                    <div class="mb-3">
+                        <label class="form-label" for="admin-username">Username</label>
+                        <InputText id="admin-username"
+                                   class="form-control"
+                                   @bind-Value="loginInput.UserName"
+                                   autocomplete="username" />
+                        <ValidationMessage For="() => loginInput.UserName" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="admin-password">Password</label>
+                        <InputText id="admin-password"
+                                   type="password"
+                                   class="form-control"
+                                   @bind-Value="loginInput.Password"
+                                   autocomplete="current-password" />
+                        <ValidationMessage For="() => loginInput.Password" />
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(statusMessage))
+                    {
+                        <div class="alert @statusClass py-2" role="alert">@statusMessage</div>
+                    }
+
+                    <button type="submit" class="btn btn-primary w-100" disabled="@isBusy">
+                        @(isBusy ? "Dang dang nhap..." : "Dang nhap Admin")
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    </section>
+}
+else
+{
+    <div class="admin-gate-toolbar">
+        <span class="admin-gate-identity">Admin: <strong>@displayName</strong> (@userName)</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="SignOutAsync">Dang xuat</button>
+    </div>
+
+    @ChildContent
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private const string SessionStorageKey = "foodmap.admin.session";
+
+    private readonly LoginInput loginInput = new();
+    private bool isInitialized;
+    private bool isAuthenticated;
+    private bool isBusy;
+    private string? statusMessage;
+    private string statusClass = "alert-danger";
+    private string displayName = string.Empty;
+    private string userName = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || isInitialized)
+        {
+            return;
+        }
+
+        await RestoreSessionAsync();
+        isInitialized = true;
+        StateHasChanged();
+    }
+
+    private async Task RestoreSessionAsync()
+    {
+        try
+        {
+            var stored = await SessionStorage.GetAsync<AdminSessionState>(SessionStorageKey);
+            if (!stored.Success || stored.Value is null)
+            {
+                return;
+            }
+
+            // Luon doi chieu lai role trong DB de tranh session cu bi sai quyen.
+            var adminUser = await FindAdminByIdAsync(stored.Value.UserId);
+            if (adminUser is null)
+            {
+                await ClearSessionAsync();
+                return;
+            }
+
+            isAuthenticated = true;
+            userName = adminUser.UserName;
+            displayName = adminUser.DisplayName;
+        }
+        catch (InvalidOperationException)
+        {
+            // Blazor co the chua san sang JS interop o lan render ban dau.
+        }
+    }
+
+    private async Task HandleLoginAsync()
+    {
+        statusMessage = null;
+        isBusy = true;
+
+        try
+        {
+            var normalizedUserName = loginInput.UserName.Trim();
+            var passwordHash = ComputeSha256Upper(loginInput.Password);
+
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var adminUser = await dbContext.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.UserName == normalizedUserName
+                    && x.PasswordHash == passwordHash
+                    && x.Role == UserRole.Admin);
+
+            if (adminUser is null)
+            {
+                statusClass = "alert-danger";
+                statusMessage = "Sai thong tin dang nhap hoac tai khoan khong co quyen Admin.";
+                return;
+            }
+
+            await SessionStorage.SetAsync(
+                SessionStorageKey,
+                new AdminSessionState(adminUser.Id, adminUser.UserName, adminUser.DisplayName));
+
+            isAuthenticated = true;
+            userName = adminUser.UserName;
+            displayName = adminUser.DisplayName;
+            loginInput.Password = string.Empty;
+            statusClass = "alert-success";
+            statusMessage = "Dang nhap thanh cong.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task SignOutAsync()
+    {
+        await ClearSessionAsync();
+        isAuthenticated = false;
+        userName = string.Empty;
+        displayName = string.Empty;
+        loginInput.Password = string.Empty;
+        statusMessage = null;
+    }
+
+    private async Task<User?> FindAdminByIdAsync(int userId)
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        return await dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == userId && x.Role == UserRole.Admin);
+    }
+
+    private async Task ClearSessionAsync()
+    {
+        try
+        {
+            await SessionStorage.DeleteAsync(SessionStorageKey);
+        }
+        catch (InvalidOperationException)
+        {
+            // Bo qua khi JS interop chua san sang.
+        }
+    }
+
+    private static string ComputeSha256Upper(string input)
+    {
+        var bytes = Encoding.UTF8.GetBytes(input);
+        var hashBytes = SHA256.HashData(bytes);
+        return Convert.ToHexString(hashBytes);
+    }
+
+    private sealed class LoginInput
+    {
+        [Required]
+        public string UserName { get; set; } = string.Empty;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    private sealed record AdminSessionState(int UserId, string UserName, string DisplayName);
+}

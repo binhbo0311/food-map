@@ -7,8 +7,15 @@
 
 <PageTitle>Language & Translation Admin</PageTitle>
 
+<AdminRoleGate>
+
 <h1>Language & Translation Admin</h1>
 <p class="text-muted">Manage supported languages and POI translations.</p>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-outline-secondary" href="/admin">Open Admin Dashboard</a>
+    <a class="btn btn-outline-primary" href="/admin/poi">Open POI Admin</a>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(statusMessage))
 {
@@ -61,21 +68,87 @@
         <hr />
 
         <h3 class="h6">Current Languages</h3>
-        @if (languageItems.Count == 0)
+
+        <div class="row g-2 mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <InputText @bind-Value="languageSearchKeyword" class="form-control" placeholder="Code or language name..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Sort By</label>
+                <InputSelect @bind-Value="languageSortField" class="form-select">
+                    <option value="name">Language Name</option>
+                    <option value="code">Language Code</option>
+                    <option value="id">Id</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Dir</label>
+                <InputSelect @bind-Value="languageSortDirection" class="form-select">
+                    <option value="asc">Asc</option>
+                    <option value="desc">Desc</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Page Size</label>
+                <InputSelect @bind-Value="languagePageSize" class="form-select">
+                    @foreach (var size in GridPageSizeOptions)
+                    {
+                        <option value="@size">@size</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100" @onclick="ResetLanguageGrid">Clear</button>
+            </div>
+        </div>
+
+        @{
+            var filteredLanguages = GetFilteredLanguageItems();
+            var languageTotalPages = GetLanguageTotalPages(filteredLanguages.Count);
+            var safeLanguagePage = Math.Clamp(languagePageIndex, 1, languageTotalPages);
+            var pagedLanguages = filteredLanguages
+                .Skip((safeLanguagePage - 1) * languagePageSize)
+                .Take(languagePageSize)
+                .ToList();
+        }
+
+        @if (filteredLanguages.Count == 0)
         {
             <p class="text-muted mb-0">No languages yet.</p>
         }
         else
         {
-            <ul class="list-group list-group-flush">
-                @foreach (var language in languageItems)
-                {
-                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                        <span>@language.LanguageName</span>
-                        <span class="badge bg-secondary">@language.LanguageCode</span>
-                    </li>
-                }
-            </ul>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-2">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Language Name</th>
+                            <th>Language Code</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var language in pagedLanguages)
+                        {
+                            <tr>
+                                <td>@language.Id</td>
+                                <td>@language.LanguageName</td>
+                                <td><span class="badge bg-secondary">@language.LanguageCode</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">Showing @pagedLanguages.Count of @filteredLanguages.Count result(s).</small>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeLanguagePage <= 1)" @onclick="() => MoveLanguagePage(-1)">Previous</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Page @safeLanguagePage / @languageTotalPages</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeLanguagePage >= languageTotalPages)" @onclick="() => MoveLanguagePage(1)">Next</button>
+                </div>
+            </div>
         }
     </section>
 }
@@ -194,6 +267,31 @@ else
                     }
                 </InputSelect>
             </div>
+            <div class="col-md-2">
+                <label class="form-label">Sort By</label>
+                <InputSelect @bind-Value="translationSortField" class="form-select">
+                    <option value="id">Id</option>
+                    <option value="poi">POI</option>
+                    <option value="language">Language</option>
+                    <option value="name">Name</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Dir</label>
+                <InputSelect @bind-Value="translationSortDirection" class="form-select">
+                    <option value="asc">Asc</option>
+                    <option value="desc">Desc</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Page</label>
+                <InputSelect @bind-Value="translationPageSize" class="form-select">
+                    @foreach (var size in GridPageSizeOptions)
+                    {
+                        <option value="@size">@size</option>
+                    }
+                </InputSelect>
+            </div>
             <div class="col-md-2 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-secondary w-100" @onclick="ResetTranslationFilters">Clear</button>
             </div>
@@ -201,6 +299,12 @@ else
 
         @{
             var filteredTranslations = GetFilteredTranslationItems();
+            var translationTotalPages = GetTranslationTotalPages(filteredTranslations.Count);
+            var safeTranslationPage = Math.Clamp(translationPageIndex, 1, translationTotalPages);
+            var pagedTranslations = filteredTranslations
+                .Skip((safeTranslationPage - 1) * translationPageSize)
+                .Take(translationPageSize)
+                .ToList();
         }
 
         @if (isBusy)
@@ -229,7 +333,7 @@ else
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in filteredTranslations)
+                        @foreach (var item in pagedTranslations)
                         {
                             <tr>
                                 <td>@item.Id</td>
@@ -245,9 +349,20 @@ else
                     </tbody>
                 </table>
             </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <small class="text-muted">Showing @pagedTranslations.Count of @filteredTranslations.Count result(s).</small>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeTranslationPage <= 1)" @onclick="() => MoveTranslationPage(-1)">Previous</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Page @safeTranslationPage / @translationTotalPages</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeTranslationPage >= translationTotalPages)" @onclick="() => MoveTranslationPage(1)">Next</button>
+                </div>
+            </div>
         }
     </section>
 }
+
+</AdminRoleGate>
 
 @code {
     private readonly List<LanguageRow> languageItems = [];
@@ -262,10 +377,21 @@ else
     private bool isEditMode;
     private bool isErrorStatus;
     private int? editingTranslationId;
+    private string languageSearchKeyword = string.Empty;
+    private string languageSortField = "name";
+    private string languageSortDirection = "asc";
+    private int languagePageSize = 10;
+    private int languagePageIndex = 1;
     private string translationSearchKeyword = string.Empty;
     private string translationPoiFilterId = string.Empty;
     private int translationLanguageFilterId;
+    private string translationSortField = "poi";
+    private string translationSortDirection = "asc";
+    private int translationPageSize = 10;
+    private int translationPageIndex = 1;
     private string statusMessage = string.Empty;
+
+    private static readonly int[] GridPageSizeOptions = [5, 10, 20, 50];
 
     protected override async Task OnInitializedAsync()
     {
@@ -348,6 +474,9 @@ else
 
             translationItems.Clear();
             translationItems.AddRange(translations);
+
+            languagePageIndex = 1;
+            translationPageIndex = 1;
         }
         catch (Exception ex)
         {
@@ -583,6 +712,10 @@ else
         translationSearchKeyword = string.Empty;
         translationPoiFilterId = string.Empty;
         translationLanguageFilterId = 0;
+        translationSortField = "poi";
+        translationSortDirection = "asc";
+        translationPageSize = 10;
+        translationPageIndex = 1;
     }
 
     private List<TranslationRow> GetFilteredTranslationItems()
@@ -609,7 +742,78 @@ else
                 || x.LocationName.Contains(keyword, StringComparison.OrdinalIgnoreCase));
         }
 
+        var sortDescending = string.Equals(translationSortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        query = translationSortField.ToLowerInvariant() switch
+        {
+            "id" => sortDescending ? query.OrderByDescending(x => x.Id) : query.OrderBy(x => x.Id),
+            "language" => sortDescending
+                ? query.OrderByDescending(x => x.LanguageName).ThenByDescending(x => x.LanguageCode)
+                : query.OrderBy(x => x.LanguageName).ThenBy(x => x.LanguageCode),
+            "name" => sortDescending ? query.OrderByDescending(x => x.LocationName) : query.OrderBy(x => x.LocationName),
+            _ => sortDescending ? query.OrderByDescending(x => x.PoiDisplayName) : query.OrderBy(x => x.PoiDisplayName)
+        };
+
         return query.ToList();
+    }
+
+    private List<LanguageRow> GetFilteredLanguageItems()
+    {
+        IEnumerable<LanguageRow> query = languageItems;
+
+        if (!string.IsNullOrWhiteSpace(languageSearchKeyword))
+        {
+            var keyword = languageSearchKeyword.Trim();
+            query = query.Where(x =>
+                x.LanguageCode.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.LanguageName.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var sortDescending = string.Equals(languageSortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        query = languageSortField.ToLowerInvariant() switch
+        {
+            "id" => sortDescending ? query.OrderByDescending(x => x.Id) : query.OrderBy(x => x.Id),
+            "code" => sortDescending ? query.OrderByDescending(x => x.LanguageCode) : query.OrderBy(x => x.LanguageCode),
+            _ => sortDescending ? query.OrderByDescending(x => x.LanguageName) : query.OrderBy(x => x.LanguageName)
+        };
+
+        return query.ToList();
+    }
+
+    private int GetLanguageTotalPages(int totalRows)
+    {
+        return GetTotalPages(totalRows, languagePageSize);
+    }
+
+    private int GetTranslationTotalPages(int totalRows)
+    {
+        return GetTotalPages(totalRows, translationPageSize);
+    }
+
+    private static int GetTotalPages(int totalRows, int pageSize)
+    {
+        var safePageSize = Math.Max(1, pageSize);
+        return Math.Max(1, (int)Math.Ceiling(totalRows / (double)safePageSize));
+    }
+
+    private void MoveLanguagePage(int delta)
+    {
+        var totalPages = GetLanguageTotalPages(GetFilteredLanguageItems().Count);
+        languagePageIndex = Math.Clamp(languagePageIndex + delta, 1, totalPages);
+    }
+
+    private void MoveTranslationPage(int delta)
+    {
+        var totalPages = GetTranslationTotalPages(GetFilteredTranslationItems().Count);
+        translationPageIndex = Math.Clamp(translationPageIndex + delta, 1, totalPages);
+    }
+
+    private void ResetLanguageGrid()
+    {
+        languageSearchKeyword = string.Empty;
+        languageSortField = "name";
+        languageSortDirection = "asc";
+        languagePageSize = 10;
+        languagePageIndex = 1;
     }
 
     private sealed class LanguageRow

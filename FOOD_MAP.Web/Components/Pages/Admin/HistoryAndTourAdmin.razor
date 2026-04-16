@@ -6,8 +6,15 @@
 
 <PageTitle>History & Tour Admin</PageTitle>
 
+<AdminRoleGate>
+
 <h1>History & Tour Admin</h1>
 <p class="text-muted">Monitor user activity, favorites, and tour visit history.</p>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-outline-secondary" href="/admin">Open Admin Dashboard</a>
+    <a class="btn btn-outline-primary" href="/admin/poi">Open POI Admin</a>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(statusMessage))
 {
@@ -83,7 +90,53 @@ else
 
     <section class="border rounded p-3 bg-white mb-3">
         <h2 class="h5 mb-3">Top Users By Tours (@filterModel.Days days)</h2>
-        @if (topUsersByTours.Count == 0)
+
+        <div class="row g-2 mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <InputText @bind-Value="topUserSearchKeyword" class="form-control" placeholder="Display name or username..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Sort By</label>
+                <InputSelect @bind-Value="topUserSortField" class="form-select">
+                    <option value="tours">Tours</option>
+                    <option value="lastvisit">Last Visit</option>
+                    <option value="displayname">Display Name</option>
+                    <option value="username">Username</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Dir</label>
+                <InputSelect @bind-Value="topUserSortDirection" class="form-select">
+                    <option value="desc">Desc</option>
+                    <option value="asc">Asc</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Page Size</label>
+                <InputSelect @bind-Value="topUserPageSize" class="form-select">
+                    @foreach (var size in GridPageSizeOptions)
+                    {
+                        <option value="@size">@size</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100" @onclick="ResetTopUserGrid">Clear</button>
+            </div>
+        </div>
+
+        @{
+            var filteredTopUsers = GetFilteredTopUsers();
+            var topUserTotalPages = GetTopUserTotalPages(filteredTopUsers.Count);
+            var safeTopUserPage = Math.Clamp(topUserPageIndex, 1, topUserTotalPages);
+            var pagedTopUsers = filteredTopUsers
+                .Skip((safeTopUserPage - 1) * topUserPageSize)
+                .Take(topUserPageSize)
+                .ToList();
+        }
+
+        @if (filteredTopUsers.Count == 0)
         {
             <p class="text-muted mb-0">No tour data in selected period.</p>
         }
@@ -100,7 +153,7 @@ else
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in topUsersByTours)
+                        @foreach (var item in pagedTopUsers)
                         {
                             <tr>
                                 <td>@item.DisplayName</td>
@@ -112,12 +165,66 @@ else
                     </tbody>
                 </table>
             </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <small class="text-muted">Showing @pagedTopUsers.Count of @filteredTopUsers.Count result(s).</small>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeTopUserPage <= 1)" @onclick="() => MoveTopUserPage(-1)">Previous</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Page @safeTopUserPage / @topUserTotalPages</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeTopUserPage >= topUserTotalPages)" @onclick="() => MoveTopUserPage(1)">Next</button>
+                </div>
+            </div>
         }
     </section>
 
     <section class="border rounded p-3 bg-white mb-3">
         <h2 class="h5 mb-3">Recent Favorites</h2>
-        @if (recentFavorites.Count == 0)
+
+        <div class="row g-2 mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <InputText @bind-Value="favoriteSearchKeyword" class="form-control" placeholder="User or POI..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Sort By</label>
+                <InputSelect @bind-Value="favoriteSortField" class="form-select">
+                    <option value="created">Created UTC</option>
+                    <option value="user">User</option>
+                    <option value="poi">POI</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Dir</label>
+                <InputSelect @bind-Value="favoriteSortDirection" class="form-select">
+                    <option value="desc">Desc</option>
+                    <option value="asc">Asc</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Page Size</label>
+                <InputSelect @bind-Value="favoritePageSize" class="form-select">
+                    @foreach (var size in GridPageSizeOptions)
+                    {
+                        <option value="@size">@size</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100" @onclick="ResetFavoriteGrid">Clear</button>
+            </div>
+        </div>
+
+        @{
+            var filteredFavorites = GetFilteredFavorites();
+            var favoriteTotalPages = GetFavoriteTotalPages(filteredFavorites.Count);
+            var safeFavoritePage = Math.Clamp(favoritePageIndex, 1, favoriteTotalPages);
+            var pagedFavorites = filteredFavorites
+                .Skip((safeFavoritePage - 1) * favoritePageSize)
+                .Take(favoritePageSize)
+                .ToList();
+        }
+
+        @if (filteredFavorites.Count == 0)
         {
             <p class="text-muted mb-0">No favorite data found.</p>
         }
@@ -133,7 +240,7 @@ else
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in recentFavorites)
+                        @foreach (var item in pagedFavorites)
                         {
                             <tr>
                                 <td>@item.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
@@ -144,12 +251,72 @@ else
                     </tbody>
                 </table>
             </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <small class="text-muted">Showing @pagedFavorites.Count of @filteredFavorites.Count result(s).</small>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeFavoritePage <= 1)" @onclick="() => MoveFavoritePage(-1)">Previous</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Page @safeFavoritePage / @favoriteTotalPages</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeFavoritePage >= favoriteTotalPages)" @onclick="() => MoveFavoritePage(1)">Next</button>
+                </div>
+            </div>
         }
     </section>
 
     <section class="border rounded p-3 bg-white">
         <h2 class="h5 mb-3">Recent Tour History</h2>
-        @if (recentTours.Count == 0)
+
+        <div class="row g-2 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <InputText @bind-Value="tourSearchKeyword" class="form-control" placeholder="User, POI, trigger..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Language</label>
+                <InputText @bind-Value="tourLanguageFilter" class="form-control" placeholder="vi, en..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Sort By</label>
+                <InputSelect @bind-Value="tourSortField" class="form-select">
+                    <option value="visited">Visited UTC</option>
+                    <option value="user">User</option>
+                    <option value="poi">POI</option>
+                    <option value="language">Language</option>
+                    <option value="trigger">Trigger</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Dir</label>
+                <InputSelect @bind-Value="tourSortDirection" class="form-select">
+                    <option value="desc">Desc</option>
+                    <option value="asc">Asc</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Page Size</label>
+                <InputSelect @bind-Value="tourPageSize" class="form-select">
+                    @foreach (var size in GridPageSizeOptions)
+                    {
+                        <option value="@size">@size</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100" @onclick="ResetTourGrid">Clear</button>
+            </div>
+        </div>
+
+        @{
+            var filteredTours = GetFilteredTours();
+            var tourTotalPages = GetTourTotalPages(filteredTours.Count);
+            var safeTourPage = Math.Clamp(tourPageIndex, 1, tourTotalPages);
+            var pagedTours = filteredTours
+                .Skip((safeTourPage - 1) * tourPageSize)
+                .Take(tourPageSize)
+                .ToList();
+        }
+
+        @if (filteredTours.Count == 0)
         {
             <p class="text-muted mb-0">No tour history data found.</p>
         }
@@ -167,7 +334,7 @@ else
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in recentTours)
+                        @foreach (var item in pagedTours)
                         {
                             <tr>
                                 <td>@item.VisitedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
@@ -180,9 +347,20 @@ else
                     </tbody>
                 </table>
             </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <small class="text-muted">Showing @pagedTours.Count of @filteredTours.Count result(s).</small>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeTourPage <= 1)" @onclick="() => MoveTourPage(-1)">Previous</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Page @safeTourPage / @tourTotalPages</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeTourPage >= tourTotalPages)" @onclick="() => MoveTourPage(1)">Next</button>
+                </div>
+            </div>
         }
     </section>
 }
+
+</AdminRoleGate>
 
 @code {
     private readonly DashboardFilterModel filterModel = new();
@@ -195,6 +373,27 @@ else
     private bool isBusy;
     private bool isErrorStatus;
     private string statusMessage = string.Empty;
+
+    private string topUserSearchKeyword = string.Empty;
+    private string topUserSortField = "tours";
+    private string topUserSortDirection = "desc";
+    private int topUserPageSize = 10;
+    private int topUserPageIndex = 1;
+
+    private string favoriteSearchKeyword = string.Empty;
+    private string favoriteSortField = "created";
+    private string favoriteSortDirection = "desc";
+    private int favoritePageSize = 10;
+    private int favoritePageIndex = 1;
+
+    private string tourSearchKeyword = string.Empty;
+    private string tourLanguageFilter = string.Empty;
+    private string tourSortField = "visited";
+    private string tourSortDirection = "desc";
+    private int tourPageSize = 10;
+    private int tourPageIndex = 1;
+
+    private static readonly int[] GridPageSizeOptions = [5, 10, 20, 50];
 
     protected override async Task OnInitializedAsync()
     {
@@ -276,7 +475,6 @@ else
                     TourCount = g.Count(),
                     LastVisitedUtc = g.Max(x => x.tour.VisitedUtc)
                 })
-                .Take(10)
                 .ToListAsync();
 
             var favoriteRows = await (
@@ -336,6 +534,10 @@ else
             recentTours.Clear();
             recentTours.AddRange(tourRows);
 
+            topUserPageIndex = 1;
+            favoritePageIndex = 1;
+            tourPageIndex = 1;
+
             isErrorStatus = false;
             statusMessage = $"Loaded dashboard for last {filterModel.Days} days.";
         }
@@ -348,6 +550,160 @@ else
         {
             isBusy = false;
         }
+    }
+
+    private List<TopUserRow> GetFilteredTopUsers()
+    {
+        IEnumerable<TopUserRow> query = topUsersByTours;
+
+        if (!string.IsNullOrWhiteSpace(topUserSearchKeyword))
+        {
+            var keyword = topUserSearchKeyword.Trim();
+            query = query.Where(x =>
+                x.DisplayName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.UserName.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var sortDescending = string.Equals(topUserSortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        query = topUserSortField.ToLowerInvariant() switch
+        {
+            "displayname" => sortDescending ? query.OrderByDescending(x => x.DisplayName) : query.OrderBy(x => x.DisplayName),
+            "username" => sortDescending ? query.OrderByDescending(x => x.UserName) : query.OrderBy(x => x.UserName),
+            "lastvisit" => sortDescending ? query.OrderByDescending(x => x.LastVisitedUtc) : query.OrderBy(x => x.LastVisitedUtc),
+            _ => sortDescending ? query.OrderByDescending(x => x.TourCount) : query.OrderBy(x => x.TourCount)
+        };
+
+        return query.ToList();
+    }
+
+    private List<FavoriteRow> GetFilteredFavorites()
+    {
+        IEnumerable<FavoriteRow> query = recentFavorites;
+
+        if (!string.IsNullOrWhiteSpace(favoriteSearchKeyword))
+        {
+            var keyword = favoriteSearchKeyword.Trim();
+            query = query.Where(x =>
+                x.DisplayName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.UserName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.PoiDisplayName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.PoiId.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var sortDescending = string.Equals(favoriteSortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        query = favoriteSortField.ToLowerInvariant() switch
+        {
+            "user" => sortDescending
+                ? query.OrderByDescending(x => x.DisplayName).ThenByDescending(x => x.UserName)
+                : query.OrderBy(x => x.DisplayName).ThenBy(x => x.UserName),
+            "poi" => sortDescending ? query.OrderByDescending(x => x.PoiDisplayName) : query.OrderBy(x => x.PoiDisplayName),
+            _ => sortDescending ? query.OrderByDescending(x => x.CreatedUtc) : query.OrderBy(x => x.CreatedUtc)
+        };
+
+        return query.ToList();
+    }
+
+    private List<TourRow> GetFilteredTours()
+    {
+        IEnumerable<TourRow> query = recentTours;
+
+        if (!string.IsNullOrWhiteSpace(tourSearchKeyword))
+        {
+            var keyword = tourSearchKeyword.Trim();
+            query = query.Where(x =>
+                x.DisplayName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.UserName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.PoiDisplayName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.PoiId.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.TriggerType.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(tourLanguageFilter))
+        {
+            var language = tourLanguageFilter.Trim();
+            query = query.Where(x => x.LanguageCode.Contains(language, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var sortDescending = string.Equals(tourSortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        query = tourSortField.ToLowerInvariant() switch
+        {
+            "user" => sortDescending
+                ? query.OrderByDescending(x => x.DisplayName).ThenByDescending(x => x.UserName)
+                : query.OrderBy(x => x.DisplayName).ThenBy(x => x.UserName),
+            "poi" => sortDescending ? query.OrderByDescending(x => x.PoiDisplayName) : query.OrderBy(x => x.PoiDisplayName),
+            "language" => sortDescending ? query.OrderByDescending(x => x.LanguageCode) : query.OrderBy(x => x.LanguageCode),
+            "trigger" => sortDescending ? query.OrderByDescending(x => x.TriggerType) : query.OrderBy(x => x.TriggerType),
+            _ => sortDescending ? query.OrderByDescending(x => x.VisitedUtc) : query.OrderBy(x => x.VisitedUtc)
+        };
+
+        return query.ToList();
+    }
+
+    private int GetTopUserTotalPages(int totalRows)
+    {
+        return GetTotalPages(totalRows, topUserPageSize);
+    }
+
+    private int GetFavoriteTotalPages(int totalRows)
+    {
+        return GetTotalPages(totalRows, favoritePageSize);
+    }
+
+    private int GetTourTotalPages(int totalRows)
+    {
+        return GetTotalPages(totalRows, tourPageSize);
+    }
+
+    private static int GetTotalPages(int totalRows, int pageSize)
+    {
+        var safePageSize = Math.Max(1, pageSize);
+        return Math.Max(1, (int)Math.Ceiling(totalRows / (double)safePageSize));
+    }
+
+    private void MoveTopUserPage(int delta)
+    {
+        var totalPages = GetTopUserTotalPages(GetFilteredTopUsers().Count);
+        topUserPageIndex = Math.Clamp(topUserPageIndex + delta, 1, totalPages);
+    }
+
+    private void MoveFavoritePage(int delta)
+    {
+        var totalPages = GetFavoriteTotalPages(GetFilteredFavorites().Count);
+        favoritePageIndex = Math.Clamp(favoritePageIndex + delta, 1, totalPages);
+    }
+
+    private void MoveTourPage(int delta)
+    {
+        var totalPages = GetTourTotalPages(GetFilteredTours().Count);
+        tourPageIndex = Math.Clamp(tourPageIndex + delta, 1, totalPages);
+    }
+
+    private void ResetTopUserGrid()
+    {
+        topUserSearchKeyword = string.Empty;
+        topUserSortField = "tours";
+        topUserSortDirection = "desc";
+        topUserPageSize = 10;
+        topUserPageIndex = 1;
+    }
+
+    private void ResetFavoriteGrid()
+    {
+        favoriteSearchKeyword = string.Empty;
+        favoriteSortField = "created";
+        favoriteSortDirection = "desc";
+        favoritePageSize = 10;
+        favoritePageIndex = 1;
+    }
+
+    private void ResetTourGrid()
+    {
+        tourSearchKeyword = string.Empty;
+        tourLanguageFilter = string.Empty;
+        tourSortField = "visited";
+        tourSortDirection = "desc";
+        tourPageSize = 10;
+        tourPageIndex = 1;
     }
 
     private sealed class DashboardSummary

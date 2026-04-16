@@ -2,6 +2,7 @@ using FOOD_MAP.Shared.Data;
 using FOOD_MAP.Shared.Services;
 using FOOD_MAP.Web.Components;
 using FOOD_MAP.Web.Services;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,10 +13,12 @@ LoadDotEnvIfExists();
 // Đăng ký dịch vụ Blazor Server cho giao diện quản trị.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddScoped<ProtectedSessionStorage>();
 
 // Đăng ký dịch vụ phụ thuộc thiết bị được dùng bởi dự án dùng chung.
 builder.Services.AddSingleton<IFormFactor, FormFactor>();
 builder.Services.AddSingleton<IPoiWorkflowRepository, PoiWorkflowRepository>();
+builder.Services.AddSingleton<ISubscriptionService, SubscriptionService>();
 
 // Liên kết chung cơ sở dữ liệu PostgreSQL để Web và App dùng cùng nguồn dữ liệu.
 var postgresConnectionString = BuildPostgresConnectionString();

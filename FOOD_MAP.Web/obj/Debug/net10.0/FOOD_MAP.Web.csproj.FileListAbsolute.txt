@@ -31,7 +31,6 @@ C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\sco
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\compressed\sq048nrgji-{0}-13ja33weya-13ja33weya.gz
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\compressed\osfwuof4a0-{0}-b9228eflpl-b9228eflpl.gz
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\compressed\v04ojekuub-{0}-2tj1sjhksk-2tj1sjhksk.gz
-C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\compressed\s0fkunkq1p-{0}-ftuuq4gh9y-ftuuq4gh9y.gz
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\staticwebassets.build.json
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\staticwebassets.build.json.cache
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\staticwebassets.development.json
@@ -48,5 +47,9 @@ C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\bin\Debug\net10.0\Mic
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\bin\Debug\net10.0\Microsoft.EntityFrameworkCore.Relational.dll
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\bin\Debug\net10.0\Npgsql.dll
 C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\bin\Debug\net10.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
-C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\compressed\cg93hnvuyi-{0}-v4zx1m8mqh-v4zx1m8mqh.gz
 c:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\FOOD_MAP.Web.sourcelink.json
+C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\bin\Debug\net10.0\QRCoder.dll
+C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\scopedcss\Components\Layout\AdminRoleGate.razor.rz.scp.css
+C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\compressed\cg93hnvuyi-{0}-a7s04lqofi-a7s04lqofi.gz
+C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\compressed\s0fkunkq1p-{0}-1myf60c7g5-1myf60c7g5.gz
+C:\Users\binhb\source\repos\FOOD_MAP\FOOD_MAP\FOOD_MAP.Web\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt

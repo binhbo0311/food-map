@@ -3,6 +3,8 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
+    background: radial-gradient(circle at top right, #e7fbff 0%, #f6fdff 35%, #f9fbfc 100%);
 }
 
 main[b-cieqrgdu6c] {
@@ -10,16 +12,23 @@ main[b-cieqrgdu6c] {
 }
 
 .sidebar[b-cieqrgdu6c] {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    background-image: linear-gradient(180deg, #0a6674 0%, #0da4ad 62%, #067384 100%);
 }
 
 .top-row[b-cieqrgdu6c] {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
+    background: linear-gradient(90deg, rgba(232, 251, 254, 0.95) 0%, rgba(244, 253, 255, 0.95) 100%);
+    border-bottom: 1px solid #b9e7eb;
     justify-content: flex-end;
     height: 3.5rem;
     display: flex;
     align-items: center;
+}
+
+.top-row-title[b-cieqrgdu6c] {
+    margin-right: auto;
+    color: #0c5b66;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
     .top-row[b-cieqrgdu6c]  a, .top-row[b-cieqrgdu6c]  .btn-link {
@@ -30,6 +39,7 @@ main[b-cieqrgdu6c] {
 
     .top-row[b-cieqrgdu6c]  a:hover, .top-row[b-cieqrgdu6c]  .btn-link:hover {
         text-decoration: underline;
+        color: #0f8695;
     }
 
     .top-row[b-cieqrgdu6c]  a:first-child {
@@ -117,7 +127,7 @@ main[b-cieqrgdu6c] {
 
 .top-row[b-3ugupldfpa] {
     min-height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgba(5, 88, 100, 0.55);
 }
 
 .navbar-brand[b-3ugupldfpa] {
@@ -146,12 +156,24 @@ main[b-cieqrgdu6c] {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-list-nested' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M4.5 11.5A.5.5 0 0 1 5 11h10a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 3 7h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 1 3h10a.5.5 0 0 1 0 1H1a.5.5 0 0 1-.5-.5z'/%3E%3C/svg%3E");
 }
 
+.bi-speedometer-nav-menu[b-3ugupldfpa] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-speedometer2' viewBox='0 0 16 16'%3E%3Cpath d='M8 4a.5.5 0 0 1 .5.5v3.354l2.5 1.5a.5.5 0 0 1-.5.866l-2.75-1.65A.5.5 0 0 1 7.5 8V4.5A.5.5 0 0 1 8 4z'/%3E%3Cpath d='M6.664 15.889A8 8 0 1 1 9.336.11a8 8 0 0 1-2.672 15.78zM8 1a7 7 0 0 0-5.468 11.37A6.97 6.97 0 0 0 8 15a6.97 6.97 0 0 0 5.468-2.63A7 7 0 0 0 8 1z'/%3E%3C/svg%3E");
+}
+
+.bi-inbox-nav-menu[b-3ugupldfpa] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-inboxes' viewBox='0 0 16 16'%3E%3Cpath d='M4.98 2a.5.5 0 0 0-.39.188L2.54 4.75H1.5A1.5 1.5 0 0 0 0 6.25v6.5A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-6.5A1.5 1.5 0 0 0 14.5 4.5h-1.04l-2.05-2.563A.5.5 0 0 0 11.02 2H4.98zM3.46 5l1.6-2h5.88l1.6 2H3.46zM1 6.25A.5.5 0 0 1 1.5 5.75h13a.5.5 0 0 1 .5.5V8H11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1H1V6.25zM1 9h4a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2h4v3.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V9z'/%3E%3C/svg%3E");
+}
+
 .bi-translate-nav-menu[b-3ugupldfpa] {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-translate' viewBox='0 0 16 16'%3E%3Cpath d='M4.545 6.714 4.11 8H3l1.862-5h1.104l1.862 5H6.717l-.435-1.286H4.545Zm1.289-.857L5.5 4.857c-.096-.292-.166-.584-.244-.857h-.035a12.93 12.93 0 0 1-.244.857l-.334 1h1.191Z'/%3E%3Cpath d='M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7.319a.5.5 0 0 1 0-1H9a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h2.681a.5.5 0 0 1 0 1H2a2 2 0 0 1-2-2V2Z'/%3E%3Cpath d='M11.5 11.379V13h-1.372l3.084 3.084 3.084-3.084h-1.372v-1.621h-1.424Zm2.712 1.254h-.86v1.58h.86v-1.58Z'/%3E%3C/svg%3E");
 }
 
 .bi-graph-up-nav-menu[b-3ugupldfpa] {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-graph-up' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M0 0h1v15h15v1H0V0Zm14.293 4.707a1 1 0 0 0-1.414-1.414L9.5 6.672 7.354 4.525a1 1 0 0 0-1.408-.02L2.5 7.758l.707.707 3.438-3.2 2.147 2.147a1 1 0 0 0 1.414 0l3.586-3.586Z'/%3E%3C/svg%3E");
+}
+
+.bi-credit-card-nav-menu[b-3ugupldfpa] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-credit-card' viewBox='0 0 16 16'%3E%3Cpath d='M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1H0V4Zm0 2h16v6a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6Zm3 3a1 1 0 0 0 0 2h2a1 1 0 1 0 0-2H3Z'/%3E%3C/svg%3E");
 }
 
 .nav-item[b-3ugupldfpa] {
@@ -168,7 +190,7 @@ main[b-cieqrgdu6c] {
     }
 
     .nav-item[b-3ugupldfpa]  .nav-link {
-        color: #d7d7d7;
+        color: #e8f9fb;
         background: none;
         border: none;
         border-radius: 4px;
@@ -180,12 +202,12 @@ main[b-cieqrgdu6c] {
     }
 
 .nav-item[b-3ugupldfpa]  a.active {
-    background-color: rgba(255,255,255,0.37);
+    background-color: rgba(216, 248, 251, 0.33);
     color: white;
 }
 
 .nav-item[b-3ugupldfpa]  .nav-link:hover {
-    background-color: rgba(255,255,255,0.1);
+    background-color: rgba(216, 248, 251, 0.2);
     color: white;
 }
 

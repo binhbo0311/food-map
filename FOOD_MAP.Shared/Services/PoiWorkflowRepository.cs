@@ -7,10 +7,14 @@ namespace FOOD_MAP.Shared.Services;
 public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
 {
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly ISubscriptionService _subscriptionService;
 
-    public PoiWorkflowRepository(IDbContextFactory<AppDbContext> dbContextFactory)
+    public PoiWorkflowRepository(
+        IDbContextFactory<AppDbContext> dbContextFactory,
+        ISubscriptionService subscriptionService)
     {
         _dbContextFactory = dbContextFactory;
+        _subscriptionService = subscriptionService;
     }
 
     public async Task<string> GenerateNextPoiIdAsync(PoiType type, CancellationToken cancellationToken = default)
@@ -412,6 +416,26 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
 
         await EnsureOwnerCanUseLanguageAsync(dbContext, ownerUserId, normalizedLanguageCode, cancellationToken);
 
+        var ownerPolicy = await _subscriptionService.GetCurrentPolicyAsync(ownerUserId, cancellationToken);
+        if (ownerPolicy.MaxOwnerPoiCount.HasValue)
+        {
+            var currentOwnerPoiCount = await dbContext.Pois
+                .AsNoTracking()
+                .CountAsync(x => x.OwnerId == ownerUserId, cancellationToken);
+
+            if (currentOwnerPoiCount >= ownerPolicy.MaxOwnerPoiCount.Value)
+            {
+                throw new InvalidOperationException(
+                    $"Current subscription only allows {ownerPolicy.MaxOwnerPoiCount.Value} POIs. Please upgrade subscription to add more POIs.");
+            }
+        }
+
+        if (activationRadius > ownerPolicy.MaxActivationRadiusMeters)
+        {
+            throw new InvalidOperationException(
+                $"Current subscription only allows activation radius up to {ownerPolicy.MaxActivationRadiusMeters} meters.");
+        }
+
         var language = await GetOrCreateLanguageAsync(dbContext, normalizedLanguageCode, cancellationToken);
 
         var poi = new POI
@@ -452,14 +476,21 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         CancellationToken cancellationToken = default)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var ownerPolicy = await _subscriptionService.GetCurrentPolicyAsync(ownerUserId, cancellationToken);
 
-        return await dbContext.Pois
+        IQueryable<POI> query = dbContext.Pois
             .AsNoTracking()
             .Include(x => x.PoiTranslations)
             .Where(x => x.OwnerId == ownerUserId)
             .OrderByDescending(x => x.SubmittedUtc)
-            .ThenBy(x => x.Id)
-            .ToListAsync(cancellationToken);
+            .ThenBy(x => x.Id);
+
+        if (ownerPolicy.MaxOwnerPoiCount.HasValue)
+        {
+            query = query.Take(ownerPolicy.MaxOwnerPoiCount.Value);
+        }
+
+        return await query.ToListAsync(cancellationToken);
     }
 
     public async Task<(bool IsSuccess, string Message)> UpdateOwnerPoiBasicInfoAsync(
@@ -476,6 +507,12 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         if (string.IsNullOrWhiteSpace(poiId))
         {
             return (false, "POI id is required.");
+        }
+
+        var ownerPolicy = await _subscriptionService.GetCurrentPolicyAsync(ownerUserId, cancellationToken);
+        if (activationRadius > ownerPolicy.MaxActivationRadiusMeters)
+        {
+            return (false, $"Current subscription only allows activation radius up to {ownerPolicy.MaxActivationRadiusMeters} meters.");
         }
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);

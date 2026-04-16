@@ -1,0 +1,346 @@
+@page "/admin/subscriptions"
+@using FOOD_MAP.Shared.Data
+@using FOOD_MAP.Shared.Models
+@using FOOD_MAP.Shared.Services
+@using Microsoft.EntityFrameworkCore
+@using System.ComponentModel.DataAnnotations
+@inject IDbContextFactory<AppDbContext> DbContextFactory
+@inject ISubscriptionService SubscriptionService
+
+<PageTitle>Subscription & Payment Admin</PageTitle>
+
+<AdminRoleGate>
+
+<h1>Subscription & Payment Admin</h1>
+<p class="text-muted">Upgrade owner and user accounts to unlock POI and activation radius limits.</p>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-outline-secondary" href="/admin">Open Admin Dashboard</a>
+    <a class="btn btn-outline-primary" href="/admin/history-tour">Open History & Tour</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <div class="alert @(isErrorStatus ? "alert-danger" : "alert-success")" role="alert">
+        @statusMessage
+    </div>
+}
+
+<EditForm Model="paymentModel" OnValidSubmit="ProcessPaymentAsync" class="border rounded p-3 mb-3 bg-light-subtle">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Account</label>
+            <InputSelect @bind-Value="paymentModel.UserId" @bind-Value:after="OnSelectedUserChangedAsync" class="form-select" disabled="@isBusy">
+                <option value="0">Select account...</option>
+                @foreach (var user in userOptions)
+                {
+                    <option value="@user.UserId">@user.DisplayLabel</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Tier</label>
+            <InputSelect @bind-Value="paymentModel.Tier" class="form-select" disabled="@isBusy">
+                <option value="@SubscriptionTier.Basic">Basic</option>
+                <option value="@SubscriptionTier.Premium">Premium</option>
+            </InputSelect>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Billing Period</label>
+            <InputSelect @bind-Value="paymentModel.BillingPeriod" class="form-select" disabled="@isBusy">
+                <option value="@BillingPeriod.Monthly">Monthly</option>
+                <option value="@BillingPeriod.Quarterly">Quarterly</option>
+                <option value="@BillingPeriod.Yearly">Yearly</option>
+            </InputSelect>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Amount</label>
+            <InputNumber @bind-Value="paymentModel.Amount" class="form-control" disabled="@isBusy" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Currency</label>
+            <InputText @bind-Value="paymentModel.Currency" class="form-control" disabled="@isBusy" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Payment Provider</label>
+            <InputText @bind-Value="paymentModel.PaymentProvider" class="form-control" disabled="@isBusy" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Transaction Code</label>
+            <InputText @bind-Value="paymentModel.PaymentTransactionCode" class="form-control" disabled="@isBusy" />
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary" disabled="@isBusy">Process Payment & Upgrade</button>
+        <button type="button" class="btn btn-outline-secondary" @onclick="ResetForm" disabled="@isBusy">Reset</button>
+    </div>
+</EditForm>
+
+@if (paymentModel.UserId > 0)
+{
+    <section class="border rounded p-3 bg-white mb-3">
+        <h2 class="h5 mb-3">Current Subscription</h2>
+
+        @if (currentPolicy is null)
+        {
+            <p class="text-muted mb-0">No subscription policy available.</p>
+        }
+        else
+        {
+            <div class="row g-3">
+                <div class="col-12 col-md-3">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted">Current Tier</div>
+                        <div class="fs-5 fw-semibold">@currentPolicy.Tier</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted">POI Visible Limit</div>
+                        <div class="fs-5 fw-semibold">@(currentPolicy.MaxAccessiblePoiCount?.ToString() ?? "Unlimited")</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted">Owner POI Limit</div>
+                        <div class="fs-5 fw-semibold">@(currentPolicy.MaxOwnerPoiCount?.ToString() ?? "Unlimited")</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted">Activation Radius Limit</div>
+                        <div class="fs-5 fw-semibold">@currentPolicy.MaxActivationRadiusMeters m</div>
+                    </div>
+                </div>
+            </div>
+
+            @if (currentSubscription is not null)
+            {
+                <div class="mt-3 text-muted small">
+                    Active until @currentSubscription.ExpiresUtc.ToString("yyyy-MM-dd HH:mm:ss") UTC
+                </div>
+            }
+        }
+    </section>
+
+    <section class="border rounded p-3 bg-white">
+        <h2 class="h5 mb-3">Payment History</h2>
+
+        @if (userSubscriptions.Count == 0)
+        {
+            <p class="text-muted mb-0">No payment records found for this account.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Created (UTC)</th>
+                            <th>Tier</th>
+                            <th>Billing</th>
+                            <th>Status</th>
+                            <th>Amount</th>
+                            <th>Provider</th>
+                            <th>Transaction</th>
+                            <th>Expires (UTC)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in userSubscriptions)
+                        {
+                            <tr>
+                                <td>@item.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td>@item.Tier</td>
+                                <td>@item.BillingPeriod</td>
+                                <td>@item.PaymentStatus</td>
+                                <td>@item.Amount.ToString("0.##") @item.Currency</td>
+                                <td>@item.PaymentProvider</td>
+                                <td>@item.PaymentTransactionCode</td>
+                                <td>@item.ExpiresUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
+
+</AdminRoleGate>
+
+@code {
+    private readonly List<UserOption> userOptions = [];
+    private readonly List<Subscription> userSubscriptions = [];
+    private readonly PaymentFormModel paymentModel = new();
+
+    private bool isBusy;
+    private bool isErrorStatus;
+    private string statusMessage = string.Empty;
+    private Subscription? currentSubscription;
+    private SubscriptionFeaturePolicy? currentPolicy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        isBusy = true;
+        statusMessage = string.Empty;
+
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            var users = await dbContext.Users
+                .AsNoTracking()
+                .OrderBy(x => x.Role)
+                .ThenBy(x => x.DisplayName)
+                .ThenBy(x => x.UserName)
+                .Select(x => new UserOption(
+                    x.Id,
+                    x.DisplayName,
+                    x.UserName,
+                    x.Role))
+                .ToListAsync();
+
+            userOptions.Clear();
+            userOptions.AddRange(users);
+
+            var firstOwnerOrUser = users
+                .FirstOrDefault(x => x.Role == UserRole.Owner)
+                ?? users.FirstOrDefault(x => x.Role == UserRole.User)
+                ?? users.FirstOrDefault();
+
+            if (firstOwnerOrUser is not null)
+            {
+                paymentModel.UserId = firstOwnerOrUser.UserId;
+                await RefreshSelectedUserDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            isErrorStatus = true;
+            statusMessage = $"Unable to load accounts: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private Task OnSelectedUserChangedAsync()
+    {
+        return RefreshSelectedUserDataAsync();
+    }
+
+    private async Task RefreshSelectedUserDataAsync()
+    {
+        if (paymentModel.UserId <= 0)
+        {
+            currentSubscription = null;
+            currentPolicy = null;
+            userSubscriptions.Clear();
+            return;
+        }
+
+        currentSubscription = await SubscriptionService.GetCurrentSubscriptionAsync(paymentModel.UserId);
+        currentPolicy = await SubscriptionService.GetCurrentPolicyAsync(paymentModel.UserId);
+
+        var history = await SubscriptionService.GetUserSubscriptionsAsync(paymentModel.UserId);
+        userSubscriptions.Clear();
+        userSubscriptions.AddRange(history);
+
+        StateHasChanged();
+    }
+
+    private async Task ProcessPaymentAsync()
+    {
+        if (paymentModel.UserId <= 0)
+        {
+            isErrorStatus = true;
+            statusMessage = "Please select an account.";
+            return;
+        }
+
+        isBusy = true;
+        statusMessage = string.Empty;
+
+        try
+        {
+            var createdSubscription = await SubscriptionService.ProcessPaymentAsync(
+                paymentModel.UserId,
+                paymentModel.Tier,
+                paymentModel.BillingPeriod,
+                paymentModel.Amount,
+                paymentModel.Currency,
+                paymentModel.PaymentProvider,
+                paymentModel.PaymentTransactionCode);
+
+            isErrorStatus = false;
+            statusMessage = $"Payment success. Account upgraded to {createdSubscription.Tier} until {createdSubscription.ExpiresUtc:yyyy-MM-dd}.";
+            await RefreshSelectedUserDataAsync();
+        }
+        catch (Exception ex)
+        {
+            isErrorStatus = true;
+            statusMessage = $"Payment failed: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        paymentModel.Tier = SubscriptionTier.Basic;
+        paymentModel.BillingPeriod = BillingPeriod.Monthly;
+        paymentModel.Amount = 99000;
+        paymentModel.Currency = "VND";
+        paymentModel.PaymentProvider = "Manual";
+        paymentModel.PaymentTransactionCode = string.Empty;
+    }
+
+    private sealed record UserOption(int UserId, string DisplayName, string UserName, UserRole Role)
+    {
+        public string DisplayLabel => $"{DisplayName} (@{UserName}) [{Role}]";
+    }
+
+    private sealed class PaymentFormModel
+    {
+        [Range(1, int.MaxValue, ErrorMessage = "Please select an account.")]
+        public int UserId { get; set; }
+
+        public SubscriptionTier Tier { get; set; } = SubscriptionTier.Basic;
+
+        public BillingPeriod BillingPeriod { get; set; } = BillingPeriod.Monthly;
+
+        [Range(typeof(decimal), "0.01", "999999999", ErrorMessage = "Amount must be greater than zero.")]
+        public decimal Amount { get; set; } = 99000;
+
+        [Required]
+        [StringLength(10)]
+        public string Currency { get; set; } = "VND";
+
+        [Required]
+        [StringLength(50)]
+        public string PaymentProvider { get; set; } = "Manual";
+
+        [Required]
+        [StringLength(120)]
+        public string PaymentTransactionCode { get; set; } = string.Empty;
+    }
+}

@@ -32,6 +32,8 @@ public class AppDbContext : DbContext
 
     public DbSet<LanguageOwnershipRequest> LanguageOwnershipRequests => Set<LanguageOwnershipRequest>();
 
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -322,6 +324,47 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(x => new { x.PoiId, x.DisplayOrder });
         });
+
+        modelBuilder.Entity<Subscription>(entity =>
+        {
+            entity.ToTable("Subscriptions");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.UserId).IsRequired();
+
+            entity.Property(x => x.Tier)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion(x => ToDbSubscriptionTier(x), x => FromDbSubscriptionTier(x));
+
+            entity.Property(x => x.BillingPeriod)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion(x => ToDbBillingPeriod(x), x => FromDbBillingPeriod(x));
+
+            entity.Property(x => x.PaymentStatus)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion(x => ToDbPaymentStatus(x), x => FromDbPaymentStatus(x));
+
+            entity.Property(x => x.Amount).HasPrecision(12, 2);
+            entity.Property(x => x.Currency).IsRequired().HasMaxLength(10);
+            entity.Property(x => x.PaymentProvider).HasMaxLength(50);
+            entity.Property(x => x.PaymentTransactionCode).HasMaxLength(120);
+            entity.Property(x => x.PaidUtc);
+            entity.Property(x => x.StartedUtc).IsRequired();
+            entity.Property(x => x.ExpiresUtc).IsRequired();
+            entity.Property(x => x.CreatedUtc).IsRequired();
+            entity.Property(x => x.UpdatedUtc).IsRequired();
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.Subscriptions)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => new { x.UserId, x.ExpiresUtc });
+            entity.HasIndex(x => new { x.UserId, x.PaymentStatus, x.ExpiresUtc });
+        });
     }
 
     private static string ToDbPoiType(PoiType value) => value switch
@@ -397,5 +440,54 @@ public class AppDbContext : DbContext
         "approved" => LanguageOwnershipRequestStatus.Approved,
         "rejected" => LanguageOwnershipRequestStatus.Rejected,
         _ => LanguageOwnershipRequestStatus.Pending
+    };
+
+    private static string ToDbSubscriptionTier(SubscriptionTier value) => value switch
+    {
+        SubscriptionTier.Free => "free",
+        SubscriptionTier.Basic => "basic",
+        SubscriptionTier.Premium => "premium",
+        _ => "free"
+    };
+
+    private static SubscriptionTier FromDbSubscriptionTier(string value) => value.Trim().ToLowerInvariant() switch
+    {
+        "basic" => SubscriptionTier.Basic,
+        "premium" => SubscriptionTier.Premium,
+        _ => SubscriptionTier.Free
+    };
+
+    private static string ToDbBillingPeriod(BillingPeriod value) => value switch
+    {
+        BillingPeriod.Monthly => "monthly",
+        BillingPeriod.Quarterly => "quarterly",
+        BillingPeriod.Yearly => "yearly",
+        _ => "monthly"
+    };
+
+    private static BillingPeriod FromDbBillingPeriod(string value) => value.Trim().ToLowerInvariant() switch
+    {
+        "quarterly" => BillingPeriod.Quarterly,
+        "yearly" => BillingPeriod.Yearly,
+        _ => BillingPeriod.Monthly
+    };
+
+    private static string ToDbPaymentStatus(PaymentStatus value) => value switch
+    {
+        PaymentStatus.Pending => "pending",
+        PaymentStatus.Paid => "paid",
+        PaymentStatus.Failed => "failed",
+        PaymentStatus.Cancelled => "cancelled",
+        PaymentStatus.Refunded => "refunded",
+        _ => "pending"
+    };
+
+    private static PaymentStatus FromDbPaymentStatus(string value) => value.Trim().ToLowerInvariant() switch
+    {
+        "paid" => PaymentStatus.Paid,
+        "failed" => PaymentStatus.Failed,
+        "cancelled" => PaymentStatus.Cancelled,
+        "refunded" => PaymentStatus.Refunded,
+        _ => PaymentStatus.Pending
     };
 }

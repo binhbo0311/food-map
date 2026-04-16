@@ -1,1 +1,31 @@
+## MAUI & .NET Default Ignores
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.vsidx
+
+## Environment
 .env
+
+## Word documents & Gen Outputs
+*.docx
+~$*.docx
+PID_FOOD_MAP.md
+
+##===============================================
+## TOOLS & GENERATORS (OUTSIDE MAIN PROJECT)
+##===============================================
+PRD_Generator/
+DownloaderApp/
+DownloadPuml.cs
+
+## Diagram generation inputs/outputs
+puml_diagrams/
+test_kroki.png
+
+## Temp session / logs
+_snapshots/
+_anr/
+_tmp_session*.txt

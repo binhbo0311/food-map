@@ -26,12 +26,24 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/binhb/source/repos/FOOD_MAP/FOOD_MAP/FOOD_MAP.Web/Components/Pages/Admin/AdminDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxBZG1pbkRhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/binhb/source/repos/FOOD_MAP/FOOD_MAP/FOOD_MAP.Web/Components/Pages/Admin/HistoryAndTourAdmin.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxIaXN0b3J5QW5kVG91ckFkbWluLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/binhb/source/repos/FOOD_MAP/FOOD_MAP/FOOD_MAP.Web/Components/Pages/Admin/PoiAdmin.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxQb2lBZG1pbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/binhb/source/repos/FOOD_MAP/FOOD_MAP/FOOD_MAP.Web/Components/Pages/Admin/RequestsAdmin.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxSZXF1ZXN0c0FkbWluLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/binhb/source/repos/FOOD_MAP/FOOD_MAP/FOOD_MAP.Web/Components/Pages/Admin/SubscriptionAdmin.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxTdWJzY3JpcHRpb25BZG1pbi5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/binhb/source/repos/FOOD_MAP/FOOD_MAP/FOOD_MAP.Web/Components/Pages/Admin/TranslationAdmin.razor]
@@ -49,6 +61,10 @@ build_metadata.AdditionalFiles.CssScope =
 [C:/Users/binhb/source/repos/FOOD_MAP/FOOD_MAP/FOOD_MAP.Web/Components/_Imports.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xfSW1wb3J0cy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/binhb/source/repos/FOOD_MAP/FOOD_MAP/FOOD_MAP.Web/Components/Layout/AdminRoleGate.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcQWRtaW5Sb2xlR2F0ZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-lztdxt8tko
 
 [C:/Users/binhb/source/repos/FOOD_MAP/FOOD_MAP/FOOD_MAP.Web/Components/Layout/ReconnectModal.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcUmVjb25uZWN0TW9kYWwucmF6b3I=

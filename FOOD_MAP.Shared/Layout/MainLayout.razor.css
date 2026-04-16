@@ -2,6 +2,8 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
+    background: radial-gradient(circle at top right, #e7fbff 0%, #f6fdff 35%, #f9fbfc 100%);
 }
 
 main {
@@ -9,16 +11,23 @@ main {
 }
 
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    background-image: linear-gradient(180deg, #0a6674 0%, #0da4ad 62%, #067384 100%);
 }
 
 .top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
+    background: linear-gradient(90deg, rgba(232, 251, 254, 0.95) 0%, rgba(244, 253, 255, 0.95) 100%);
+    border-bottom: 1px solid #b9e7eb;
     justify-content: flex-end;
     height: 3.5rem;
     display: flex;
     align-items: center;
+}
+
+.top-row-title {
+    margin-right: auto;
+    color: #0c5b66;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
     .top-row ::deep a, .top-row ::deep .btn-link {
@@ -29,6 +38,7 @@ main {
 
     .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
         text-decoration: underline;
+        color: #0f8695;
     }
 
     .top-row ::deep a:first-child {

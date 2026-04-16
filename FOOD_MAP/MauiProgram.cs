@@ -27,6 +27,7 @@ namespace FOOD_MAP
             builder.Services.AddSingleton<IFormFactor, FormFactor>();
             builder.Services.AddSingleton<IDataService, DataService>();
             builder.Services.AddSingleton<IPoiWorkflowRepository, PoiWorkflowRepository>();
+            builder.Services.AddSingleton<ISubscriptionService, SubscriptionService>();
 
             builder.Services.AddSingleton<IPoiRepository, PoiRepository>();
             builder.Services.AddSingleton<INarrationService, NarrationService>();

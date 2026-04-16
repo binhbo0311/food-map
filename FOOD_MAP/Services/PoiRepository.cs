@@ -1,5 +1,6 @@
 using FOOD_MAP.Shared.Data;
 using FOOD_MAP.Shared.Models;
+using FOOD_MAP.Shared.Services;
 using FOOD_MAP.ViewModels;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,16 +9,24 @@ namespace FOOD_MAP.Services;
 public sealed class PoiRepository : IPoiRepository
 {
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly ISubscriptionService _subscriptionService;
+    private readonly IUserSessionService _userSessionService;
 
-    public PoiRepository(IDbContextFactory<AppDbContext> dbContextFactory)
+    public PoiRepository(
+        IDbContextFactory<AppDbContext> dbContextFactory,
+        ISubscriptionService subscriptionService,
+        IUserSessionService userSessionService)
     {
         _dbContextFactory = dbContextFactory;
+        _subscriptionService = subscriptionService;
+        _userSessionService = userSessionService;
     }
 
     public async Task<IReadOnlyList<PoiListItemViewModel>> GetPoiItemsAsync(string languageCode, CancellationToken cancellationToken = default)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var normalizedLanguageCode = NormalizeLanguageCode(languageCode);
+        var subscriptionPolicy = await _subscriptionService.GetCurrentPolicyAsync(_userSessionService.CurrentUserId, cancellationToken);
 
         try
         {
@@ -69,6 +78,11 @@ public sealed class PoiRepository : IPoiRepository
                     narrationText,
                     translation?.ImageUrl ?? string.Empty,
                     richContentHtml));
+            }
+
+            if (subscriptionPolicy.MaxAccessiblePoiCount.HasValue)
+            {
+                items = items.Take(subscriptionPolicy.MaxAccessiblePoiCount.Value).ToList();
             }
 
             if (items.Count > 0)
@@ -202,6 +216,24 @@ public sealed class PoiRepository : IPoiRepository
         if (poi is null)
         {
             return null;
+        }
+
+        var subscriptionPolicy = await _subscriptionService.GetCurrentPolicyAsync(_userSessionService.CurrentUserId, cancellationToken);
+        if (subscriptionPolicy.MaxAccessiblePoiCount.HasValue)
+        {
+            var accessiblePoiIds = await dbContext.Pois
+                .AsNoTracking()
+                .Where(x => x.ApprovalStatus == PoiApprovalStatus.Approved)
+                .OrderBy(x => x.Priority)
+                .ThenBy(x => x.Id)
+                .Select(x => x.Id)
+                .Take(subscriptionPolicy.MaxAccessiblePoiCount.Value)
+                .ToListAsync(cancellationToken);
+
+            if (!accessiblePoiIds.Contains(normalizedPoiId, StringComparer.OrdinalIgnoreCase))
+            {
+                return null;
+            }
         }
 
         var translations = await dbContext.PoiTranslations

@@ -292,7 +292,7 @@ public sealed class LocationTrackingForegroundService : Service
     {
         try
         {
-            var selectedLanguage = Preferences.Default.Get("selected_language", "vi");
+            var selectedLanguage = NormalizeLanguageCode(Preferences.Default.Get("selected_language", "vi"));
             var narrationService = serviceProvider.GetService(typeof(INarrationService)) as INarrationService;
             var dbContextFactory = serviceProvider.GetService(typeof(IDbContextFactory<AppDbContext>)) as IDbContextFactory<AppDbContext>;
 
@@ -303,25 +303,26 @@ public sealed class LocationTrackingForegroundService : Service
 
             await using var dbContext = await dbContextFactory.CreateDbContextAsync();
 
-            var translation = await dbContext.PoiTranslations
+            var translations = await dbContext.PoiTranslations
                 .AsNoTracking()
                 .Include(x => x.Language)
                 .Where(x => x.PoiId == poiId)
-                .FirstOrDefaultAsync(x => x.Language != null && x.Language.LanguageCode == selectedLanguage)
-                ?? await dbContext.PoiTranslations
-                    .AsNoTracking()
-                    .Where(x => x.PoiId == poiId)
-                    .FirstOrDefaultAsync();
+                .ToListAsync();
+
+            var translation = translations.FirstOrDefault(x => IsLanguageMatch(x.Language?.LanguageCode, selectedLanguage))
+                ?? translations.FirstOrDefault(x => IsLanguageMatch(x.Language?.LanguageCode, "vi"))
+                ?? translations.FirstOrDefault(x => IsLanguageMatch(x.Language?.LanguageCode, "en"))
+                ?? translations.FirstOrDefault();
 
             if (translation is null)
             {
                 return;
             }
 
-            // Proximity chỉ đọc intro ngắn, ưu tiên LocationName.
-            var shortIntro = string.IsNullOrWhiteSpace(translation.LocationName)
+            // Proximity ưu tiên script đã biên tập để giữ đúng dấu tiếng Việt và ngữ điệu.
+            var shortIntro = !string.IsNullOrWhiteSpace(translation.TtsScript)
                 ? translation.TtsScript
-                : $"Bạn đang đến gần {translation.LocationName}";
+                : BuildFallbackIntro(translation.LocationName, selectedLanguage);
 
             await narrationService.PlayProximityNarrationAsync(shortIntro, selectedLanguage);
         }
@@ -329,6 +330,48 @@ public sealed class LocationTrackingForegroundService : Service
         {
             // Nếu proximity narration lỗi thì bỏ qua để không ảnh hưởng luồng tracking.
         }
+    }
+
+    private static string BuildFallbackIntro(string? locationName, string languageCode)
+    {
+        if (string.IsNullOrWhiteSpace(locationName))
+        {
+            return string.Equals(languageCode, "en", StringComparison.OrdinalIgnoreCase)
+                ? "You are near a point of interest."
+                : "Bạn đang đến gần một địa điểm tham quan.";
+        }
+
+        return string.Equals(languageCode, "en", StringComparison.OrdinalIgnoreCase)
+            ? $"You are near {locationName}."
+            : $"Bạn đang đến gần {locationName}.";
+    }
+
+    private static bool IsLanguageMatch(string? candidateLanguageCode, string expectedLanguageCode)
+    {
+        var normalizedCandidate = NormalizeLanguageCode(candidateLanguageCode);
+        return string.Equals(normalizedCandidate, expectedLanguageCode, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeLanguageCode(string? languageCode)
+    {
+        if (string.IsNullOrWhiteSpace(languageCode))
+        {
+            return "vi";
+        }
+
+        var normalized = languageCode.Trim().ToLowerInvariant();
+
+        if (normalized.StartsWith("vi", StringComparison.Ordinal) || normalized.Contains("viet", StringComparison.Ordinal))
+        {
+            return "vi";
+        }
+
+        if (normalized.StartsWith("en", StringComparison.Ordinal) || normalized.Contains("english", StringComparison.Ordinal))
+        {
+            return "en";
+        }
+
+        return normalized;
     }
 
     private sealed class TrackingLocationCallback : LocationCallback

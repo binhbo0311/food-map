@@ -32,12 +32,12 @@
       <RelatedAsset></RelatedAsset>
       <AssetTraitName>ScopedCss</AssetTraitName>
       <AssetTraitValue>ApplicationBundle</AssetTraitValue>
-      <Fingerprint>4pvkvjeaaz</Fingerprint>
-      <Integrity>eOjauOnxi55v9P1HZn80BJzbweUT6BUyDckkOJqtYDI=</Integrity>
+      <Fingerprint>men1t2qvjj</Fingerprint>
+      <Integrity>vhHOa23MUZYX2cSJuhWru9SDMkbLdoBSe0W8aw07e7E=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <FileLength>81</FileLength>
-      <LastWriteTime>Fri, 10 Apr 2026 03:21:53 GMT</LastWriteTime>
+      <LastWriteTime>Wed, 15 Apr 2026 10:53:20 GMT</LastWriteTime>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\FOOD_MAP.styles.css'))</OriginalItemSpec>
     </StaticWebAsset>
     <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\index.html'))">

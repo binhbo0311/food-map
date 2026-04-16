@@ -38,4 +38,6 @@ public class User
     public ICollection<LanguageOwnershipRequest> LanguageOwnershipRequestsSubmitted { get; set; } = new List<LanguageOwnershipRequest>();
 
     public ICollection<LanguageOwnershipRequest> LanguageOwnershipRequestsReviewed { get; set; } = new List<LanguageOwnershipRequest>();
+
+    public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 }

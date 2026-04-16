@@ -5,3 +5,4 @@
 
 -- Dùng script Phase 2 làm nguồn chuẩn để đảm bảo schema và dữ liệu test đồng nhất.
 \i 04-phase2-schema-update.sql
+\i 05-subscription-schema-update.sql

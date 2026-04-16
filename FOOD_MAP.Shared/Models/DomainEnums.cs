@@ -33,3 +33,26 @@ public enum LanguageOwnershipRequestStatus
     Approved = 1,
     Rejected = 2
 }
+
+public enum SubscriptionTier
+{
+    Free = 0,
+    Basic = 1,
+    Premium = 2
+}
+
+public enum BillingPeriod
+{
+    Monthly = 0,
+    Quarterly = 1,
+    Yearly = 2
+}
+
+public enum PaymentStatus
+{
+    Pending = 0,
+    Paid = 1,
+    Failed = 2,
+    Cancelled = 3,
+    Refunded = 4
+}

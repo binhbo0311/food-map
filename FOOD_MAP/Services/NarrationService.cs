@@ -86,20 +86,78 @@ public sealed class NarrationService : INarrationService
     {
         try
         {
+            var normalizedLanguageCode = NormalizeLanguageCode(languageCode);
+
             if (_cachedLocales is null)
             {
                 var locales = await TextToSpeech.Default.GetLocalesAsync();
                 _cachedLocales = locales.ToList();
             }
 
-            return _cachedLocales.FirstOrDefault(x => string.Equals(x.Language, languageCode, StringComparison.OrdinalIgnoreCase))
-                   ?? _cachedLocales.FirstOrDefault(x => x.Language.StartsWith(languageCode, StringComparison.OrdinalIgnoreCase));
+            return _cachedLocales.FirstOrDefault(x => IsLocaleMatch(x, normalizedLanguageCode))
+                   ?? _cachedLocales.FirstOrDefault(x =>
+                       string.Equals(NormalizeLanguageCode(x.Language), normalizedLanguageCode, StringComparison.OrdinalIgnoreCase));
         }
         catch
         {
             // Nếu không lấy được locale thì để null để hệ thống tự chọn locale mặc định.
             return null;
         }
+    }
+
+    private static bool IsLocaleMatch(Locale locale, string normalizedLanguageCode)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedLanguageCode))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(locale.Language)
+            && string.Equals(NormalizeLanguageCode(locale.Language), normalizedLanguageCode, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(locale.Name)
+            && string.Equals(NormalizeLanguageCode(locale.Name), normalizedLanguageCode, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(locale.Country)
+            && string.Equals(NormalizeLanguageCode(locale.Country), normalizedLanguageCode, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string NormalizeLanguageCode(string? languageCode)
+    {
+        if (string.IsNullOrWhiteSpace(languageCode))
+        {
+            return string.Empty;
+        }
+
+        var normalized = languageCode.Trim().ToLowerInvariant();
+
+        if (normalized.StartsWith("vi", StringComparison.Ordinal)
+            || normalized.Contains("viet", StringComparison.Ordinal)
+            || normalized.Contains("vietnam", StringComparison.Ordinal))
+        {
+            return "vi";
+        }
+
+        if (normalized.StartsWith("en", StringComparison.Ordinal)
+            || normalized.Contains("english", StringComparison.Ordinal)
+            || normalized.Contains("united states", StringComparison.Ordinal)
+            || normalized.Contains("united kingdom", StringComparison.Ordinal))
+        {
+            return "en";
+        }
+
+        return normalized;
     }
 
 }

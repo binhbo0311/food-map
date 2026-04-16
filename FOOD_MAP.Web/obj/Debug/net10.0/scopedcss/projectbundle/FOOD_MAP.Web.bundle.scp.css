@@ -1,3 +1,59 @@
+/* /Components/Layout/AdminRoleGate.razor.rz.scp.css */
+.admin-gate-loading[b-lztdxt8tko] {
+    min-height: 20vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    color: #0b6a78;
+}
+
+.admin-gate-shell[b-lztdxt8tko] {
+    min-height: 55vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.admin-gate-card[b-lztdxt8tko] {
+    width: min(460px, 100%);
+    border: 1px solid #7fd5dc;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #f5fdff 0%, #ffffff 48%);
+}
+
+.admin-gate-card .form-control[b-lztdxt8tko] {
+    border-color: #a7dfe3;
+}
+
+.admin-gate-card .form-control:focus[b-lztdxt8tko] {
+    border-color: #33a9b8;
+    box-shadow: 0 0 0 0.25rem rgba(51, 169, 184, 0.2);
+}
+
+.admin-gate-toolbar[b-lztdxt8tko] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid #88dbe0;
+    background: linear-gradient(90deg, #eefbfd 0%, #f8feff 100%);
+}
+
+.admin-gate-identity[b-lztdxt8tko] {
+    color: #0a5f6b;
+}
+
+@media (max-width: 640px) {
+    .admin-gate-toolbar[b-lztdxt8tko] {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
 /* /Components/Layout/ReconnectModal.razor.rz.scp.css */
 .components-reconnect-first-attempt-visible[b-c06o2vaf4a],
 .components-reconnect-repeated-attempt-visible[b-c06o2vaf4a],

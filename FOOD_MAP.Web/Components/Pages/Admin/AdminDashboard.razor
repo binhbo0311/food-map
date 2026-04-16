@@ -1,0 +1,52 @@
+@page "/admin"
+
+<PageTitle>Admin Dashboard</PageTitle>
+
+<AdminRoleGate>
+
+<h1>Admin Dashboard</h1>
+<p class="text-muted">Use modules below to manage POI content, workflow requests, translations, and analytics.</p>
+
+<div class="row g-3">
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
+            <h2 class="h5">POI Management</h2>
+            <p class="text-muted mb-3">Create, edit, and maintain Vietnamese base data for all POI.</p>
+            <a class="btn btn-outline-primary mt-auto" href="/admin/poi">Open POI Admin</a>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
+            <h2 class="h5">Workflow Requests</h2>
+            <p class="text-muted mb-3">Approve or reject owner registrations, language ownership, and pending POI.</p>
+            <a class="btn btn-outline-primary mt-auto" href="/admin/requests">Open Requests Admin</a>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
+            <h2 class="h5">Language & Translation</h2>
+            <p class="text-muted mb-3">Manage supported languages and POI translations with filtering tools.</p>
+            <a class="btn btn-outline-primary mt-auto" href="/admin/translations">Open Translation Admin</a>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
+            <h2 class="h5">History & Tour</h2>
+            <p class="text-muted mb-3">Inspect user activity metrics, favorites, and tour history with sortable grids.</p>
+            <a class="btn btn-outline-primary mt-auto" href="/admin/history-tour">Open History & Tour</a>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
+            <h2 class="h5">Subscription & Payment</h2>
+            <p class="text-muted mb-3">Process payments and upgrade owner or user feature limits.</p>
+            <a class="btn btn-outline-primary mt-auto" href="/admin/subscriptions">Open Subscription Admin</a>
+        </div>
+    </div>
+</div>
+
+</AdminRoleGate>

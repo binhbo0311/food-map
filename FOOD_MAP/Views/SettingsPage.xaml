@@ -11,7 +11,120 @@
             <Border BackgroundColor="White"
                     Stroke="#A9E1E2"
                     StrokeThickness="1"
-                    Padding="14">
+                    Padding="12">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{Binding ActiveSettingsTabTitle, StringFormat='Section: {0}'}"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="#066D72" />
+
+                    <ScrollView Orientation="Horizontal">
+                        <HorizontalStackLayout Spacing="8">
+                            <Button Text="Account"
+                                    HeightRequest="38"
+                                    CornerRadius="10"
+                                    Padding="14,0"
+                                    BackgroundColor="#E7EFF0"
+                                    TextColor="#143536"
+                                    Command="{Binding SwitchSettingsTabCommand}"
+                                    CommandParameter="account">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding IsAccountTabActive}"
+                                                 Value="True">
+                                        <Setter Property="BackgroundColor" Value="#066D72" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+
+                            <Button Text="Security"
+                                    HeightRequest="38"
+                                    CornerRadius="10"
+                                    Padding="14,0"
+                                    BackgroundColor="#E7EFF0"
+                                    TextColor="#143536"
+                                    Command="{Binding SwitchSettingsTabCommand}"
+                                    CommandParameter="security">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding IsSecurityTabActive}"
+                                                 Value="True">
+                                        <Setter Property="BackgroundColor" Value="#066D72" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+
+                            <Button Text="Owner Registration"
+                                    HeightRequest="38"
+                                    CornerRadius="10"
+                                    Padding="14,0"
+                                    BackgroundColor="#E7EFF0"
+                                    TextColor="#143536"
+                                    Command="{Binding SwitchSettingsTabCommand}"
+                                    CommandParameter="ownerregistration">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding IsOwnerRegistrationTabActive}"
+                                                 Value="True">
+                                        <Setter Property="BackgroundColor" Value="#066D72" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+
+                            <Button Text="Owner Workspace"
+                                    HeightRequest="38"
+                                    CornerRadius="10"
+                                    Padding="14,0"
+                                    BackgroundColor="#E7EFF0"
+                                    TextColor="#143536"
+                                    IsVisible="{Binding IsOwnerTabSelectorVisible}"
+                                    Command="{Binding SwitchSettingsTabCommand}"
+                                    CommandParameter="ownerworkspace">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding IsOwnerWorkspaceTabActive}"
+                                                 Value="True">
+                                        <Setter Property="BackgroundColor" Value="#066D72" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+
+                            <Button Text="Food Manager"
+                                    HeightRequest="38"
+                                    CornerRadius="10"
+                                    Padding="14,0"
+                                    BackgroundColor="#E7EFF0"
+                                    TextColor="#143536"
+                                    IsVisible="{Binding IsOwnerTabSelectorVisible}"
+                                    Command="{Binding SwitchSettingsTabCommand}"
+                                    CommandParameter="foodmanager">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding IsFoodManagerTabActive}"
+                                                 Value="True">
+                                        <Setter Property="BackgroundColor" Value="#066D72" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </HorizontalStackLayout>
+                    </ScrollView>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="White"
+                    Stroke="#A9E1E2"
+                    StrokeThickness="1"
+                    Padding="14"
+                    IsVisible="{Binding IsAccountTabActive}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="14" />
                 </Border.StrokeShape>
@@ -52,7 +165,8 @@
             <Border BackgroundColor="White"
                     Stroke="#A9E1E2"
                     StrokeThickness="1"
-                    Padding="14">
+                    Padding="14"
+                    IsVisible="{Binding IsSecurityTabActive}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="14" />
                 </Border.StrokeShape>
@@ -105,7 +219,8 @@
             <Border BackgroundColor="White"
                     Stroke="#A9E1E2"
                     StrokeThickness="1"
-                    Padding="14">
+                    Padding="14"
+                    IsVisible="{Binding IsOwnerRegistrationTabActive}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="14" />
                 </Border.StrokeShape>
@@ -154,7 +269,7 @@
                             TextColor="#143536"
                             IsEnabled="{Binding CanEditSettings}" />
 
-                                   <Button Text="{Binding OwnerRegistrationActionText}"
+                    <Button Text="{Binding OwnerRegistrationActionText}"
                             HeightRequest="42"
                             CornerRadius="12"
                             BackgroundColor="#066D72"
@@ -162,14 +277,14 @@
                             Command="{Binding RegisterOwnerCommand}"
                             IsEnabled="{Binding CanEditSettings}" />
 
-                                   <Button Text="Cancel Pending Request"
-                                                 HeightRequest="42"
-                                                 CornerRadius="12"
-                                                 BackgroundColor="#E7EFF0"
-                                                 TextColor="#143536"
-                                                 Command="{Binding CancelOwnerRequestCommand}"
-                                                 IsVisible="{Binding HasPendingOwnerRequest}"
-                                                 IsEnabled="{Binding CanEditSettings}" />
+                    <Button Text="Cancel Pending Request"
+                            HeightRequest="42"
+                            CornerRadius="12"
+                            BackgroundColor="#E7EFF0"
+                            TextColor="#143536"
+                            Command="{Binding CancelOwnerRequestCommand}"
+                            IsVisible="{Binding HasPendingOwnerRequest}"
+                            IsEnabled="{Binding CanEditSettings}" />
                 </VerticalStackLayout>
             </Border>
 
@@ -177,7 +292,7 @@
                     Stroke="#A9E1E2"
                     StrokeThickness="1"
                     Padding="14"
-                    IsVisible="{Binding IsOwnerUser}">
+                    IsVisible="{Binding IsOwnerWorkspaceTabActive}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="14" />
                 </Border.StrokeShape>
@@ -188,7 +303,7 @@
                            FontAttributes="Bold"
                            TextColor="#066D72" />
 
-                    <Label Text="Manage your POI submissions and food menu items."
+                    <Label Text="Manage your POI submissions and language ownership requests."
                            FontSize="12"
                            TextColor="#4D6B6C" />
 
@@ -459,14 +574,39 @@
                         </CollectionView.ItemTemplate>
                     </CollectionView>
 
+                    <Button Text="Go To Food Manager"
+                            HeightRequest="40"
+                            CornerRadius="12"
+                            BackgroundColor="#E7EFF0"
+                            TextColor="#143536"
+                            Command="{Binding SwitchSettingsTabCommand}"
+                            CommandParameter="foodmanager"
+                            IsEnabled="{Binding CanEditSettings}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="White"
+                    Stroke="#A9E1E2"
+                    StrokeThickness="1"
+                    Padding="14"
+                    IsVisible="{Binding IsFoodManagerTabActive}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="8">
                     <Label Text="Food Menu Manager"
-                           FontSize="14"
+                           FontSize="20"
                            FontAttributes="Bold"
-                           TextColor="#143536" />
+                           TextColor="#066D72" />
+
+                    <Label Text="Select a food POI from Owner Workspace first, then manage its menu below."
+                           FontSize="12"
+                           TextColor="#4D6B6C" />
 
                     <Entry Text="{Binding SelectedOwnerPoiIdForFood}"
                            IsReadOnly="True"
-                           Placeholder="Select a food POI above"
+                           Placeholder="Select a food POI in Owner Workspace"
                            BackgroundColor="#F2FBFB"
                            TextColor="#143536" />
 
@@ -559,7 +699,7 @@
 
                     <CollectionView ItemsSource="{Binding OwnerFoodItems}"
                                     SelectionMode="None"
-                                    HeightRequest="180">
+                                    HeightRequest="220">
                         <CollectionView.ItemTemplate>
                             <DataTemplate>
                                 <Border Stroke="#A9E1E2"
