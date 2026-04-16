@@ -212,13 +212,6 @@ Bức tranh sơ đồ quan hệ Entity của dự án với PostgreSQL.
 | Pending | Xác thực tín dụng Bank / Stripe OK | Active (Giao dịch hoàn tất) |
 | Active | Check cron job định kỳ bị lố thời gian hiệu lực | Expired |
 
-## 9. YÊU CẦU PHI CHỨC NĂNG
-- **Nghệ thuật bảo mật**: Mật khẩu SHA-256 mã hóa đơn chiều, XSS Protection gắt gao cho mọi TextEditor API đầu vào.
-- **UI/UX 60fps**: Các mảng giao diện Modal/BottomSheet/Trang chuyển tiếp sử dụng độ nẩy nội suy `CubicInOut` từ 180ms - 260ms.
-- **Tiên phong Offline First**: Mọi cú "Chạm Tym" vào Database, thao tác "Lưu Tuyến Dẫn Đường" đều được giả lập đồng thuận (UI Update > Save Cục Bộ) -> Tốc độ phản hồi cực đoan tức thì `~3ms`.
 
-## 10. PHỤ LỤC & TÀI KHOẢN DEMO
-Thật tuyệt vời vì app đã trang bị cấu hình sẵn sàng qua biến `.env` cũng như tự Seed data vào DB nếu ứng dụng chưa từng được khởi chạy.
-Quý khách có thể truy cập `demo` - pass `123456` với quyền truy hồi User cơ bản.
 
-> Cảm ơn tất cả!
+
