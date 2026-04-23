@@ -306,6 +306,7 @@ namespace FOOD_MAP
             SelectedPoiImage.Source = null;
             SelectedPoiImage.IsVisible = false;
             SelectedPoiNoImageLabel.IsVisible = true;
+            SelectedPoiImageGallery.ItemsSource = null;
             SelectedPoiRichContentView.Source = new HtmlWebViewSource { Html = "<html><body></body></html>" };
             SelectedPoiRichContentContainer.IsVisible = false;
         }
@@ -368,6 +369,7 @@ namespace FOOD_MAP
                 SelectedPoiImage.Source = null;
                 SelectedPoiImage.IsVisible = false;
                 SelectedPoiNoImageLabel.IsVisible = true;
+                SelectedPoiImageGallery.ItemsSource = null;
                 return;
             }
 
@@ -377,6 +379,7 @@ namespace FOOD_MAP
                 SelectedPoiImage.Source = null;
                 SelectedPoiImage.IsVisible = false;
                 SelectedPoiNoImageLabel.IsVisible = true;
+                SelectedPoiImageGallery.ItemsSource = null;
                 return;
             }
 
@@ -384,6 +387,7 @@ namespace FOOD_MAP
             SelectedPoiImage.Source = ImageSource.FromUri(imageUri);
             SelectedPoiImage.IsVisible = true;
             SelectedPoiNoImageLabel.IsVisible = false;
+            SelectedPoiImageGallery.ItemsSource = new[] { imageUrl };
         }
 
         private void ApplyBottomSheetRatio(double bottomRatio)
@@ -434,23 +438,26 @@ namespace FOOD_MAP
 
         private async void OnMapClicked(object? sender, MapClickedEventArgs e)
         {
-            // Chạm vào bản đồ thì thu gọn bottom sheet để bản đồ trở thành vùng hiển thị chính.
-            if (_bottomSheetRatio > CollapsedBottomRatio + 0.1)
+            await RunUiActionAsync(async () =>
             {
-                await MinimizeBottomSheetAsync();
-            }
+                // Chạm vào bản đồ thì thu gọn bottom sheet để bản đồ trở thành vùng hiển thị chính.
+                if (_bottomSheetRatio > CollapsedBottomRatio + 0.1)
+                {
+                    await MinimizeBottomSheetAsync();
+                }
+            }, "Map click failed");
         }
 
         private async void OnNavigateToSelectedPoiClicked(object? sender, EventArgs e)
         {
-            if (_selectedPoi is null)
+            await RunUiActionAsync(async () =>
             {
-                await DisplayAlertAsync("Directions", "Hãy chọn POI trước khi mở chỉ đường.", "OK");
-                return;
-            }
+                if (_selectedPoi is null)
+                {
+                    await DisplayAlertAsync("Directions", "Hãy chọn POI trước khi mở chỉ đường.", "OK");
+                    return;
+                }
 
-            try
-            {
                 var destination = new Location(_selectedPoi.Latitude, _selectedPoi.Longitude);
                 await AppModel.Map.OpenAsync(destination, new AppModel.MapLaunchOptions
                 {
@@ -461,11 +468,7 @@ namespace FOOD_MAP
                 // Bắt đầu một lượt điều hướng mới để chỉ cộng tour khi user thực sự đến trong bán kính 20m.
                 BeginRouteArrivalSession(_selectedPoi);
                 _viewModel.SetStatusMessage($"Đang theo dõi đến nơi: {_selectedPoi.Name} (<= {TourArrivalRadiusMeters:0}m).");
-            }
-            catch
-            {
-                await DisplayAlertAsync("Directions", "Không thể mở ứng dụng chỉ đường lúc này.", "OK");
-            }
+            }, "Directions failed");
         }
 
         private void OnCloseSelectedPoiClicked(object? sender, EventArgs e)
@@ -477,49 +480,69 @@ namespace FOOD_MAP
 
         private async void OnSettingsClicked(object? sender, EventArgs e)
         {
-            if (!_viewModel.IsAuthenticatedUser)
+            await RunUiActionAsync(async () =>
             {
-                await DisplayAlertAsync("Settings", "Please sign in to edit profile and security settings.", "OK");
-                return;
-            }
+                if (!_viewModel.IsAuthenticatedUser)
+                {
+                    await DisplayAlertAsync("Settings", "Please sign in to edit profile and security settings.", "OK");
+                    return;
+                }
 
-            // Điều hướng sang màn hình cài đặt hồ sơ cho người dùng đã xác thực.
-            await Navigation.PushAsync(new SettingsPage());
+                // Điều hướng sang màn hình cài đặt hồ sơ cho người dùng đã xác thực.
+                await Navigation.PushAsync(new SettingsPage());
+            }, "Settings navigation failed");
         }
 
         private async void OnBottomSheetTapped(object? sender, TappedEventArgs e)
         {
-            // Chạm vào khu vực bottom sheet thì mở rộng để ưu tiên thao tác POI/Camera.
-            if (_bottomSheetRatio < ExpandedBottomRatio - 0.1)
+            await RunUiActionAsync(async () =>
             {
-                await ExpandBottomSheetAsync();
-            }
+                // Chạm vào khu vực bottom sheet thì mở rộng để ưu tiên thao tác POI/Camera.
+                if (_bottomSheetRatio < ExpandedBottomRatio - 0.1)
+                {
+                    await ExpandBottomSheetAsync();
+                }
+            }, "Bottom sheet tap failed");
         }
 
         private async void OnDragHandleTapped(object? sender, TappedEventArgs e)
         {
-            // Chạm vào thanh kéo để chuyển nhanh giữa hai trạng thái mở rộng và thu gọn.
-            if (_bottomSheetRatio > 0.5)
+            await RunUiActionAsync(async () =>
             {
-                // Đang mở rộng thì thu gọn lại để nhường diện tích cho bản đồ.
-                await MinimizeBottomSheetAsync();
-            }
-            else
-            {
-                // Đang thu gọn thì mở rộng để thao tác danh sách POI/Camera dễ hơn.
-                await ExpandBottomSheetAsync();
-            }
+                // Chạm vào thanh kéo để chuyển nhanh giữa hai trạng thái mở rộng và thu gọn.
+                if (_bottomSheetRatio > 0.5)
+                {
+                    // Đang mở rộng thì thu gọn lại để nhường diện tích cho bản đồ.
+                    await MinimizeBottomSheetAsync();
+                }
+                else
+                {
+                    // Đang thu gọn thì mở rộng để thao tác danh sách POI/Camera dễ hơn.
+                    await ExpandBottomSheetAsync();
+                }
+            }, "Drag handle tap failed");
         }
         private async void OnBottomSheetSwipedUp()
         {
-            // Vuốt lên để mở rộng bottom sheet.
-            await ExpandBottomSheetAsync();
+            await RunUiActionAsync(ExpandBottomSheetAsync, "Swipe up failed");
         }
 
         private async void OnBottomSheetSwipedDown()
         {
-            // Vuốt xuống để thu gọn bottom sheet.
-            await MinimizeBottomSheetAsync();
+            await RunUiActionAsync(MinimizeBottomSheetAsync, "Swipe down failed");
+        }
+
+        private async Task RunUiActionAsync(Func<Task> action, string errorPrefix)
+        {
+            try
+            {
+                await action();
+            }
+            catch (Exception ex)
+            {
+                // Hiển thị lỗi gốc để tránh Android bọc nó thành JavaProxyThrowable.
+                _viewModel.SetStatusMessage($"{errorPrefix}: {ex.Message}");
+            }
         }
 
 #if ANDROID

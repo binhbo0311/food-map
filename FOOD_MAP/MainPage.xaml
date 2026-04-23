@@ -83,7 +83,7 @@
                 </Grid>
 
                 <!-- Cum nut chuyen tab -->
-                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,*" ColumnSpacing="8">
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="8">
                     <Button x:Name="SettingsButton"
                             Grid.Column="0"
                             Text="☰"
@@ -94,43 +94,55 @@
                             TextColor="{StaticResource PrimaryAquaDark}"
                             Clicked="OnSettingsClicked" />
 
-                        <Button x:Name="PoiTabButton"
-                            Grid.Column="1"
-                            Text="POI"
-                            HeightRequest="42"
-                            CornerRadius="12"
-                            Command="{Binding SelectPoiTabCommand}"
-                            Clicked="OnPoiTabClicked">
-                        <Button.Triggers>
-                            <DataTrigger TargetType="Button" Binding="{Binding IsPoiTabActive}" Value="True">
-                                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryAquaDark}" />
-                                <Setter Property="TextColor" Value="White" />
-                            </DataTrigger>
-                            <DataTrigger TargetType="Button" Binding="{Binding IsPoiTabActive}" Value="False">
-                                <Setter Property="BackgroundColor" Value="#F2FBFB" />
-                                <Setter Property="TextColor" Value="{StaticResource PrimaryAquaDark}" />
-                            </DataTrigger>
-                        </Button.Triggers>
-                    </Button>
+                    <Border Grid.Column="1"
+                            BackgroundColor="#F7FCFC"
+                            Stroke="#C6E9EA"
+                            StrokeThickness="1"
+                            Padding="8">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
 
-                        <Button x:Name="CameraTabButton"
-                            Grid.Column="2"
-                            Text="Camera"
-                            HeightRequest="42"
-                            CornerRadius="12"
-                            Command="{Binding SelectCameraTabCommand}"
-                            Clicked="OnCameraTabClicked">
-                        <Button.Triggers>
-                            <DataTrigger TargetType="Button" Binding="{Binding IsCameraTabActive}" Value="True">
-                                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryAquaDark}" />
-                                <Setter Property="TextColor" Value="White" />
-                            </DataTrigger>
-                            <DataTrigger TargetType="Button" Binding="{Binding IsCameraTabActive}" Value="False">
-                                <Setter Property="BackgroundColor" Value="#F2FBFB" />
-                                <Setter Property="TextColor" Value="{StaticResource PrimaryAquaDark}" />
-                            </DataTrigger>
-                        </Button.Triggers>
-                    </Button>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Button x:Name="PoiTabButton"
+                                    Grid.Column="0"
+                                    Text="POI"
+                                    HeightRequest="42"
+                                    CornerRadius="12"
+                                    Command="{Binding SelectPoiTabCommand}"
+                                    Clicked="OnPoiTabClicked">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsPoiTabActive}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource PrimaryAquaDark}" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsPoiTabActive}" Value="False">
+                                        <Setter Property="BackgroundColor" Value="#F2FBFB" />
+                                        <Setter Property="TextColor" Value="{StaticResource PrimaryAquaDark}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+
+                            <Button x:Name="CameraTabButton"
+                                    Grid.Column="1"
+                                    Text="Camera"
+                                    HeightRequest="42"
+                                    CornerRadius="12"
+                                    Command="{Binding SelectCameraTabCommand}"
+                                    Clicked="OnCameraTabClicked">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsCameraTabActive}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource PrimaryAquaDark}" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsCameraTabActive}" Value="False">
+                                        <Setter Property="BackgroundColor" Value="#F2FBFB" />
+                                        <Setter Property="TextColor" Value="{StaticResource PrimaryAquaDark}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </Grid>
+                    </Border>
                 </Grid>
 
                   <Label Grid.Row="2"
@@ -393,7 +405,8 @@
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
-                        <VerticalStackLayout Spacing="8" VerticalOptions="Center">
+
+                        <VerticalStackLayout Spacing="10" VerticalOptions="Center">
                             <Label Text="QR Camera"
                                    FontSize="16"
                                    FontAttributes="Bold"
@@ -401,28 +414,55 @@
                             <Label Text="Open camera to scan QR and play audio instantly"
                                    FontSize="13"
                                    TextColor="{StaticResource TextMuted}" />
-                            <Label Text="{Binding CameraStatusText}"
-                                   FontSize="13"
-                                   TextColor="{StaticResource TextMuted}" />
-                            <Button Text="{Binding CameraButtonText}"
-                                    HeightRequest="40"
-                                    CornerRadius="12"
-                                    BackgroundColor="{StaticResource PrimaryAquaDark}"
-                                    TextColor="White"
-                                    Command="{Binding ToggleCameraCommand}" />
 
-                                <Entry x:Name="QrPayloadEntry"
-                                   Placeholder="Enter scanned POI id (example: VS-002)"
-                                   Text="{Binding ScannedQrPayload, Mode=TwoWay}"
-                                   BackgroundColor="#F2FBFB"
-                                   TextColor="{StaticResource TextPrimary}" />
+                            <Border Stroke="#C6E9EA"
+                                    StrokeThickness="1"
+                                    BackgroundColor="#FAFEFE"
+                                    Padding="10">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
 
-                                <Button Text="Process QR"
-                                    HeightRequest="40"
-                                    CornerRadius="12"
-                                    BackgroundColor="#0B949A"
-                                    TextColor="White"
-                                    Clicked="OnProcessQrClicked" />
+                                <VerticalStackLayout Spacing="8">
+                                    <Label Text="Scanner frame"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="{Binding CameraStatusText}"
+                                           FontSize="13"
+                                           TextColor="{StaticResource TextMuted}" />
+                                    <Button Text="{Binding CameraButtonText}"
+                                            HeightRequest="40"
+                                            CornerRadius="12"
+                                            BackgroundColor="{StaticResource PrimaryAquaDark}"
+                                            TextColor="White"
+                                            Command="{Binding ToggleCameraCommand}" />
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Stroke="#D6ECEC"
+                                    StrokeThickness="1"
+                                    BackgroundColor="#F2FBFB"
+                                    Padding="10">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+
+                                <VerticalStackLayout Spacing="8">
+                                    <Entry x:Name="QrPayloadEntry"
+                                           Placeholder="Enter scanned POI id (example: VS-002)"
+                                           Text="{Binding ScannedQrPayload, Mode=TwoWay}"
+                                           BackgroundColor="White"
+                                           TextColor="{StaticResource TextPrimary}" />
+
+                                    <Button Text="Process QR"
+                                            HeightRequest="40"
+                                            CornerRadius="12"
+                                            BackgroundColor="#0B949A"
+                                            TextColor="White"
+                                            Clicked="OnProcessQrClicked" />
+                                </VerticalStackLayout>
+                            </Border>
                         </VerticalStackLayout>
                     </Border>
                 </Grid>
@@ -466,27 +506,57 @@
                                 Clicked="OnCloseSelectedPoiClicked" />
                     </Grid>
 
-                    <Border Grid.Row="1"
-                            HeightRequest="220"
-                            Stroke="#B8E4E5"
-                            StrokeThickness="1"
-                            BackgroundColor="#F2FBFB">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
-                        </Border.StrokeShape>
-                        <Grid>
-                            <Image x:Name="SelectedPoiImage"
-                                   Aspect="AspectFill" />
+                    <VerticalStackLayout Grid.Row="1" Spacing="8">
+                        <Border HeightRequest="220"
+                                Stroke="#B8E4E5"
+                                StrokeThickness="1"
+                                BackgroundColor="#F2FBFB">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Grid>
+                                <Image x:Name="SelectedPoiImage"
+                                       Aspect="AspectFill" />
 
-                            <Label x:Name="SelectedPoiNoImageLabel"
-                                   IsVisible="False"
-                                   Text="No image available"
-                                   FontSize="13"
-                                   TextColor="{StaticResource TextMuted}"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center" />
-                        </Grid>
-                    </Border>
+                                <Label x:Name="SelectedPoiNoImageLabel"
+                                       IsVisible="False"
+                                       Text="No image available"
+                                       FontSize="13"
+                                       TextColor="{StaticResource TextMuted}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="POI images"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" />
+
+                            <CollectionView x:Name="SelectedPoiImageGallery"
+                                            HeightRequest="96"
+                                            SelectionMode="None"
+                                            ItemsLayout="HorizontalList">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border WidthRequest="88"
+                                                HeightRequest="88"
+                                                Stroke="#D6ECEC"
+                                                StrokeThickness="1"
+                                                BackgroundColor="#F2FBFB"
+                                                Margin="0,0,8,0">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <Image Source="{Binding .}"
+                                                   Aspect="AspectFill" />
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
 
                     <Label x:Name="SelectedPoiDistanceLabel"
                            Grid.Row="2"

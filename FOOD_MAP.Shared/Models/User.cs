@@ -40,4 +40,10 @@ public class User
     public ICollection<LanguageOwnershipRequest> LanguageOwnershipRequestsReviewed { get; set; } = new List<LanguageOwnershipRequest>();
 
     public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
+
+    public ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
+
+    public ICollection<SubscriptionPlan> CreatedSubscriptionPlans { get; set; } = new List<SubscriptionPlan>();
+
+    public ICollection<SubscriptionPlan> UpdatedSubscriptionPlans { get; set; } = new List<SubscriptionPlan>();
 }

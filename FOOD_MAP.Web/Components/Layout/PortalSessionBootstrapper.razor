@@ -1,0 +1,13 @@
+@inject FOOD_MAP.Web.Services.PortalSessionService PortalSessionService
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await PortalSessionService.InitializeAsync();
+    }
+}

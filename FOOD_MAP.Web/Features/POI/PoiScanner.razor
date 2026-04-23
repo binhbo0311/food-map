@@ -1,0 +1,438 @@
+@page "/poi-scanner"
+@page "/poi/{RoutePoiId}"
+@using FOOD_MAP.Shared.Data
+@using FOOD_MAP.Shared.Models
+@using FOOD_MAP.Shared.Utilities
+@using Microsoft.AspNetCore.Components
+@using Microsoft.EntityFrameworkCore
+@using System.Text.Json
+@inject IDbContextFactory<AppDbContext> DbContextFactory
+@inject IJSRuntime JsRuntime
+
+<PageTitle>POI Scanner</PageTitle>
+
+<section class="scanner-shell">
+    <div class="scanner-header">
+        <h1>POI Scanner</h1>
+        <p class="text-muted mb-0">Quét QR hoặc dán payload để nghe TTS trực tiếp trên trình duyệt.</p>
+    </div>
+
+    @*  *@
+    <div class="scanner-card">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-lg-10">
+                <label class="form-label">QR Payload hoặc URL</label>
+                <InputText @bind-Value="qrPayloadInput" class="form-control"
+                           placeholder="Ví dụ: VS-001 hoặc https://example.com/poi?poiId=VS-001" />
+            </div>
+            <div class="col-12 col-lg-2 d-grid">
+                <button type="button" class="btn btn-primary" @onclick="LoadPoiFromPayloadAsync" disabled="@isBusy">
+                    @(isBusy ? "Đang tải..." : "Mở POI")
+                </button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(statusMessage))
+        {
+            <div class="alert @statusClass mt-3 mb-0" role="alert">@statusMessage</div>
+        }
+    </div>
+
+    @*  *@
+    @if (showLanguagePicker && availableLanguagesForPoi.Count > 0)
+    {
+        <div class="scanner-card">
+            <h2 class="h5 mb-3">Chọn ngôn ngữ</h2>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var lang in availableLanguagesForPoi)
+                {
+                    <button type="button"
+                            class="btn @(lang.LanguageCode == selectedLanguageCode ? "btn-primary" : "btn-outline-primary")"
+                            @onclick="() => SelectLanguageAndLoadAsync(lang.LanguageCode)"
+                            disabled="@isBusy">
+                        @lang.LanguageName (@lang.LanguageCode)
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    @*  *@
+    @if (selectedPoi is not null)
+    {
+        <div class="scanner-card">
+            <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start mb-3">
+                <div>
+                    <h2 class="h4 mb-1">@selectedPoi.LocationName</h2>
+                    <div class="text-muted small">POI: @selectedPoi.PoiId | Type: @selectedPoi.PoiType</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-success" @onclick="PlayTtsManuallyAsync" disabled="@isBusy">Play TTS</button>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="StopTtsAsync">Stop</button>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(selectedPoi.ImageUrl))
+            {
+                <img src="@selectedPoi.ImageUrl" alt="@selectedPoi.LocationName" class="scanner-image" />
+            }
+
+            <p class="mt-3 mb-2">@selectedPoi.Description</p>
+
+            @if (!string.IsNullOrWhiteSpace(selectedPoi.RichContentHtml))
+            {
+                <div class="mt-2">@((MarkupString)selectedPoi.RichContentHtml)</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(selectedPoi.AudioFileUrl))
+            {
+                <audio controls class="w-100 mt-2" src="@selectedPoi.AudioFileUrl"></audio>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public string? RoutePoiId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "qr")]
+    public string? QueryQrPayload { get; set; }
+
+    [SupplyParameterFromQuery(Name = "poiId")]
+    public string? QueryPoiId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "lang")]
+    public string? QueryLanguageCode { get; set; }
+
+    [SupplyParameterFromQuery(Name = "autoTts")]
+    public string? QueryAutoTts { get; set; }
+
+    private bool isBusy;
+    private string statusClass = "alert-info";
+    private string? statusMessage;
+    private string qrPayloadInput = string.Empty;
+    private string selectedLanguageCode = "vi";
+    private string? pendingPoiId;
+    private bool shouldAutoPlay;
+    private bool showLanguagePicker;
+    private readonly List<LanguageOption> availableLanguagesForPoi = [];
+    private PoiScannerModel? selectedPoi;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(QueryLanguageCode))
+        {
+            selectedLanguageCode = QueryLanguageCode.Trim().ToLowerInvariant();
+        }
+
+        shouldAutoPlay = IsAutoPlayEnabled(QueryAutoTts);
+
+        qrPayloadInput = !string.IsNullOrWhiteSpace(RoutePoiId)
+            ? RoutePoiId
+            : !string.IsNullOrWhiteSpace(QueryQrPayload)
+                ? QueryQrPayload
+                : QueryPoiId ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(qrPayloadInput))
+        {
+            await LoadPoiFromPayloadAsync();
+        }
+    }
+
+    private async Task LoadPoiFromPayloadAsync()
+    {
+        isBusy = true;
+        statusMessage = null;
+        showLanguagePicker = false;
+        selectedPoi = null;
+        availableLanguagesForPoi.Clear();
+
+        try
+        {
+            var poiId = QrPayloadParser.ExtractPoiIdFromPayload(qrPayloadInput);
+            if (string.IsNullOrWhiteSpace(poiId))
+            {
+                statusClass = "alert-danger";
+                statusMessage = "Payload QR không hợp lệ. Vui lòng thử lại.";
+                return;
+            }
+
+            pendingPoiId = poiId;
+
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            // Query danh sách ngôn ngữ có bản dịch cho POI này.
+            var rawLangs = await (
+                from poi in dbContext.Pois.AsNoTracking()
+                where poi.Id == poiId && poi.ApprovalStatus == PoiApprovalStatus.Approved
+                from translation in poi.PoiTranslations
+                where translation.Language != null
+                select new 
+                {
+                    translation.Language!.LanguageCode,
+                    translation.Language!.LanguageName
+                }
+            ).ToListAsync();
+
+            var langs = rawLangs
+                .Select(x => new LanguageOption(x.LanguageCode, x.LanguageName))
+                .Distinct()
+                .OrderBy(x => x.LanguageName)
+                .ToList();
+
+            if (langs.Count == 0)
+            {
+                statusClass = "alert-warning";
+                statusMessage = $"Không tìm thấy POI '{poiId}' hoặc chưa có bản dịch nào.";
+                return;
+            }
+
+            availableLanguagesForPoi.AddRange(langs);
+
+            // Nếu query string chỉ định lang có trong danh sách → tự chọn luôn.
+            if (!string.IsNullOrWhiteSpace(QueryLanguageCode))
+            {
+                var preselected = langs.FirstOrDefault(x =>
+                    x.LanguageCode.Equals(QueryLanguageCode.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (preselected is not null)
+                {
+                    await SelectLanguageAndLoadAsync(preselected.LanguageCode);
+                    return;
+                }
+            }
+
+            // Nếu chỉ có 1 ngôn ngữ → tự động chọn luôn.
+            if (langs.Count == 1)
+            {
+                await SelectLanguageAndLoadAsync(langs[0].LanguageCode);
+                return;
+            }
+
+            // Hiển thị picker để user chọn.
+            showLanguagePicker = true;
+            statusClass = "alert-info";
+            statusMessage = $"Tìm thấy POI '{poiId}'. Vui lòng chọn ngôn ngữ để tiếp tục.";
+        }
+        catch (Exception ex)
+        {
+            statusClass = "alert-danger";
+            statusMessage = $"Không thể tải POI: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task SelectLanguageAndLoadAsync(string languageCode)
+    {
+        if (string.IsNullOrWhiteSpace(pendingPoiId)) return;
+
+        isBusy = true;
+        selectedLanguageCode = languageCode;
+        showLanguagePicker = false;
+        statusMessage = null;
+
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            var poiModel = await (
+                from poi in dbContext.Pois.AsNoTracking()
+                where poi.Id == pendingPoiId && poi.ApprovalStatus == PoiApprovalStatus.Approved
+                from translation in poi.PoiTranslations
+                where translation.Language != null && translation.Language.LanguageCode == languageCode
+                select new PoiScannerModel
+                {
+                    PoiId = poi.Id,
+                    PoiType = poi.Type,
+                    LocationName = translation.LocationName,
+                    Description = translation.Description,
+                    RichContentHtml = translation.RichContentHtml,
+                    TtsScript = translation.TtsScript,
+                    AudioFileUrl = translation.AudioFileUrl,
+                    ImageUrl = translation.ImageUrl
+                }
+            ).FirstOrDefaultAsync();
+
+            selectedPoi = poiModel;
+
+            if (selectedPoi is null)
+            {
+                statusClass = "alert-warning";
+                statusMessage = $"Không tìm thấy bản dịch '{languageCode}' cho POI này.";
+                return;
+            }
+
+            statusClass = "alert-success";
+            statusMessage = $"Đã tải POI {selectedPoi.PoiId} ({languageCode}). Nhấn Play TTS để nghe.";
+
+            if (shouldAutoPlay)
+            {
+                await PlayMatchingAudioAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            selectedPoi = null;
+            statusClass = "alert-danger";
+            statusMessage = $"Lỗi tải POI: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task PlayTtsAsync()
+    {
+        if (selectedPoi is null) return;
+
+        // Ưu tiên TtsScript, fallback về Description.
+        var textToSpeak = !string.IsNullOrWhiteSpace(selectedPoi.TtsScript)
+            ? selectedPoi.TtsScript
+            : selectedPoi.Description;
+
+        var result = await JsRuntime.InvokeAsync<JsonElement>(
+            "foodMapTts.speak",
+            textToSpeak,
+            selectedLanguageCode,
+            selectedPoi.AudioFileUrl);
+
+        // Tương thích cả JS cũ (trả bool) và JS mới (trả object { ok, mode, message }).
+        var isOk = false;
+        var mode = string.Empty;
+        var message = string.Empty;
+
+        if (result.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            isOk = result.ValueKind == JsonValueKind.True;
+            mode = isOk ? "speech" : "none";
+            message = isOk
+                ? "Đang đọc nội dung TTS bằng giọng của trình duyệt."
+                : "Trình duyệt không thể phát TTS ở thời điểm này.";
+        }
+        else if (result.ValueKind == JsonValueKind.Object)
+        {
+            if (result.TryGetProperty("ok", out var okProp))
+            {
+                isOk = okProp.ValueKind == JsonValueKind.True
+                    || (okProp.ValueKind == JsonValueKind.String
+                        && bool.TryParse(okProp.GetString(), out var parsedOk)
+                        && parsedOk);
+            }
+
+            mode = result.TryGetProperty("mode", out var modeProp) ? modeProp.GetString() ?? string.Empty : string.Empty;
+            message = result.TryGetProperty("message", out var messageProp) ? messageProp.GetString() ?? string.Empty : string.Empty;
+        }
+
+        if (!isOk)
+        {
+            statusClass = "alert-warning";
+            statusMessage = string.IsNullOrWhiteSpace(message)
+                ? "Không thể phát TTS hoặc audio fallback trên trình duyệt này."
+                : message;
+            return;
+        }
+
+        statusClass = mode == "audio" ? "alert-success" : "alert-info";
+        statusMessage = mode switch
+        {
+            "audio" => "Thiết bị thiếu voice phù hợp, đang phát audio fallback qua tunnel.",
+            "speech" => "Đang đọc nội dung TTS bằng giọng của trình duyệt.",
+            _ => string.IsNullOrWhiteSpace(message)
+                ? "Đang phát nội dung narration."
+                : message
+        };
+    }
+
+    private async Task PlayMatchingAudioAsync()
+    {
+        if (selectedPoi is null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedPoi.AudioFileUrl))
+        {
+            var audioResult = await JsRuntime.InvokeAsync<JsonElement>(
+                "foodMapTts.speak",
+                string.Empty,
+                selectedLanguageCode,
+                selectedPoi.AudioFileUrl);
+
+            if (audioResult.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            {
+                statusClass = audioResult.ValueKind == JsonValueKind.True ? "alert-success" : "alert-warning";
+                statusMessage = audioResult.ValueKind == JsonValueKind.True
+                    ? "Đã tự phát audio tương ứng theo QR code."
+                    : "Không thể tự phát audio tương ứng theo QR code.";
+                if (audioResult.ValueKind == JsonValueKind.True)
+                {
+                    return;
+                }
+
+                await PlayTtsAsync();
+                return;
+            }
+
+            if (audioResult.ValueKind == JsonValueKind.Object)
+            {
+                var isOk = audioResult.TryGetProperty("ok", out var okProp) && okProp.ValueKind == JsonValueKind.True;
+                var message = audioResult.TryGetProperty("message", out var messageProp) ? messageProp.GetString() ?? string.Empty : string.Empty;
+
+                statusClass = isOk ? "alert-success" : "alert-warning";
+                statusMessage = isOk
+                    ? "Đã tự phát audio tương ứng theo QR code."
+                    : (string.IsNullOrWhiteSpace(message) ? "Không thể tự phát audio tương ứng theo QR code." : message);
+
+                if (isOk)
+                {
+                    return;
+                }
+
+                await PlayTtsAsync();
+                return;
+            }
+        }
+
+        await PlayTtsAsync();
+    }
+
+    private Task PlayTtsManuallyAsync() => PlayMatchingAudioAsync();
+
+    private static bool IsAutoPlayEnabled(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var normalized = value.Trim();
+        return normalized.Equals("1", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("true", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("yes", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("on", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task StopTtsAsync()
+    {
+        await JsRuntime.InvokeVoidAsync("foodMapTts.stop");
+    }
+
+    private sealed class PoiScannerModel
+    {
+        public string PoiId { get; set; } = string.Empty;
+        public PoiType PoiType { get; set; }
+        public string LocationName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string RichContentHtml { get; set; } = string.Empty;
+        public string TtsScript { get; set; } = string.Empty;
+        public string AudioFileUrl { get; set; } = string.Empty;
+        public string ImageUrl { get; set; } = string.Empty;
+    }
+
+    private sealed record LanguageOption(string LanguageCode, string LanguageName);
+}
+

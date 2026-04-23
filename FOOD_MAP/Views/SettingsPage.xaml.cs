@@ -20,7 +20,14 @@ public partial class SettingsPage : ContentPage
     {
         base.OnAppearing();
 
-        // Tải dữ liệu hồ sơ mỗi khi mở màn hình để đồng bộ trạng thái mới nhất.
-        await _viewModel.LoadAsync();
+        try
+        {
+            // Tải dữ liệu hồ sơ mỗi khi mở màn hình để đồng bộ trạng thái mới nhất.
+            await _viewModel.LoadAsync();
+        }
+        catch
+        {
+            await DisplayAlertAsync("Settings", "Không thể tải dữ liệu hồ sơ lúc này.", "OK");
+        }
     }
 }

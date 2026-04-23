@@ -29,3 +29,37 @@ test_kroki.png
 _snapshots/
 _anr/
 _tmp_session*.txt
+
+##===============================================
+## SECURITY & SENSITIVE FILES
+##===============================================
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db3
+*.mdf
+*.ldf
+
+# Local environment and secrets
+.env.*
+secrets.json
+appsettings.Development.json
+appsettings.local.json
+
+# Keys and Certificates
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.key
+*.pem
+*.crt
+*.cer
+*.publishsettings
+
+# OS & IDE generated
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

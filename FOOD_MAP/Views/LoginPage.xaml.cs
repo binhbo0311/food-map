@@ -19,20 +19,34 @@ public partial class LoginPage : ContentPage
 
     private async void OnLoginCompleted(object? sender, EventArgs e)
     {
-        // Sau khi xác thực (hoặc vào guest), chuyển sang trang chính để bắt đầu tour.
-        await Navigation.PushAsync(new MainPage());
-
-        // Xóa trang login khỏi stack để tránh quay ngược về màn đăng nhập.
-        if (Navigation.NavigationStack.FirstOrDefault() is Page firstPage && firstPage == this)
+        try
         {
-            Navigation.RemovePage(this);
+            // Sau khi xác thực (hoặc vào guest), chuyển sang trang chính để bắt đầu tour.
+            await Navigation.PushAsync(new MainPage());
+
+            // Xóa trang login khỏi stack để tránh quay ngược về màn đăng nhập.
+            if (Navigation.NavigationStack.FirstOrDefault() is Page firstPage && firstPage == this)
+            {
+                Navigation.RemovePage(this);
+            }
+        }
+        catch
+        {
+            await DisplayAlertAsync("Login", "Không thể chuyển sang màn hình chính lúc này.", "OK");
         }
     }
 
     private async void OnCreateAccountClicked(object? sender, EventArgs e)
     {
-        // Điều hướng sang màn hình đăng ký để tạo tài khoản mới.
-        await Navigation.PushAsync(new RegisterPage());
+        try
+        {
+            // Điều hướng sang màn hình đăng ký để tạo tài khoản mới.
+            await Navigation.PushAsync(new RegisterPage());
+        }
+        catch
+        {
+            await DisplayAlertAsync("Login", "Không thể mở trang đăng ký lúc này.", "OK");
+        }
     }
 
     protected override void OnDisappearing()

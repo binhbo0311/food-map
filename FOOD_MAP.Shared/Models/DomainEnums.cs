@@ -56,3 +56,14 @@ public enum PaymentStatus
     Cancelled = 3,
     Refunded = 4
 }
+
+public enum PaymentProviderType
+{
+    Manual = 0,
+    VnPay = 1,
+    Momo = 2,
+    Stripe = 3,
+    Paypal = 4,
+    ZaloPay = 5,
+    Other = 99
+}

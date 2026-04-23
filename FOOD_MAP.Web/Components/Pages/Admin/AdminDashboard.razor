@@ -1,52 +1,182 @@
 @page "/admin"
+@using FOOD_MAP.Shared.Services
+@inject PortalUserSessionState PortalUserSessionState
+@inject IActiveUserTrackerService ActiveUserTrackerService
+@implements IAsyncDisposable
 
 <PageTitle>Admin Dashboard</PageTitle>
 
-<AdminRoleGate>
+<CmsRoleGate AllowedRoles="@(new[] { UserRole.Admin, UserRole.Owner })">
 
 <h1>Admin Dashboard</h1>
-<p class="text-muted">Use modules below to manage POI content, workflow requests, translations, and analytics.</p>
+<p class="text-muted">Manage CMS features according to your account role.</p>
+
+@if (PortalUserSessionState.IsAdmin)
+{
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100">
+                <p class="text-muted mb-1">Total Active Clients</p>
+                <h2 class="h4 mb-0">@_activeSummary.TotalActiveClients</h2>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100">
+                <p class="text-muted mb-1">Active Web Clients</p>
+                <h2 class="h4 mb-0">@_activeSummary.ActiveWebClients</h2>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100">
+                <p class="text-muted mb-1">Active Mobile Clients</p>
+                <h2 class="h4 mb-0">@_activeSummary.ActiveMobileClients</h2>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100">
+                <p class="text-muted mb-1">Active Authenticated Users</p>
+                <h2 class="h4 mb-0">@_activeSummary.ActiveAuthenticatedUsers</h2>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-muted small mb-4">Last updated: @_lastSummaryUpdatedAt</p>
+}
 
 <div class="row g-3">
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
-            <h2 class="h5">POI Management</h2>
-            <p class="text-muted mb-3">Create, edit, and maintain Vietnamese base data for all POI.</p>
-            <a class="btn btn-outline-primary mt-auto" href="/admin/poi">Open POI Admin</a>
+    @if (PortalUserSessionState.IsAdmin || PortalUserSessionState.IsOwner)
+    {
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
+                <h2 class="h5">POI Management</h2>
+                <p class="text-muted mb-3">Manage POI data in CMS according to your role permissions.</p>
+                <a class="btn btn-outline-primary mt-auto" href="/admin/poi">Open POI CMS</a>
+            </div>
         </div>
-    </div>
+    }
 
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
-            <h2 class="h5">Workflow Requests</h2>
-            <p class="text-muted mb-3">Approve or reject owner registrations, language ownership, and pending POI.</p>
-            <a class="btn btn-outline-primary mt-auto" href="/admin/requests">Open Requests Admin</a>
+    @if (PortalUserSessionState.IsAdmin)
+    {
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
+                <h2 class="h5">User Management</h2>
+                <p class="text-muted mb-3">Manage user profiles, account roles, owner metadata, and activity by client type.</p>
+                <div class="d-grid gap-2 mt-auto">
+                    <a class="btn btn-outline-primary" href="/admin/users/web">Open Web Users</a>
+                    <a class="btn btn-outline-primary" href="/admin/users/mobile">Open Mobile Users</a>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
-            <h2 class="h5">Language & Translation</h2>
-            <p class="text-muted mb-3">Manage supported languages and POI translations with filtering tools.</p>
-            <a class="btn btn-outline-primary mt-auto" href="/admin/translations">Open Translation Admin</a>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
+                <h2 class="h5">Workflow Requests</h2>
+                <p class="text-muted mb-3">Approve owner registrations, language ownership, and pending POI.</p>
+                <a class="btn btn-outline-primary mt-auto" href="/admin/requests">Open Requests</a>
+            </div>
         </div>
-    </div>
+    }
 
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
-            <h2 class="h5">History & Tour</h2>
-            <p class="text-muted mb-3">Inspect user activity metrics, favorites, and tour history with sortable grids.</p>
-            <a class="btn btn-outline-primary mt-auto" href="/admin/history-tour">Open History & Tour</a>
+    @if (PortalUserSessionState.IsAdmin)
+    {
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
+                <h2 class="h5">Language & Translation</h2>
+                <p class="text-muted mb-3">Manage supported languages and POI translations with filtering tools.</p>
+                <a class="btn btn-outline-primary mt-auto" href="/admin/translations">Open Translation</a>
+            </div>
         </div>
-    </div>
+    }
 
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
-            <h2 class="h5">Subscription & Payment</h2>
-            <p class="text-muted mb-3">Process payments and upgrade owner or user feature limits.</p>
-            <a class="btn btn-outline-primary mt-auto" href="/admin/subscriptions">Open Subscription Admin</a>
+    @if (PortalUserSessionState.IsAdmin)
+    {
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
+                <h2 class="h5">History & Tour</h2>
+                <p class="text-muted mb-3">Inspect user activity metrics, favorites, and tour history.</p>
+                <a class="btn btn-outline-primary mt-auto" href="/admin/history-tour">Open History & Tour</a>
+            </div>
         </div>
-    </div>
+    }
+
+    @if (PortalUserSessionState.IsAdmin || PortalUserSessionState.IsOwner)
+    {
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100 d-flex flex-column">
+                <h2 class="h5">Subscription & Payment</h2>
+                <p class="text-muted mb-3">Upgrade and review subscription details within your permission scope.</p>
+                <a class="btn btn-outline-primary mt-auto" href="/admin/subscriptions">Open Subscription</a>
+            </div>
+        </div>
+    }
 </div>
 
-</AdminRoleGate>
+</CmsRoleGate>
+
+@code {
+    private static readonly TimeSpan SummaryRefreshInterval = TimeSpan.FromSeconds(10);
+
+    private ActiveUserSummary _activeSummary = new(0, 0, 0, 0);
+    private string _lastSummaryUpdatedAt = "--";
+    private CancellationTokenSource? _summaryLoopCts;
+    private Task? _summaryLoopTask;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!PortalUserSessionState.IsAdmin)
+        {
+            return;
+        }
+
+        await LoadSummaryAsync();
+
+        _summaryLoopCts = new CancellationTokenSource();
+        _summaryLoopTask = Task.Run(() => RunSummaryLoopAsync(_summaryLoopCts.Token));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_summaryLoopCts is null)
+        {
+            return;
+        }
+
+        _summaryLoopCts.Cancel();
+        if (_summaryLoopTask is not null)
+        {
+            try
+            {
+                await _summaryLoopTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        _summaryLoopCts.Dispose();
+        _summaryLoopCts = null;
+    }
+
+    private async Task RunSummaryLoopAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(SummaryRefreshInterval);
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            try
+            {
+                await LoadSummaryAsync(cancellationToken);
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+    }
+
+    private async Task LoadSummaryAsync(CancellationToken cancellationToken = default)
+    {
+        _activeSummary = await ActiveUserTrackerService.GetSummaryAsync(cancellationToken);
+        _lastSummaryUpdatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+    }
+}

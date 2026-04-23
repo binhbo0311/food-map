@@ -32,6 +32,12 @@ public sealed class OwnerPoiManagementItemViewModel
 
     public DateTimeOffset SubmittedUtc { get; }
 
+    public int TourCount1Day { get; }
+
+    public int TourCount7Days { get; }
+
+    public int TourCount30Days { get; }
+
     public OwnerPoiManagementItemViewModel(
         string id,
         PoiType type,
@@ -46,7 +52,10 @@ public sealed class OwnerPoiManagementItemViewModel
         string baseImageUrl,
         string baseAudioFileUrl,
         string baseTtsScript,
-        DateTimeOffset submittedUtc)
+        DateTimeOffset submittedUtc,
+        int tourCount1Day,
+        int tourCount7Days,
+        int tourCount30Days)
     {
         Id = id;
         Type = type;
@@ -62,9 +71,14 @@ public sealed class OwnerPoiManagementItemViewModel
         BaseAudioFileUrl = baseAudioFileUrl;
         BaseTtsScript = baseTtsScript;
         SubmittedUtc = submittedUtc;
+        TourCount1Day = System.Math.Max(tourCount1Day, 0);
+        TourCount7Days = System.Math.Max(tourCount7Days, 0);
+        TourCount30Days = System.Math.Max(tourCount30Days, 0);
     }
 
     public string SubmittedText => SubmittedUtc.ToString("yyyy-MM-dd HH:mm");
 
     public string StatusText => $"{Type} | {ApprovalStatus}";
+
+    public string HeatmapSummaryText => $"Tours 1d/7d/30d: {TourCount1Day}/{TourCount7Days}/{TourCount30Days}";
 }

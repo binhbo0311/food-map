@@ -34,6 +34,12 @@ public class AppDbContext : DbContext
 
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
 
+    public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+
+    public DbSet<ActiveClientHeartbeat> ActiveClientHeartbeats => Set<ActiveClientHeartbeat>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -294,6 +300,7 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(x => new { x.UserId, x.VisitedUtc });
+            entity.HasIndex(x => new { x.PoiId, x.VisitedUtc });
         });
 
         modelBuilder.Entity<FoodItem>(entity =>
@@ -364,6 +371,118 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(x => new { x.UserId, x.ExpiresUtc });
             entity.HasIndex(x => new { x.UserId, x.PaymentStatus, x.ExpiresUtc });
+        });
+
+        modelBuilder.Entity<SubscriptionPlan>(entity =>
+        {
+            entity.ToTable("SubscriptionPlans");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.PlanCode).IsRequired().HasMaxLength(40);
+            entity.Property(x => x.DisplayName).IsRequired().HasMaxLength(120);
+
+            entity.Property(x => x.Tier)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion(x => ToDbSubscriptionTier(x), x => FromDbSubscriptionTier(x));
+
+            entity.Property(x => x.BillingPeriod)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion(x => ToDbBillingPeriod(x), x => FromDbBillingPeriod(x));
+
+            entity.Property(x => x.FixedPrice).HasPrecision(12, 2);
+            entity.Property(x => x.Currency).IsRequired().HasMaxLength(10);
+            entity.Property(x => x.MaxAccessiblePoiCount);
+            entity.Property(x => x.MaxOwnerPoiCount);
+            entity.Property(x => x.MaxActivationRadiusMeters).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
+            entity.Property(x => x.CreatedUtc).IsRequired();
+            entity.Property(x => x.UpdatedUtc).IsRequired();
+            entity.Property(x => x.CreatedByAdminUserId).IsRequired();
+            entity.Property(x => x.UpdatedByAdminUserId);
+
+            entity.HasOne(x => x.CreatedByAdminUser)
+                .WithMany(x => x.CreatedSubscriptionPlans)
+                .HasForeignKey(x => x.CreatedByAdminUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.UpdatedByAdminUser)
+                .WithMany(x => x.UpdatedSubscriptionPlans)
+                .HasForeignKey(x => x.UpdatedByAdminUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => x.PlanCode).IsUnique();
+            entity.HasIndex(x => new { x.Tier, x.BillingPeriod }).IsUnique();
+            entity.HasIndex(x => x.IsActive);
+        });
+
+        modelBuilder.Entity<PaymentTransaction>(entity =>
+        {
+            entity.ToTable("PaymentTransactions");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.UserId).IsRequired();
+            entity.Property(x => x.SubscriptionId);
+
+            entity.Property(x => x.PaymentProvider)
+                .IsRequired()
+                .HasMaxLength(30)
+                .HasConversion(x => ToDbPaymentProviderType(x), x => FromDbPaymentProviderType(x));
+
+            entity.Property(x => x.PaymentStatus)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion(x => ToDbPaymentStatus(x), x => FromDbPaymentStatus(x));
+
+            entity.Property(x => x.TransactionCode).IsRequired().HasMaxLength(120);
+            entity.Property(x => x.ProviderReferenceCode).HasMaxLength(120);
+            entity.Property(x => x.Amount).HasPrecision(12, 2);
+            entity.Property(x => x.Currency).IsRequired().HasMaxLength(10);
+            entity.Property(x => x.Notes).HasMaxLength(1000);
+            entity.Property(x => x.CreatedUtc).IsRequired();
+            entity.Property(x => x.CompletedUtc);
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.PaymentTransactions)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Subscription)
+                .WithMany()
+                .HasForeignKey(x => x.SubscriptionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => x.TransactionCode).IsUnique();
+            entity.HasIndex(x => new { x.UserId, x.CreatedUtc });
+            entity.HasIndex(x => new { x.PaymentStatus, x.CreatedUtc });
+        });
+
+        modelBuilder.Entity<ActiveClientHeartbeat>(entity =>
+        {
+            entity.ToTable("ActiveClientHeartbeats");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Id)
+                .IsRequired()
+                .HasMaxLength(64)
+                .ValueGeneratedNever();
+
+            entity.Property(x => x.ClientType)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.Property(x => x.UserId);
+
+            entity.Property(x => x.LastSeenUtc)
+                .IsRequired();
+
+            entity.Property(x => x.SessionKey)
+                .IsRequired()
+                .HasMaxLength(120);
+
+            entity.HasIndex(x => x.SessionKey).IsUnique();
+            entity.HasIndex(x => new { x.ClientType, x.LastSeenUtc });
         });
     }
 
@@ -489,5 +608,27 @@ public class AppDbContext : DbContext
         "cancelled" => PaymentStatus.Cancelled,
         "refunded" => PaymentStatus.Refunded,
         _ => PaymentStatus.Pending
+    };
+
+    private static string ToDbPaymentProviderType(PaymentProviderType value) => value switch
+    {
+        PaymentProviderType.VnPay => "vnpay",
+        PaymentProviderType.Momo => "momo",
+        PaymentProviderType.Stripe => "stripe",
+        PaymentProviderType.Paypal => "paypal",
+        PaymentProviderType.ZaloPay => "zalopay",
+        PaymentProviderType.Other => "other",
+        _ => "manual"
+    };
+
+    private static PaymentProviderType FromDbPaymentProviderType(string value) => value.Trim().ToLowerInvariant() switch
+    {
+        "vnpay" => PaymentProviderType.VnPay,
+        "momo" => PaymentProviderType.Momo,
+        "stripe" => PaymentProviderType.Stripe,
+        "paypal" => PaymentProviderType.Paypal,
+        "zalopay" => PaymentProviderType.ZaloPay,
+        "other" => PaymentProviderType.Other,
+        _ => PaymentProviderType.Manual
     };
 }

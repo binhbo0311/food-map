@@ -7,7 +7,7 @@
 
 <PageTitle>Language & Translation Admin</PageTitle>
 
-<AdminRoleGate>
+<CmsRoleGate AllowedRoles="@(new[] { UserRole.Admin })">
 
 <h1>Language & Translation Admin</h1>
 <p class="text-muted">Manage supported languages and POI translations.</p>
@@ -362,7 +362,7 @@ else
     </section>
 }
 
-</AdminRoleGate>
+</CmsRoleGate>
 
 @code {
     private readonly List<LanguageRow> languageItems = [];
@@ -561,10 +561,10 @@ else
             return;
         }
 
-        if (!IsValidAbsoluteHttpUrl(audioFileUrl))
+        if (!IsValidAudioUrl(audioFileUrl))
         {
             isErrorStatus = true;
-            statusMessage = "Audio Url must be a valid absolute URL (http/https).";
+            statusMessage = "Audio Url must be an absolute http/https URL or a local path under audio/.";
             return;
         }
 
@@ -700,6 +700,23 @@ else
         }
 
         return uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
+    }
+
+    private static bool IsValidAudioUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return false;
+        }
+
+        var trimmed = url.Trim();
+        if (IsValidAbsoluteHttpUrl(trimmed))
+        {
+            return true;
+        }
+
+        return trimmed.StartsWith("audio/", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("/audio/", StringComparison.OrdinalIgnoreCase);
     }
 
     private void SwitchTab(AdminTab tab)

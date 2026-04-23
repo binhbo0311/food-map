@@ -8,15 +8,19 @@ namespace FOOD_MAP.ViewModels;
 public sealed class LoginViewModel : INotifyPropertyChanged
 {
     private readonly IAuthService _authService;
+    private readonly string _apiBaseUrl;
 
     private string _userName = string.Empty;
     private string _password = string.Empty;
-    private string _statusMessage = "Đăng nhập để đồng bộ favorites và tour history.";
+    private string _statusMessage;
     private bool _isBusy;
 
-    public LoginViewModel(IAuthService authService)
+    public LoginViewModel(IAuthService authService, HttpClient httpClient)
     {
         _authService = authService;
+        // Hiện rõ URL đang dùng để debug kết nối trên thiết bị thật
+        _apiBaseUrl = httpClient.BaseAddress?.ToString() ?? "(chưa cấu hình)";
+        _statusMessage = $"Server: {_apiBaseUrl}";
         LoginCommand = new Command(async () => await LoginAsync(), () => !IsBusy);
         ContinueAsGuestCommand = new Command(async () => await ContinueAsGuestAsync(), () => !IsBusy);
     }
@@ -94,6 +98,7 @@ public sealed class LoginViewModel : INotifyPropertyChanged
     private async Task LoginAsync()
     {
         IsBusy = true;
+        StatusMessage = "Đang đăng nhập...";
         try
         {
             var (isSuccess, message) = await _authService.LoginAsync(UserName, Password);
@@ -104,9 +109,19 @@ public sealed class LoginViewModel : INotifyPropertyChanged
                 LoginCompleted?.Invoke(this, EventArgs.Empty);
             }
         }
-        catch
+        catch (HttpRequestException ex)
         {
-            StatusMessage = "Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.";
+            // Lỗi kết nối mạng: server chưa chạy hoặc sai IP/port
+            StatusMessage = $"Không kết nối được server. Kiểm tra WiFi và server đang chạy.\n({ex.Message})";
+        }
+        catch (TaskCanceledException)
+        {
+            // Timeout sau 20 giây
+            StatusMessage = "Kết nối tới server bị timeout (20s). Kiểm tra IP server trong .env.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Lỗi: {ex.GetType().Name} - {ex.Message}";
         }
         finally
         {
@@ -117,15 +132,24 @@ public sealed class LoginViewModel : INotifyPropertyChanged
     private async Task ContinueAsGuestAsync()
     {
         IsBusy = true;
+        StatusMessage = "Đang vào chế độ Guest...";
         try
         {
             await _authService.ContinueAsGuestAsync();
             StatusMessage = "Đang sử dụng ở chế độ Guest.";
             LoginCompleted?.Invoke(this, EventArgs.Empty);
         }
-        catch
+        catch (HttpRequestException ex)
         {
-            StatusMessage = "Đã xảy ra lỗi khi tiếp tục dưới chế độ Guest. Vui lòng thử lại.";
+            StatusMessage = $"Không kết nối được server.\n({ex.Message})";
+        }
+        catch (TaskCanceledException)
+        {
+            StatusMessage = "Kết nối tới server bị timeout. Kiểm tra IP server trong .env.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Lỗi: {ex.GetType().Name} - {ex.Message}";
         }
         finally
         {

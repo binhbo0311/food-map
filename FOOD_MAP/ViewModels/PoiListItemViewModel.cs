@@ -18,6 +18,8 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
 
     public double Longitude { get; }
 
+    public int ActivationRadius { get; }
+
     public string Name { get; }
 
     public string DistanceText { get; }
@@ -41,12 +43,14 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
         string narrationText,
         string imageUrl,
         string richContentHtml,
+        int activationRadius = 100,
         bool isNearest = false)
     {
         PoiId = poiId;
         PoiType = poiType;
         Latitude = latitude;
         Longitude = longitude;
+        ActivationRadius = activationRadius;
         Name = name;
         DistanceText = distanceText;
         Description = description;

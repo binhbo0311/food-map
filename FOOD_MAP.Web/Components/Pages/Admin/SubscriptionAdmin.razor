@@ -6,10 +6,12 @@
 @using System.ComponentModel.DataAnnotations
 @inject IDbContextFactory<AppDbContext> DbContextFactory
 @inject ISubscriptionService SubscriptionService
+@inject ISubscriptionPlanService SubscriptionPlanService
+@inject PortalUserSessionState PortalUserSessionState
 
 <PageTitle>Subscription & Payment Admin</PageTitle>
 
-<AdminRoleGate>
+<CmsRoleGate AllowedRoles="@(new[] { UserRole.Admin, UserRole.Owner })" OnAccessGranted="HandleAccessGrantedAsync">
 
 <h1>Subscription & Payment Admin</h1>
 <p class="text-muted">Upgrade owner and user accounts to unlock POI and activation radius limits.</p>
@@ -33,7 +35,7 @@
     <div class="row g-3">
         <div class="col-md-4">
             <label class="form-label">Account</label>
-            <InputSelect @bind-Value="paymentModel.UserId" @bind-Value:after="OnSelectedUserChangedAsync" class="form-select" disabled="@isBusy">
+            <InputSelect @bind-Value="paymentModel.UserId" @bind-Value:after="OnSelectedUserChangedAsync" class="form-select" disabled="@(isBusy || IsOwnerScope)">
                 <option value="0">Select account...</option>
                 @foreach (var user in userOptions)
                 {
@@ -42,9 +44,20 @@
             </InputSelect>
         </div>
 
+        <div class="col-md-4">
+            <label class="form-label">Subscription Plan</label>
+            <InputSelect @bind-Value="paymentModel.SubscriptionPlanId" @bind-Value:after="OnSelectedPlanChangedAsync" class="form-select" disabled="@(isBusy || visiblePlans.Count == 0)">
+                <option value="0">Select plan...</option>
+                @foreach (var plan in visiblePlans)
+                {
+                    <option value="@plan.Id">@BuildPlanDisplayLabel(plan)</option>
+                }
+            </InputSelect>
+        </div>
+
         <div class="col-md-2">
             <label class="form-label">Tier</label>
-            <InputSelect @bind-Value="paymentModel.Tier" class="form-select" disabled="@isBusy">
+            <InputSelect @bind-Value="paymentModel.Tier" class="form-select" disabled="true">
                 <option value="@SubscriptionTier.Basic">Basic</option>
                 <option value="@SubscriptionTier.Premium">Premium</option>
             </InputSelect>
@@ -52,7 +65,7 @@
 
         <div class="col-md-2">
             <label class="form-label">Billing Period</label>
-            <InputSelect @bind-Value="paymentModel.BillingPeriod" class="form-select" disabled="@isBusy">
+            <InputSelect @bind-Value="paymentModel.BillingPeriod" class="form-select" disabled="true">
                 <option value="@BillingPeriod.Monthly">Monthly</option>
                 <option value="@BillingPeriod.Quarterly">Quarterly</option>
                 <option value="@BillingPeriod.Yearly">Yearly</option>
@@ -61,27 +74,37 @@
 
         <div class="col-md-2">
             <label class="form-label">Amount</label>
-            <InputNumber @bind-Value="paymentModel.Amount" class="form-control" disabled="@isBusy" />
+            <InputNumber @bind-Value="paymentModel.Amount" class="form-control" disabled="true" />
         </div>
 
         <div class="col-md-2">
             <label class="form-label">Currency</label>
-            <InputText @bind-Value="paymentModel.Currency" class="form-control" disabled="@isBusy" />
+            <InputText @bind-Value="paymentModel.Currency" class="form-control" disabled="true" />
         </div>
 
         <div class="col-md-6">
             <label class="form-label">Payment Provider</label>
-            <InputText @bind-Value="paymentModel.PaymentProvider" class="form-control" disabled="@isBusy" />
+            <InputSelect @bind-Value="paymentModel.PaymentProvider" class="form-select" disabled="@isBusy">
+                <option value="VnPay">VnPay</option>
+                <option value="Momo">Momo</option>
+                <option value="Stripe">Stripe</option>
+                <option value="Paypal">Paypal</option>
+                <option value="ZaloPay">ZaloPay</option>
+                @if (!IsOwnerScope)
+                {
+                    <option value="Manual">Manual</option>
+                }
+            </InputSelect>
         </div>
 
         <div class="col-md-6">
-            <label class="form-label">Transaction Code</label>
-            <InputText @bind-Value="paymentModel.PaymentTransactionCode" class="form-control" disabled="@isBusy" />
+            <label class="form-label">Provider Reference Code</label>
+            <InputText @bind-Value="paymentModel.PaymentTransactionCode" class="form-control" disabled="@isBusy" placeholder="Code returned by payment provider" />
         </div>
     </div>
 
     <div class="d-flex gap-2 mt-3">
-        <button type="submit" class="btn btn-primary" disabled="@isBusy">Process Payment & Upgrade</button>
+        <button type="submit" class="btn btn-primary" disabled="@isBusy">Process Online Checkout</button>
         <button type="button" class="btn btn-outline-secondary" @onclick="ResetForm" disabled="@isBusy">Reset</button>
     </div>
 </EditForm>
@@ -177,21 +200,29 @@
     </section>
 }
 
-</AdminRoleGate>
+</CmsRoleGate>
 
 @code {
     private readonly List<UserOption> userOptions = [];
+    private readonly List<SubscriptionPlan> visiblePlans = [];
     private readonly List<Subscription> userSubscriptions = [];
     private readonly PaymentFormModel paymentModel = new();
 
     private bool isBusy;
     private bool isErrorStatus;
+    private bool hasLoadedData;
     private string statusMessage = string.Empty;
     private Subscription? currentSubscription;
     private SubscriptionFeaturePolicy? currentPolicy;
 
-    protected override async Task OnInitializedAsync()
+    private async Task HandleAccessGrantedAsync()
     {
+        if (hasLoadedData)
+        {
+            return;
+        }
+
+        hasLoadedData = true;
         await LoadUsersAsync();
     }
 
@@ -204,8 +235,9 @@
         {
             await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
-            var users = await dbContext.Users
+            var usersQuery = dbContext.Users
                 .AsNoTracking()
+                .Where(x => !IsOwnerScope || x.Id == CurrentUserId)
                 .OrderBy(x => x.Role)
                 .ThenBy(x => x.DisplayName)
                 .ThenBy(x => x.UserName)
@@ -213,16 +245,16 @@
                     x.Id,
                     x.DisplayName,
                     x.UserName,
-                    x.Role))
-                .ToListAsync();
+                    x.Role));
+
+            var users = await usersQuery.ToListAsync();
 
             userOptions.Clear();
             userOptions.AddRange(users);
 
-            var firstOwnerOrUser = users
-                .FirstOrDefault(x => x.Role == UserRole.Owner)
-                ?? users.FirstOrDefault(x => x.Role == UserRole.User)
-                ?? users.FirstOrDefault();
+            await LoadVisiblePlansAsync();
+
+            var firstOwnerOrUser = users.FirstOrDefault();
 
             if (firstOwnerOrUser is not null)
             {
@@ -241,9 +273,55 @@
         }
     }
 
+    private async Task LoadVisiblePlansAsync()
+    {
+        visiblePlans.Clear();
+
+        if (!CurrentUserId.HasValue)
+        {
+            return;
+        }
+
+        var plans = await SubscriptionPlanService.GetVisiblePlansAsync(CurrentUserId.Value);
+        var activePaidPlans = plans
+            .Where(x => x.IsActive && x.Tier != SubscriptionTier.Free)
+            .OrderBy(x => x.Tier)
+            .ThenBy(x => x.BillingPeriod)
+            .ThenBy(x => x.FixedPrice)
+            .ToList();
+
+        visiblePlans.AddRange(activePaidPlans);
+
+        if (visiblePlans.Count > 0)
+        {
+            paymentModel.SubscriptionPlanId = visiblePlans[0].Id;
+            ApplySelectedPlanValues();
+        }
+    }
+
     private Task OnSelectedUserChangedAsync()
     {
         return RefreshSelectedUserDataAsync();
+    }
+
+    private Task OnSelectedPlanChangedAsync()
+    {
+        ApplySelectedPlanValues();
+        return Task.CompletedTask;
+    }
+
+    private void ApplySelectedPlanValues()
+    {
+        var selectedPlan = visiblePlans.FirstOrDefault(x => x.Id == paymentModel.SubscriptionPlanId);
+        if (selectedPlan is null)
+        {
+            return;
+        }
+
+        paymentModel.Tier = selectedPlan.Tier;
+        paymentModel.BillingPeriod = selectedPlan.BillingPeriod;
+        paymentModel.Amount = selectedPlan.FixedPrice;
+        paymentModel.Currency = selectedPlan.Currency;
     }
 
     private async Task RefreshSelectedUserDataAsync()
@@ -275,6 +353,38 @@
             return;
         }
 
+        var selectedPlan = visiblePlans.FirstOrDefault(x => x.Id == paymentModel.SubscriptionPlanId);
+        if (selectedPlan is null)
+        {
+            isErrorStatus = true;
+            statusMessage = "Please select a valid subscription plan.";
+            return;
+        }
+
+        paymentModel.Tier = selectedPlan.Tier;
+        paymentModel.BillingPeriod = selectedPlan.BillingPeriod;
+        paymentModel.Amount = selectedPlan.FixedPrice;
+        paymentModel.Currency = selectedPlan.Currency;
+
+        if (IsOwnerScope && paymentModel.UserId != CurrentUserId)
+        {
+            isErrorStatus = true;
+            statusMessage = "Owners can only update their own subscription.";
+            return;
+        }
+
+        if (IsOwnerScope && string.Equals(paymentModel.PaymentProvider, "Manual", StringComparison.OrdinalIgnoreCase))
+        {
+            isErrorStatus = true;
+            statusMessage = "Owners must use an online payment provider.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(paymentModel.PaymentTransactionCode))
+        {
+            paymentModel.PaymentTransactionCode = BuildProviderReferenceCode();
+        }
+
         isBusy = true;
         statusMessage = string.Empty;
 
@@ -292,6 +402,7 @@
             isErrorStatus = false;
             statusMessage = $"Payment success. Account upgraded to {createdSubscription.Tier} until {createdSubscription.ExpiresUtc:yyyy-MM-dd}.";
             await RefreshSelectedUserDataAsync();
+            paymentModel.PaymentTransactionCode = string.Empty;
         }
         catch (Exception ex)
         {
@@ -304,14 +415,31 @@
         }
     }
 
+    private bool IsOwnerScope => PortalUserSessionState.IsOwner;
+
+    private int? CurrentUserId => PortalUserSessionState.UserId;
+
     private void ResetForm()
     {
-        paymentModel.Tier = SubscriptionTier.Basic;
-        paymentModel.BillingPeriod = BillingPeriod.Monthly;
-        paymentModel.Amount = 99000;
-        paymentModel.Currency = "VND";
-        paymentModel.PaymentProvider = "Manual";
+        if (visiblePlans.Count > 0)
+        {
+            paymentModel.SubscriptionPlanId = visiblePlans[0].Id;
+            ApplySelectedPlanValues();
+        }
+
+        paymentModel.PaymentProvider = IsOwnerScope ? "VnPay" : "Manual";
         paymentModel.PaymentTransactionCode = string.Empty;
+    }
+
+    private static string BuildPlanDisplayLabel(SubscriptionPlan plan)
+    {
+        return $"{plan.DisplayName} | {plan.Tier} | {plan.BillingPeriod} | {plan.FixedPrice:0.##} {plan.Currency}";
+    }
+
+    private static string BuildProviderReferenceCode()
+    {
+        var randomPart = Random.Shared.Next(100000, 999999);
+        return $"PROV-{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}-{randomPart}";
     }
 
     private sealed record UserOption(int UserId, string DisplayName, string UserName, UserRole Role)
@@ -323,6 +451,9 @@
     {
         [Range(1, int.MaxValue, ErrorMessage = "Please select an account.")]
         public int UserId { get; set; }
+
+        [Range(1, int.MaxValue, ErrorMessage = "Please select a subscription plan.")]
+        public int SubscriptionPlanId { get; set; }
 
         public SubscriptionTier Tier { get; set; } = SubscriptionTier.Basic;
 
@@ -337,7 +468,7 @@
 
         [Required]
         [StringLength(50)]
-        public string PaymentProvider { get; set; } = "Manual";
+        public string PaymentProvider { get; set; } = "VnPay";
 
         [Required]
         [StringLength(120)]

@@ -307,6 +307,65 @@
                            FontSize="12"
                            TextColor="#4D6B6C" />
 
+                                   <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                          <Border Grid.Column="0"
+                                                        BackgroundColor="#F2FBFB"
+                                                        Stroke="#A9E1E2"
+                                                        StrokeThickness="1"
+                                                        Padding="8">
+                                                 <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="10" />
+                                                 </Border.StrokeShape>
+                                                 <VerticalStackLayout Spacing="2">
+                                                        <Label Text="Tours 1 Day"
+                                                                  FontSize="11"
+                                                                  TextColor="#4D6B6C" />
+                                                        <Label Text="{Binding OwnerTourCount1Day}"
+                                                                  FontSize="18"
+                                                                  FontAttributes="Bold"
+                                                                  TextColor="#066D72" />
+                                                 </VerticalStackLayout>
+                                          </Border>
+
+                                          <Border Grid.Column="1"
+                                                        BackgroundColor="#F2FBFB"
+                                                        Stroke="#A9E1E2"
+                                                        StrokeThickness="1"
+                                                        Padding="8">
+                                                 <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="10" />
+                                                 </Border.StrokeShape>
+                                                 <VerticalStackLayout Spacing="2">
+                                                        <Label Text="Tours 7 Days"
+                                                                  FontSize="11"
+                                                                  TextColor="#4D6B6C" />
+                                                        <Label Text="{Binding OwnerTourCount7Days}"
+                                                                  FontSize="18"
+                                                                  FontAttributes="Bold"
+                                                                  TextColor="#066D72" />
+                                                 </VerticalStackLayout>
+                                          </Border>
+
+                                          <Border Grid.Column="2"
+                                                        BackgroundColor="#F2FBFB"
+                                                        Stroke="#A9E1E2"
+                                                        StrokeThickness="1"
+                                                        Padding="8">
+                                                 <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="10" />
+                                                 </Border.StrokeShape>
+                                                 <VerticalStackLayout Spacing="2">
+                                                        <Label Text="Tours 30 Days"
+                                                                  FontSize="11"
+                                                                  TextColor="#4D6B6C" />
+                                                        <Label Text="{Binding OwnerTourCount30Days}"
+                                                                  FontSize="18"
+                                                                  FontAttributes="Bold"
+                                                                  TextColor="#066D72" />
+                                                 </VerticalStackLayout>
+                                          </Border>
+                                   </Grid>
+
                     <Button Text="Refresh Owner Data"
                             HeightRequest="40"
                             CornerRadius="12"
@@ -546,6 +605,9 @@
                                                FontAttributes="Bold"
                                                TextColor="#143536" />
                                         <Label Text="{Binding StatusText}"
+                                               FontSize="11"
+                                               TextColor="#4D6B6C" />
+                                        <Label Text="{Binding HeatmapSummaryText}"
                                                FontSize="11"
                                                TextColor="#4D6B6C" />
                                         <Label Text="{Binding Id, StringFormat='POI: {0}'}"

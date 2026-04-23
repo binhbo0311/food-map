@@ -1,0 +1,178 @@
+@using System.ComponentModel.DataAnnotations
+@using FOOD_MAP.Shared.Models
+@using FOOD_MAP.Shared.Services
+@using FOOD_MAP.Web.Services
+@inject PortalSessionService PortalSessionService
+@inject PortalUserSessionState PortalUserSessionState
+
+@if (!isInitialized)
+{
+    <div class="admin-gate-loading">
+        <div class="spinner-border text-info" role="status" aria-hidden="true"></div>
+        <span>Đang kiểm tra phiên đăng nhập...</span>
+    </div>
+}
+else if (!PortalUserSessionState.IsAuthenticated)
+{
+    <section class="admin-gate-shell">
+        <div class="card admin-gate-card shadow-sm">
+            <div class="card-body">
+                <h1 class="h4 mb-2">Portal Sign In</h1>
+                <p class="text-muted mb-3">Đăng nhập để truy cập khu vực CMS theo vai trò của bạn.</p>
+
+                <EditForm Model="loginModel" OnValidSubmit="HandleSignInAsync">
+                    <DataAnnotationsValidator />
+
+                    <div class="mb-3">
+                        <label class="form-label" for="portal-username">Username</label>
+                        <InputText id="portal-username"
+                                   class="form-control"
+                                   @bind-Value="loginModel.UserName"
+                                   autocomplete="username" />
+                        <ValidationMessage For="() => loginModel.UserName" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="portal-password">Password</label>
+                        <InputText id="portal-password"
+                                   type="password"
+                                   class="form-control"
+                                   @bind-Value="loginModel.Password"
+                                   autocomplete="current-password" />
+                        <ValidationMessage For="() => loginModel.Password" />
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(statusMessage))
+                    {
+                        <div class="alert @statusClass py-2" role="alert">@statusMessage</div>
+                    }
+
+                    <button type="submit" class="btn btn-primary w-100" disabled="@isBusy">
+                        @(isBusy ? "Đang đăng nhập..." : "Đăng nhập")
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    </section>
+}
+else if (!IsAllowedRole())
+{
+    <section class="admin-gate-shell">
+        <div class="card admin-gate-card shadow-sm">
+            <div class="card-body">
+                <h2 class="h4 mb-2">Không đủ quyền truy cập</h2>
+                <p class="text-muted mb-3">Vai trò hiện tại: <strong>@PortalUserSessionState.Role</strong>. Bạn chỉ được phép truy cập trang công khai.</p>
+                <div class="d-flex gap-2">
+                    <a class="btn btn-primary" href="/poi-scanner">Mở trang POI Scanner</a>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="HandleSignOutAsync">Đăng xuất</button>
+                </div>
+            </div>
+        </div>
+    </section>
+}
+else
+{
+    <div class="admin-gate-toolbar">
+        <span class="admin-gate-identity">
+            @PortalUserSessionState.Role: <strong>@PortalUserSessionState.DisplayName</strong> (@PortalUserSessionState.UserName)
+        </span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="HandleSignOutAsync">Đăng xuất</button>
+    </div>
+
+    @ChildContent
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<UserRole> AllowedRoles { get; set; } = [UserRole.Admin];
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public EventCallback OnAccessGranted { get; set; }
+
+    private readonly LoginModel loginModel = new();
+    private bool isInitialized;
+    private bool isBusy;
+    private bool hasNotifiedAccess;
+    private string statusClass = "alert-danger";
+    private string? statusMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await PortalSessionService.InitializeAsync();
+            isInitialized = true;
+            StateHasChanged();
+            return;
+        }
+
+        if (isInitialized && IsAllowedRole() && !hasNotifiedAccess)
+        {
+            hasNotifiedAccess = true;
+            if (OnAccessGranted.HasDelegate)
+            {
+                await OnAccessGranted.InvokeAsync();
+            }
+        }
+
+        if (!IsAllowedRole())
+        {
+            hasNotifiedAccess = false;
+        }
+    }
+
+    private async Task HandleSignInAsync()
+    {
+        isBusy = true;
+        statusMessage = null;
+
+        try
+        {
+            var result = await PortalSessionService.SignInAsync(loginModel.UserName, loginModel.Password);
+            if (!result.IsSuccess)
+            {
+                statusClass = "alert-danger";
+                statusMessage = result.Message;
+                return;
+            }
+
+            statusClass = "alert-success";
+            statusMessage = result.Message;
+            hasNotifiedAccess = false;
+            loginModel.Password = string.Empty;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task HandleSignOutAsync()
+    {
+        await PortalSessionService.SignOutAsync();
+        hasNotifiedAccess = false;
+        statusMessage = null;
+    }
+
+    private bool IsAllowedRole()
+    {
+        if (!PortalUserSessionState.IsAuthenticated || PortalUserSessionState.Role is null)
+        {
+            return false;
+        }
+
+        return AllowedRoles.Contains(PortalUserSessionState.Role.Value);
+    }
+
+    private sealed class LoginModel
+    {
+        [Required]
+        public string UserName { get; set; } = string.Empty;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
+    }
+}

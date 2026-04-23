@@ -1,14 +1,15 @@
 ﻿@page "/"
-@using FOOD_MAP.Shared.Services
-@inject IFormFactor FormFactor
-
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>FOOD MAP Portal</h1>
 
-Welcome to your new app running on <em>@factor</em> using <em>@platform</em>.
+<p class="text-muted">Public visitors can open POI details and play TTS directly on browser without installing the MAUI app.</p>
 
-@code {
-    private string factor => FormFactor.GetFormFactor();
-    private string platform => FormFactor.GetPlatform();
-}
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-primary" href="/poi-scanner">Open POI Scanner</a>
+    <a class="btn btn-outline-secondary" href="/admin">Open CMS</a>
+</div>
+
+<div class="alert alert-info" role="alert">
+    CMS permissions are role-based: Guest/User = public page only, Owner = own POI + subscription, Admin = full CMS.
+</div>

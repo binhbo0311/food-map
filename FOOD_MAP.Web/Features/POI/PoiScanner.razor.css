@@ -1,0 +1,25 @@
+.scanner-shell {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: grid;
+    gap: 1rem;
+}
+
+.scanner-header h1 {
+    margin-bottom: 0.25rem;
+}
+
+.scanner-card {
+    border: 1px solid #a9e2e7;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f6fdff 0%, #ffffff 70%);
+    padding: 1rem;
+}
+
+.scanner-image {
+    width: 100%;
+    max-height: 380px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #d0eef1;
+}

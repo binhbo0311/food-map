@@ -1,4 +1,9 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using FOOD_MAP.Shared.Models
+@using FOOD_MAP.Shared.Services
+@implements IDisposable
+@inject PortalUserSessionState PortalUserSessionState
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">FOOD_MAP</a>
     </div>
@@ -15,40 +20,75 @@
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="admin">
-                <span class="bi bi-speedometer-nav-menu" aria-hidden="true"></span> Admin Dashboard
+            <NavLink class="nav-link" href="poi-scanner">
+                <span class="bi bi-qr-nav-menu" aria-hidden="true"></span> POI Scanner
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="admin/poi">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Admin POI
-            </NavLink>
-        </div>
+        @if (PortalUserSessionState.CanAccessCms)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin">
+                    <span class="bi bi-speedometer-nav-menu" aria-hidden="true"></span> CMS Dashboard
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="admin/requests">
-                <span class="bi bi-inbox-nav-menu" aria-hidden="true"></span> Admin Requests
-            </NavLink>
-        </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin/poi">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> POI CMS
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="admin/translations">
-                <span class="bi bi-translate-nav-menu" aria-hidden="true"></span> Admin Translation
-            </NavLink>
-        </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin/subscriptions">
+                    <span class="bi bi-credit-card-nav-menu" aria-hidden="true"></span> Subscription
+                </NavLink>
+            </div>
+        }
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="admin/history-tour">
-                <span class="bi bi-graph-up-nav-menu" aria-hidden="true"></span> Admin History & Tour
-            </NavLink>
-        </div>
+        @if (PortalUserSessionState.IsAdmin)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin/users">
+                    <span class="bi bi-people-nav-menu" aria-hidden="true"></span> Admin Users
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="admin/subscriptions">
-                <span class="bi bi-credit-card-nav-menu" aria-hidden="true"></span> Admin Subscription & Payment
-            </NavLink>
-        </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin/requests">
+                    <span class="bi bi-inbox-nav-menu" aria-hidden="true"></span> Admin Requests
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin/translations">
+                    <span class="bi bi-translate-nav-menu" aria-hidden="true"></span> Admin Translation
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin/history-tour">
+                    <span class="bi bi-graph-up-nav-menu" aria-hidden="true"></span> Admin History & Tour
+                </NavLink>
+            </div>
+        }
     </nav>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        PortalUserSessionState.Changed += HandleSessionChanged;
+    }
+
+    public void Dispose()
+    {
+        PortalUserSessionState.Changed -= HandleSessionChanged;
+    }
+
+    private void HandleSessionChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+}
 

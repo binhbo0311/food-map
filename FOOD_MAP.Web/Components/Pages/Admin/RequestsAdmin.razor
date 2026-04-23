@@ -8,7 +8,7 @@
 
 <PageTitle>Workflow Requests Admin</PageTitle>
 
-<AdminRoleGate>
+<CmsRoleGate AllowedRoles="@(new[] { UserRole.Admin })">
 
 <h1>Workflow Requests Admin</h1>
 <p class="text-muted">Review owner registration, language ownership, and pending POI submissions in one place.</p>
@@ -325,7 +325,7 @@ else
     </section>
 }
 
-</AdminRoleGate>
+</CmsRoleGate>
 
 @code {
     private readonly List<OwnerRegistrationRequest> pendingOwnerRequests = [];

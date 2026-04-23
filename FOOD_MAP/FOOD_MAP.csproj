@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFrameworks>net10.0-android</TargetFrameworks>
@@ -49,18 +49,26 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+    <!-- FIX: đọc đúng .env nằm trong thư mục project (FOOD_MAP/FOOD_MAP/.env) -->
+    <!-- Thứ tự ưu tiên: project .env → parent .env → grandparent .env -->
+    <DotEnvSelfFilePath>$(MSBuildProjectDirectory)\.env</DotEnvSelfFilePath>
     <DotEnvProjectFilePath>$(MSBuildProjectDirectory)\..\.env</DotEnvProjectFilePath>
     <DotEnvRootFilePath>$(MSBuildProjectDirectory)\..\..\.env</DotEnvRootFilePath>
 
+    <DotEnvSelfContent Condition="Exists('$(DotEnvSelfFilePath)')">$([System.IO.File]::ReadAllText('$(DotEnvSelfFilePath)'))</DotEnvSelfContent>
     <DotEnvProjectContent Condition="Exists('$(DotEnvProjectFilePath)')">$([System.IO.File]::ReadAllText('$(DotEnvProjectFilePath)'))</DotEnvProjectContent>
     <DotEnvRootContent Condition="Exists('$(DotEnvRootFilePath)')">$([System.IO.File]::ReadAllText('$(DotEnvRootFilePath)'))</DotEnvRootContent>
 
-    <MapsApiKeyFromProject Condition="'$(DotEnvProjectContent)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DotEnvProjectContent)', '(?m)^GOOGLE_MAPS_API_KEY\s*=\s*[''\"]?([^''\"\r\n]+)[''\"]?\s*$').Groups[1].Value)</MapsApiKeyFromProject>
-    <MapsApiKeyFromRoot Condition="'$(DotEnvRootContent)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DotEnvRootContent)', '(?m)^GOOGLE_MAPS_API_KEY\s*=\s*[''\"]?([^''\"\r\n]+)[''\"]?\s*$').Groups[1].Value)</MapsApiKeyFromRoot>
-
-    <MapsApiKeyResolved Condition="'$(MapsApiKeyResolved)' == '' and '$(MapsApiKeyFromProject)' != ''">$(MapsApiKeyFromProject)</MapsApiKeyResolved>
-    <MapsApiKeyResolved Condition="'$(MapsApiKeyResolved)' == '' and '$(MapsApiKeyFromRoot)' != ''">$(MapsApiKeyFromRoot)</MapsApiKeyResolved>
+    <!-- Ưu tiên file .env trong thư mục project trước -->
+    <MapsApiKeyResolved Condition="'$(MapsApiKeyResolved)' == '' and '$(DotEnvSelfContent)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DotEnvSelfContent)', '(?m)^GOOGLE_MAPS_API_KEY\s*=\s*[''\"]?([^''\"\r\n]+)[''\"]?\s*$').Groups[1].Value)</MapsApiKeyResolved>
+    <MapsApiKeyResolved Condition="'$(MapsApiKeyResolved)' == '' and '$(DotEnvProjectContent)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DotEnvProjectContent)', '(?m)^GOOGLE_MAPS_API_KEY\s*=\s*[''\"]?([^''\"\r\n]+)[''\"]?\s*$').Groups[1].Value)</MapsApiKeyResolved>
+    <MapsApiKeyResolved Condition="'$(MapsApiKeyResolved)' == '' and '$(DotEnvRootContent)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DotEnvRootContent)', '(?m)^GOOGLE_MAPS_API_KEY\s*=\s*[''\"]?([^''\"\r\n]+)[''\"]?\s*$').Groups[1].Value)</MapsApiKeyResolved>
     <MapsApiKeyResolved Condition="'$(MapsApiKeyResolved)' == '' and '$(GOOGLE_MAPS_API_KEY)' != ''">$(GOOGLE_MAPS_API_KEY)</MapsApiKeyResolved>
+
+    <!-- Đọc MOBILE_API_BASE_URL từ .env để bake vào APK (máy thật không có file .env) -->
+    <MobileApiBaseUrlBaked Condition="'$(MobileApiBaseUrlBaked)' == '' and '$(DotEnvSelfContent)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DotEnvSelfContent)', '(?m)^MOBILE_API_BASE_URL\s*=\s*[''\"]?([^''\"\r\n#]+)[''\"]?\s*$').Groups[1].Value)</MobileApiBaseUrlBaked>
+    <MobileApiBaseUrlBaked Condition="'$(MobileApiBaseUrlBaked)' == '' and '$(DotEnvProjectContent)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DotEnvProjectContent)', '(?m)^MOBILE_API_BASE_URL\s*=\s*[''\"]?([^''\"\r\n#]+)[''\"]?\s*$').Groups[1].Value)</MobileApiBaseUrlBaked>
+    <MobileApiBaseUrlBaked Condition="'$(MobileApiBaseUrlBaked)' == '' and '$(DotEnvRootContent)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(DotEnvRootContent)', '(?m)^MOBILE_API_BASE_URL\s*=\s*[''\"]?([^''\"\r\n#]+)[''\"]?\s*$').Groups[1].Value)</MobileApiBaseUrlBaked>
 
     <AndroidManifestPlaceholdersOriginal>$(AndroidManifestPlaceholders)</AndroidManifestPlaceholdersOriginal>
     <HasMapsApiKeyPlaceholder>$([System.String]::Copy('$(AndroidManifestPlaceholdersOriginal)').Contains('MAPS_API_KEY='))</HasMapsApiKeyPlaceholder>
@@ -68,6 +76,9 @@
     <AndroidManifestPlaceholders Condition="'$(HasMapsApiKeyPlaceholder)' == 'True'">$(AndroidManifestPlaceholdersOriginal)</AndroidManifestPlaceholders>
     <AndroidManifestPlaceholders Condition="'$(HasMapsApiKeyPlaceholder)' != 'True' and '$(AndroidManifestPlaceholdersOriginal)' == ''">MAPS_API_KEY=$(MapsApiKeyResolved)</AndroidManifestPlaceholders>
     <AndroidManifestPlaceholders Condition="'$(HasMapsApiKeyPlaceholder)' != 'True' and '$(AndroidManifestPlaceholdersOriginal)' != ''">$(AndroidManifestPlaceholdersOriginal);MAPS_API_KEY=$(MapsApiKeyResolved)</AndroidManifestPlaceholders>
+
+    <!-- Thêm MOBILE_API_BASE_URL vào placeholder để inject vào AndroidManifest meta-data -->
+    <AndroidManifestPlaceholders Condition="'$(MobileApiBaseUrlBaked)' != ''">$(AndroidManifestPlaceholders);MOBILE_API_BASE_URL=$(MobileApiBaseUrlBaked)</AndroidManifestPlaceholders>
   </PropertyGroup>
 
   <ItemGroup>

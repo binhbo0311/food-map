@@ -6,7 +6,7 @@
 
 <PageTitle>History & Tour Admin</PageTitle>
 
-<AdminRoleGate>
+<CmsRoleGate AllowedRoles="@(new[] { UserRole.Admin })">
 
 <h1>History & Tour Admin</h1>
 <p class="text-muted">Monitor user activity, favorites, and tour visit history.</p>
@@ -360,7 +360,7 @@ else
     </section>
 }
 
-</AdminRoleGate>
+</CmsRoleGate>
 
 @code {
     private readonly DashboardFilterModel filterModel = new();

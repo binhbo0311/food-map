@@ -1,0 +1,651 @@
+@page "/admin/users"
+@page "/admin/users/{ClientTypePage}"
+@using FOOD_MAP.Shared.Data
+@using FOOD_MAP.Shared.Models
+@using FOOD_MAP.Shared.Services
+@using Microsoft.EntityFrameworkCore
+@using System.ComponentModel.DataAnnotations
+@inject IDbContextFactory<AppDbContext> DbContextFactory
+@implements IAsyncDisposable
+
+<PageTitle>User Management Admin</PageTitle>
+
+<CmsRoleGate AllowedRoles="@(new[] { UserRole.Admin })">
+
+<h1>User Management Admin</h1>
+<p class="text-muted">Manage user profile, role, and owner identification metadata.</p>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-outline-secondary" href="/admin">Open Admin Dashboard</a>
+    <a class="btn btn-outline-primary" href="/admin/requests">Open Workflow Requests</a>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn @(selectedClientType == WebClientType ? "btn-primary" : "btn-outline-primary")" href="/admin/users/web">Web Users</a>
+    <a class="btn @(selectedClientType == MobileClientType ? "btn-primary" : "btn-outline-primary")" href="/admin/users/mobile">Mobile Users</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <div class="alert @(isErrorStatus ? "alert-danger" : "alert-success")" role="alert">
+        @statusMessage
+    </div>
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded p-3 bg-white h-100">
+            <p class="text-muted mb-1">Total Accounts</p>
+            <h2 class="h4 mb-0">@summary.TotalUsers</h2>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded p-3 bg-white h-100">
+            <p class="text-muted mb-1">Admin Accounts</p>
+            <h2 class="h4 mb-0">@summary.TotalAdmins</h2>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded p-3 bg-white h-100">
+            <p class="text-muted mb-1">Owner Accounts</p>
+            <h2 class="h4 mb-0">@summary.TotalOwners</h2>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded p-3 bg-white h-100">
+            <p class="text-muted mb-1">User Accounts</p>
+            <h2 class="h4 mb-0">@summary.TotalRegularUsers</h2>
+        </div>
+    </div>
+</div>
+
+<section class="border rounded p-3 mb-3 bg-white">
+    <h2 class="h5 mb-3">@ClientTypeLabel Account Data Grid</h2>
+
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <label class="form-label">Search</label>
+            <InputText @bind-Value="searchKeyword" class="form-control" placeholder="Display name, username, owner code..." />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Role</label>
+            <InputSelect @bind-Value="roleFilter" class="form-select">
+                <option value="">All</option>
+                <option value="User">User</option>
+                <option value="Owner">Owner</option>
+                <option value="Admin">Admin</option>
+            </InputSelect>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Sort By</label>
+            <InputSelect @bind-Value="sortField" class="form-select">
+                <option value="displayname">Display Name</option>
+                <option value="username">Username</option>
+                <option value="role">Role</option>
+                <option value="created">Created UTC</option>
+                <option value="ownercode">Owner Code</option>
+            </InputSelect>
+        </div>
+        <div class="col-md-1">
+            <label class="form-label">Dir</label>
+            <InputSelect @bind-Value="sortDirection" class="form-select">
+                <option value="asc">Asc</option>
+                <option value="desc">Desc</option>
+            </InputSelect>
+        </div>
+        <div class="col-md-1">
+            <label class="form-label">Page</label>
+            <InputSelect @bind-Value="pageSize" class="form-select">
+                @foreach (var size in GridPageSizeOptions)
+                {
+                    <option value="@size">@size</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="button" class="btn btn-outline-secondary w-100" @onclick="ResetGridFilters">Clear</button>
+        </div>
+    </div>
+
+    @{
+        var filteredUsers = GetFilteredUsers();
+        var totalPages = GetTotalPages(filteredUsers.Count);
+        var safePage = Math.Clamp(pageIndex, 1, totalPages);
+        var pagedUsers = filteredUsers
+            .Skip((safePage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    @if (isBusy)
+    {
+        <p class="mb-0">Loading...</p>
+    }
+    else if (filteredUsers.Count == 0)
+    {
+        <p class="text-muted mb-0">No account matches current filters.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-2">
+                <thead>
+                    <tr>
+                        <th>Display Name</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>@ClientTypeLabel Status</th>
+                        <th>Last Seen (UTC)</th>
+                        <th>Owner Code</th>
+                        <th>Owner Approved (UTC)</th>
+                        <th>Created (UTC)</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in pagedUsers)
+                    {
+                        <tr>
+                            <td>@user.DisplayName</td>
+                            <td>@user.UserName</td>
+                            <td>@user.Role</td>
+                            <td>
+                                <span class="d-inline-flex align-items-center gap-2">
+                                    <span class="rounded-circle @(IsUserActive(user.UserId) ? "bg-success" : "bg-danger")"
+                                          style="display:inline-block;width:10px;height:10px;"></span>
+                                    <span>@(IsUserActive(user.UserId) ? "Active" : "Inactive")</span>
+                                </span>
+                            </td>
+                            <td>@GetLastSeenText(user.UserId)</td>
+                            <td>@(string.IsNullOrWhiteSpace(user.OwnerIdentificationCode) ? "-" : user.OwnerIdentificationCode)</td>
+                            <td>@(user.OwnerApprovedUtc?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
+                            <td>@user.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => StartEdit(user)">Edit</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">Showing @pagedUsers.Count of @filteredUsers.Count result(s).</small>
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safePage <= 1)" @onclick="() => MovePage(-1)">Previous</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Page @safePage / @totalPages</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safePage >= totalPages)" @onclick="() => MovePage(1)">Next</button>
+            </div>
+        </div>
+    }
+</section>
+
+<section class="border rounded p-3 bg-light-subtle">
+    <h2 class="h5 mb-3">Edit Selected Account</h2>
+
+    @if (!isEditMode)
+    {
+        <p class="text-muted mb-0">Select an account from grid to edit.</p>
+    }
+    else
+    {
+        <EditForm Model="editorModel" OnValidSubmit="SaveChangesAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">User Id</label>
+                    <input class="form-control" value="@editorModel.UserId" disabled />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Username</label>
+                    <input class="form-control" value="@editorModel.UserName" disabled />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Created (UTC)</label>
+                    <input class="form-control" value="@editorModel.CreatedUtcText" disabled />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Display Name</label>
+                    <InputText @bind-Value="editorModel.DisplayName" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Role</label>
+                    <InputSelect @bind-Value="editorModel.Role" class="form-select">
+                        <option value="@UserRole.User">User</option>
+                        <option value="@UserRole.Owner">Owner</option>
+                        <option value="@UserRole.Admin">Admin</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" @onclick="GenerateOwnerCode">Generate Owner Code</button>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Owner Identification Code</label>
+                    <InputText @bind-Value="editorModel.OwnerIdentificationCode" class="form-control" placeholder="OWN-XXXXXX" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Owner Approved UTC</label>
+                    <InputDate @bind-Value="editorModel.OwnerApprovedDate" class="form-control" />
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary" disabled="@isBusy">Save Changes</button>
+                <button type="button" class="btn btn-secondary" @onclick="ResetEditor" disabled="@isBusy">Reset</button>
+            </div>
+        </EditForm>
+    }
+</section>
+
+</CmsRoleGate>
+
+@code {
+    [Parameter]
+    public string? ClientTypePage { get; set; }
+
+    private readonly List<UserAdminRow> users = [];
+    private readonly UserEditorModel editorModel = new();
+
+    private bool isBusy;
+    private bool isEditMode;
+    private bool isErrorStatus;
+    private string statusMessage = string.Empty;
+
+    private string searchKeyword = string.Empty;
+    private string roleFilter = string.Empty;
+    private string sortField = "created";
+    private string sortDirection = "desc";
+    private int pageSize = 10;
+    private int pageIndex = 1;
+
+    private UserSummary summary = new();
+    private readonly Dictionary<int, DateTimeOffset> lastSeenByUserId = [];
+    private CancellationTokenSource? statusRefreshLoopCts;
+    private Task? statusRefreshLoopTask;
+    private bool hasInitialized;
+    private string selectedClientType = WebClientType;
+
+    private static readonly int[] GridPageSizeOptions = [5, 10, 20, 50];
+    private static readonly TimeSpan ActiveWindow = TimeSpan.FromSeconds(90);
+    private static readonly TimeSpan StatusRefreshInterval = TimeSpan.FromSeconds(1);
+    private const string WebClientType = "web";
+    private const string MobileClientType = "mobile";
+
+    private string ClientTypeLabel => selectedClientType == MobileClientType ? "Mobile" : "Web";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var normalizedClientType = NormalizeClientType(ClientTypePage);
+        var requiresReload = !hasInitialized || !string.Equals(selectedClientType, normalizedClientType, StringComparison.OrdinalIgnoreCase);
+
+        selectedClientType = normalizedClientType;
+
+        if (requiresReload)
+        {
+            await LoadUsersAsync();
+            await RefreshUserActivitySnapshotAsync();
+        }
+
+        if (hasInitialized)
+        {
+            return;
+        }
+
+        statusRefreshLoopCts = new CancellationTokenSource();
+        statusRefreshLoopTask = Task.Run(() => RunStatusRefreshLoopAsync(statusRefreshLoopCts.Token));
+        hasInitialized = true;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (statusRefreshLoopCts is null)
+        {
+            return;
+        }
+
+        statusRefreshLoopCts.Cancel();
+        if (statusRefreshLoopTask is not null)
+        {
+            try
+            {
+                await statusRefreshLoopTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        statusRefreshLoopCts.Dispose();
+        statusRefreshLoopCts = null;
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        isBusy = true;
+        statusMessage = string.Empty;
+
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            var items = await dbContext.Users
+                .AsNoTracking()
+                .OrderByDescending(x => x.CreatedUtc)
+                .Select(x => new UserAdminRow
+                {
+                    UserId = x.Id,
+                    UserName = x.UserName,
+                    DisplayName = x.DisplayName,
+                    Role = x.Role,
+                    OwnerIdentificationCode = x.OwnerIdentificationCode,
+                    OwnerApprovedUtc = x.OwnerApprovedUtc,
+                    CreatedUtc = x.CreatedUtc
+                })
+                .ToListAsync();
+
+            users.Clear();
+            users.AddRange(items);
+
+            summary = new UserSummary
+            {
+                TotalUsers = users.Count,
+                TotalAdmins = users.Count(x => x.Role == UserRole.Admin),
+                TotalOwners = users.Count(x => x.Role == UserRole.Owner),
+                TotalRegularUsers = users.Count(x => x.Role == UserRole.User)
+            };
+
+            await RefreshUserActivitySnapshotAsync();
+
+            isErrorStatus = false;
+        }
+        catch (Exception ex)
+        {
+            isErrorStatus = true;
+            statusMessage = $"Unable to load user accounts: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task RunStatusRefreshLoopAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(StatusRefreshInterval);
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            try
+            {
+                await RefreshUserActivitySnapshotAsync(cancellationToken);
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch
+            {
+                // Bỏ qua lỗi tức thời để vòng refresh kế tiếp vẫn tiếp tục chạy.
+            }
+        }
+    }
+
+    private async Task RefreshUserActivitySnapshotAsync(CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var snapshots = await dbContext.ActiveClientHeartbeats
+            .AsNoTracking()
+            .Where(x => x.UserId.HasValue)
+            .Where(x => x.ClientType == selectedClientType)
+            .GroupBy(x => x.UserId!.Value)
+            .Select(g => new
+            {
+                UserId = g.Key,
+                LastSeenUtc = g.Max(x => x.LastSeenUtc)
+            })
+            .ToListAsync(cancellationToken);
+
+        lastSeenByUserId.Clear();
+        foreach (var snapshot in snapshots)
+        {
+            lastSeenByUserId[snapshot.UserId] = snapshot.LastSeenUtc;
+        }
+    }
+
+    private bool IsUserActive(int userId)
+    {
+        if (!lastSeenByUserId.TryGetValue(userId, out var lastSeenUtc))
+        {
+            return false;
+        }
+
+        return lastSeenUtc >= DateTimeOffset.UtcNow - ActiveWindow;
+    }
+
+    private string GetLastSeenText(int userId)
+    {
+        return lastSeenByUserId.TryGetValue(userId, out var lastSeenUtc)
+            ? lastSeenUtc.ToString("yyyy-MM-dd HH:mm:ss")
+            : "-";
+    }
+
+    private async Task SaveChangesAsync()
+    {
+        if (editorModel.UserId <= 0)
+        {
+            isErrorStatus = true;
+            statusMessage = "Invalid account selected.";
+            return;
+        }
+
+        if (editorModel.Role == UserRole.Owner && string.IsNullOrWhiteSpace(editorModel.OwnerIdentificationCode))
+        {
+            isErrorStatus = true;
+            statusMessage = "Owner accounts require owner identification code.";
+            return;
+        }
+
+        isBusy = true;
+        statusMessage = string.Empty;
+
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == editorModel.UserId);
+            if (user is null)
+            {
+                isErrorStatus = true;
+                statusMessage = "Selected account no longer exists.";
+                return;
+            }
+
+            var normalizedOwnerCode = string.IsNullOrWhiteSpace(editorModel.OwnerIdentificationCode)
+                ? null
+                : editorModel.OwnerIdentificationCode.Trim();
+
+            if (!string.IsNullOrWhiteSpace(normalizedOwnerCode))
+            {
+                var ownerCodeExists = await dbContext.Users
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id != user.Id && x.OwnerIdentificationCode == normalizedOwnerCode);
+
+                if (ownerCodeExists)
+                {
+                    isErrorStatus = true;
+                    statusMessage = "Owner identification code already exists.";
+                    return;
+                }
+            }
+
+            user.DisplayName = editorModel.DisplayName.Trim();
+            user.Role = editorModel.Role;
+            user.OwnerIdentificationCode = normalizedOwnerCode;
+            user.OwnerApprovedUtc = editorModel.OwnerApprovedDate.HasValue
+                ? new DateTimeOffset(DateTime.SpecifyKind(editorModel.OwnerApprovedDate.Value.Date, DateTimeKind.Utc))
+                : null;
+
+            await dbContext.SaveChangesAsync();
+
+            isErrorStatus = false;
+            statusMessage = "Account updated successfully.";
+            await LoadUsersAsync();
+            ResetEditor();
+        }
+        catch (Exception ex)
+        {
+            isErrorStatus = true;
+            statusMessage = $"Failed to update account: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void StartEdit(UserAdminRow row)
+    {
+        isEditMode = true;
+
+        editorModel.UserId = row.UserId;
+        editorModel.UserName = row.UserName;
+        editorModel.DisplayName = row.DisplayName;
+        editorModel.Role = row.Role;
+        editorModel.OwnerIdentificationCode = row.OwnerIdentificationCode ?? string.Empty;
+        editorModel.OwnerApprovedDate = row.OwnerApprovedUtc?.UtcDateTime.Date;
+        editorModel.CreatedUtcText = row.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss");
+    }
+
+    private void ResetEditor()
+    {
+        isEditMode = false;
+        editorModel.UserId = 0;
+        editorModel.UserName = string.Empty;
+        editorModel.DisplayName = string.Empty;
+        editorModel.Role = UserRole.User;
+        editorModel.OwnerIdentificationCode = string.Empty;
+        editorModel.OwnerApprovedDate = null;
+        editorModel.CreatedUtcText = string.Empty;
+    }
+
+    private void GenerateOwnerCode()
+    {
+        var seed = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+        editorModel.OwnerIdentificationCode = $"OWN-{seed}";
+    }
+
+    private void ResetGridFilters()
+    {
+        searchKeyword = string.Empty;
+        roleFilter = string.Empty;
+        sortField = "created";
+        sortDirection = "desc";
+        pageSize = 10;
+        pageIndex = 1;
+    }
+
+    private void MovePage(int delta)
+    {
+        var totalPages = GetTotalPages(GetFilteredUsers().Count);
+        pageIndex = Math.Clamp(pageIndex + delta, 1, totalPages);
+    }
+
+    private List<UserAdminRow> GetFilteredUsers()
+    {
+        IEnumerable<UserAdminRow> query = users;
+
+        if (!string.IsNullOrWhiteSpace(searchKeyword))
+        {
+            var keyword = searchKeyword.Trim();
+            query = query.Where(x =>
+                x.DisplayName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.UserName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrWhiteSpace(x.OwnerIdentificationCode) && x.OwnerIdentificationCode.Contains(keyword, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(roleFilter) && Enum.TryParse<UserRole>(roleFilter, out var selectedRole))
+        {
+            query = query.Where(x => x.Role == selectedRole);
+        }
+
+        query = sortField switch
+        {
+            "displayname" => IsAscending ? query.OrderBy(x => x.DisplayName) : query.OrderByDescending(x => x.DisplayName),
+            "username" => IsAscending ? query.OrderBy(x => x.UserName) : query.OrderByDescending(x => x.UserName),
+            "role" => IsAscending ? query.OrderBy(x => x.Role) : query.OrderByDescending(x => x.Role),
+            "ownercode" => IsAscending ? query.OrderBy(x => x.OwnerIdentificationCode) : query.OrderByDescending(x => x.OwnerIdentificationCode),
+            _ => IsAscending ? query.OrderBy(x => x.CreatedUtc) : query.OrderByDescending(x => x.CreatedUtc)
+        };
+
+        return query.ToList();
+    }
+
+    private int GetTotalPages(int totalRows)
+    {
+        return Math.Max(1, (int)Math.Ceiling(totalRows / (double)pageSize));
+    }
+
+    private bool IsAscending => string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizeClientType(string? clientTypePage)
+    {
+        if (string.Equals(clientTypePage, MobileClientType, StringComparison.OrdinalIgnoreCase))
+        {
+            return MobileClientType;
+        }
+
+        return WebClientType;
+    }
+
+    private sealed class UserEditorModel
+    {
+        public int UserId { get; set; }
+
+        public string UserName { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(150)]
+        public string DisplayName { get; set; } = string.Empty;
+
+        public UserRole Role { get; set; } = UserRole.User;
+
+        [StringLength(30)]
+        public string OwnerIdentificationCode { get; set; } = string.Empty;
+
+        public DateTime? OwnerApprovedDate { get; set; }
+
+        public string CreatedUtcText { get; set; } = string.Empty;
+    }
+
+    private sealed class UserSummary
+    {
+        public int TotalUsers { get; set; }
+
+        public int TotalAdmins { get; set; }
+
+        public int TotalOwners { get; set; }
+
+        public int TotalRegularUsers { get; set; }
+    }
+
+    private sealed class UserAdminRow
+    {
+        public int UserId { get; set; }
+
+        public string UserName { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public UserRole Role { get; set; }
+
+        public string? OwnerIdentificationCode { get; set; }
+
+        public DateTimeOffset? OwnerApprovedUtc { get; set; }
+
+        public DateTimeOffset CreatedUtc { get; set; }
+    }
+}

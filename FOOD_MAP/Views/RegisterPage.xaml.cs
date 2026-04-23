@@ -19,9 +19,16 @@ public partial class RegisterPage : ContentPage
 
     private async void OnRegisterCompleted(object? sender, EventArgs e)
     {
-        // Quay về trang đăng nhập ngay sau khi tạo tài khoản thành công.
-        await DisplayAlertAsync("Register", "Tạo tài khoản thành công.", "OK");
-        await Navigation.PopAsync();
+        try
+        {
+            // Quay về trang đăng nhập ngay sau khi tạo tài khoản thành công.
+            await DisplayAlertAsync("Register", "Tạo tài khoản thành công.", "OK");
+            await Navigation.PopAsync();
+        }
+        catch
+        {
+            await DisplayAlertAsync("Register", "Không thể quay lại màn đăng nhập.", "OK");
+        }
     }
 
     protected override void OnDisappearing()

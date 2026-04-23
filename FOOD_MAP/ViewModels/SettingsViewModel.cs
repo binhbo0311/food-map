@@ -58,6 +58,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private bool _foodItemIsAvailable = true;
     private string _foodItemDisplayOrderText = "1";
     private string _foodItemActionText = "Add Food Item";
+    private int _ownerTourCount1Day;
+    private int _ownerTourCount7Days;
+    private int _ownerTourCount30Days;
 
     public SettingsViewModel(
         IUserProfileService userProfileService,
@@ -675,6 +678,51 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         }
     }
 
+    public int OwnerTourCount1Day
+    {
+        get => _ownerTourCount1Day;
+        private set
+        {
+            if (_ownerTourCount1Day == value)
+            {
+                return;
+            }
+
+            _ownerTourCount1Day = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public int OwnerTourCount7Days
+    {
+        get => _ownerTourCount7Days;
+        private set
+        {
+            if (_ownerTourCount7Days == value)
+            {
+                return;
+            }
+
+            _ownerTourCount7Days = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public int OwnerTourCount30Days
+    {
+        get => _ownerTourCount30Days;
+        private set
+        {
+            if (_ownerTourCount30Days == value)
+            {
+                return;
+            }
+
+            _ownerTourCount30Days = value;
+            OnPropertyChanged();
+        }
+    }
+
     public string StatusMessage
     {
         get => _statusMessage;
@@ -732,6 +780,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             OwnerPoiItems.Clear();
             OwnerFoodItems.Clear();
             OwnerLanguageOwnershipRequests.Clear();
+            ResetOwnerHeatmapCounters();
             SelectedOwnerPoiIdForFood = string.Empty;
             CanEditSettings = false;
             StatusMessage = "Guest mode cannot edit profile settings.";
@@ -803,6 +852,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
                 OwnerPoiItems.Clear();
                 OwnerFoodItems.Clear();
                 OwnerLanguageOwnershipRequests.Clear();
+                ResetOwnerHeatmapCounters();
                 SelectedOwnerPoiIdForFood = string.Empty;
                 ResetOwnerPoiEditor();
                 ResetOwnerFoodItemEditor();
@@ -815,6 +865,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             OwnerPoiItems.Clear();
             OwnerFoodItems.Clear();
             OwnerLanguageOwnershipRequests.Clear();
+            ResetOwnerHeatmapCounters();
             SelectedOwnerPoiIdForFood = string.Empty;
             CanEditSettings = false;
             StatusMessage = "An unexpected error occurred while loading profile.";
@@ -994,9 +1045,17 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             OwnerPoiItems.Clear();
             OwnerFoodItems.Clear();
             OwnerLanguageOwnershipRequests.Clear();
+            ResetOwnerHeatmapCounters();
             SelectedOwnerPoiIdForFood = string.Empty;
             return;
         }
+
+        var heatmapBuckets = await _poiWorkflowRepository.GetOwnerPoiHeatmapSummaryAsync(currentUserId.Value, cancellationToken);
+        var heatmapByPoiId = heatmapBuckets.ToDictionary(x => x.PoiId, StringComparer.OrdinalIgnoreCase);
+
+        OwnerTourCount1Day = heatmapBuckets.Sum(x => x.TourCount1Day);
+        OwnerTourCount7Days = heatmapBuckets.Sum(x => x.TourCount7Days);
+        OwnerTourCount30Days = heatmapBuckets.Sum(x => x.TourCount30Days);
 
         var ownerPois = await _poiWorkflowRepository.GetOwnerPoisAsync(currentUserId.Value, cancellationToken);
 
@@ -1004,6 +1063,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         foreach (var poi in ownerPois)
         {
             var baseTranslation = poi.PoiTranslations.FirstOrDefault();
+            var matchedHeatmap = heatmapByPoiId.TryGetValue(poi.Id, out var bucket)
+                ? bucket
+                : new FOOD_MAP.Shared.Services.PoiHeatmapBucketSummary(poi.Id, 0, 0, 0);
 
             OwnerPoiItems.Add(new OwnerPoiManagementItemViewModel(
                 poi.Id,
@@ -1019,7 +1081,10 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
                 baseTranslation?.ImageUrl ?? string.Empty,
                 baseTranslation?.AudioFileUrl ?? string.Empty,
                 baseTranslation?.TtsScript ?? string.Empty,
-                poi.SubmittedUtc));
+                poi.SubmittedUtc,
+                matchedHeatmap.TourCount1Day,
+                matchedHeatmap.TourCount7Days,
+                matchedHeatmap.TourCount30Days));
         }
 
         if (!string.IsNullOrWhiteSpace(_editingOwnerPoiId)
@@ -1421,6 +1486,13 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         FoodItemIsAvailable = true;
         FoodItemDisplayOrderText = "1";
         FoodItemActionText = "Add Food Item";
+    }
+
+    private void ResetOwnerHeatmapCounters()
+    {
+        OwnerTourCount1Day = 0;
+        OwnerTourCount7Days = 0;
+        OwnerTourCount30Days = 0;
     }
 
     private static bool TryParseDoubleValue(string rawValue, out double value)

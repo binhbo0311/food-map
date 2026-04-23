@@ -1,6 +1,7 @@
 using FOOD_MAP.Shared.Data;
 using FOOD_MAP.Shared.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 
 namespace FOOD_MAP.Shared.Services;
 
@@ -35,18 +36,37 @@ public sealed class SubscriptionService : ISubscriptionService
     public async Task<SubscriptionFeaturePolicy> GetCurrentPolicyAsync(int? userId, CancellationToken cancellationToken = default)
     {
         var tier = await GetCurrentTierAsync(userId, cancellationToken);
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var configuredPlan = await dbContext.SubscriptionPlans
+            .AsNoTracking()
+            .Where(x => x.IsActive && x.Tier == tier)
+            .OrderBy(x => x.BillingPeriod == BillingPeriod.Monthly ? 0 : 1)
+            .ThenByDescending(x => x.UpdatedUtc)
+            .ThenByDescending(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (configuredPlan is not null)
+        {
+            return new SubscriptionFeaturePolicy(
+                configuredPlan.Tier,
+                configuredPlan.MaxAccessiblePoiCount,
+                configuredPlan.MaxOwnerPoiCount,
+                configuredPlan.MaxActivationRadiusMeters);
+        }
+
         return tier switch
         {
             SubscriptionTier.Premium => new SubscriptionFeaturePolicy(
                 SubscriptionTier.Premium,
                 MaxAccessiblePoiCount: null,
                 MaxOwnerPoiCount: null,
-                MaxActivationRadiusMeters: 5000),
+                MaxActivationRadiusMeters: 500),
             SubscriptionTier.Basic => new SubscriptionFeaturePolicy(
                 SubscriptionTier.Basic,
                 MaxAccessiblePoiCount: 60,
                 MaxOwnerPoiCount: 25,
-                MaxActivationRadiusMeters: 400),
+                MaxActivationRadiusMeters: 150),
             _ => new SubscriptionFeaturePolicy(
                 SubscriptionTier.Free,
                 MaxAccessiblePoiCount: 15,
@@ -96,6 +116,7 @@ public sealed class SubscriptionService : ISubscriptionService
         var normalizedProvider = string.IsNullOrWhiteSpace(normalizedProviderInput)
             ? "Manual"
             : normalizedProviderInput;
+        var paymentProviderType = ParsePaymentProviderType(normalizedProvider);
 
         var normalizedTransactionCode = TextInputNormalizer.NormalizeSingleLine(paymentTransactionCode);
         if (string.IsNullOrWhiteSpace(normalizedTransactionCode))
@@ -104,6 +125,7 @@ public sealed class SubscriptionService : ISubscriptionService
         }
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
         var userExists = await dbContext.Users
             .AsNoTracking()
@@ -116,6 +138,7 @@ public sealed class SubscriptionService : ISubscriptionService
 
         var now = DateTimeOffset.UtcNow;
         var expiresUtc = CalculateExpiresUtc(now, billingPeriod);
+        var transactionCode = await GenerateUniqueTransactionCodeAsync(dbContext, paymentProviderType, cancellationToken);
 
         var subscription = new Subscription
         {
@@ -126,7 +149,7 @@ public sealed class SubscriptionService : ISubscriptionService
             Amount = amount,
             Currency = normalizedCurrency,
             PaymentProvider = normalizedProvider,
-            PaymentTransactionCode = normalizedTransactionCode,
+            PaymentTransactionCode = transactionCode,
             PaidUtc = now,
             StartedUtc = now,
             ExpiresUtc = expiresUtc,
@@ -136,6 +159,24 @@ public sealed class SubscriptionService : ISubscriptionService
 
         dbContext.Subscriptions.Add(subscription);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        dbContext.PaymentTransactions.Add(new PaymentTransaction
+        {
+            UserId = userId,
+            SubscriptionId = subscription.Id,
+            PaymentProvider = paymentProviderType,
+            PaymentStatus = PaymentStatus.Paid,
+            TransactionCode = transactionCode,
+            ProviderReferenceCode = normalizedTransactionCode,
+            Amount = amount,
+            Currency = normalizedCurrency,
+            Notes = "Subscription payment",
+            CreatedUtc = now,
+            CompletedUtc = now
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return subscription;
     }
 
@@ -157,5 +198,54 @@ public sealed class SubscriptionService : ISubscriptionService
             BillingPeriod.Quarterly => startedUtc.AddMonths(3),
             _ => startedUtc.AddMonths(1)
         };
+    }
+
+    private static PaymentProviderType ParsePaymentProviderType(string provider)
+    {
+        var normalizedProvider = provider.Trim().ToLowerInvariant();
+        return normalizedProvider switch
+        {
+            "vnpay" => PaymentProviderType.VnPay,
+            "momo" => PaymentProviderType.Momo,
+            "stripe" => PaymentProviderType.Stripe,
+            "paypal" => PaymentProviderType.Paypal,
+            "zalopay" => PaymentProviderType.ZaloPay,
+            "manual" => PaymentProviderType.Manual,
+            _ => PaymentProviderType.Other
+        };
+    }
+
+    private static async Task<string> GenerateUniqueTransactionCodeAsync(
+        AppDbContext dbContext,
+        PaymentProviderType paymentProviderType,
+        CancellationToken cancellationToken)
+    {
+        var providerPrefix = paymentProviderType switch
+        {
+            PaymentProviderType.VnPay => "VNP",
+            PaymentProviderType.Momo => "MOM",
+            PaymentProviderType.Stripe => "STR",
+            PaymentProviderType.Paypal => "PAY",
+            PaymentProviderType.ZaloPay => "ZLP",
+            PaymentProviderType.Manual => "MAN",
+            _ => "OTH"
+        };
+
+        for (var attempt = 0; attempt < 12; attempt++)
+        {
+            var randomPart = RandomNumberGenerator.GetInt32(100000, 999999);
+            var candidate = $"TX-{providerPrefix}-{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}-{randomPart}";
+
+            var exists = await dbContext.PaymentTransactions
+                .AsNoTracking()
+                .AnyAsync(x => x.TransactionCode == candidate, cancellationToken);
+
+            if (!exists)
+            {
+                return candidate;
+            }
+        }
+
+        throw new InvalidOperationException("Could not generate a unique payment transaction code. Please retry.");
     }
 }

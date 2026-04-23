@@ -7,9 +7,7 @@ using Android.Gms.Location;
 using Android.OS;
 using Android.Runtime;
 using AndroidX.Core.App;
-using FOOD_MAP.Shared.Data;
 using FOOD_MAP.Services.Geofencing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Maui;
 using Microsoft.Maui.Storage;
 using System.Runtime.Versioning;
@@ -192,25 +190,27 @@ public sealed class LocationTrackingForegroundService : Service
 
     private async Task HandleLocationUpdateAsync(double latitude, double longitude)
     {
-        var serviceProvider = IPlatformApplication.Current?.Services;
-        if (serviceProvider is null)
-        {
-            return;
-        }
+        var semaphoreAcquired = false;
 
-        await _geoSemaphore.WaitAsync();
         try
         {
-            var dbContextFactory = serviceProvider.GetService(typeof(IDbContextFactory<AppDbContext>)) as IDbContextFactory<AppDbContext>;
-            if (dbContextFactory is null)
+            var serviceProvider = IPlatformApplication.Current?.Services;
+            if (serviceProvider is null)
             {
                 return;
             }
 
-            await using var dbContext = await dbContextFactory.CreateDbContextAsync();
-            var pois = await dbContext.Pois
-                .Select(x => new { x.Id, x.Latitude, x.Longitude, x.ActivationRadius, x.Priority })
-                .ToListAsync();
+            await _geoSemaphore.WaitAsync();
+            semaphoreAcquired = true;
+
+            var poiRepository = serviceProvider.GetService(typeof(IPoiRepository)) as IPoiRepository;
+            if (poiRepository is null)
+            {
+                return;
+            }
+
+            var selectedLanguage = NormalizeLanguageCode(Preferences.Default.Get("selected_language", "vi"));
+            var pois = await poiRepository.GetPoiItemsAsync(selectedLanguage);
 
             if (pois.Count == 0)
             {
@@ -223,6 +223,10 @@ public sealed class LocationTrackingForegroundService : Service
 
             foreach (var poi in pois)
             {
+                var activationRadius = poi.ActivationRadius > 0
+                    ? poi.ActivationRadius
+                    : ResolveActivationRadiusMeters(poi.DistanceText);
+
                 var distanceMeters = GeofenceMath.CalculateDistanceMeters(
                     latitude,
                     longitude,
@@ -232,47 +236,47 @@ public sealed class LocationTrackingForegroundService : Service
                 if (distanceMeters < nearestDistance)
                 {
                     nearestDistance = distanceMeters;
-                    nearestPoiText = $"Nearest POI #{poi.Id} - {(int)distanceMeters}m";
+                    nearestPoiText = $"Nearest POI #{poi.PoiId} - {(int)distanceMeters}m";
                 }
 
-                var isInside = distanceMeters <= poi.ActivationRadius;
-                var previousInside = _isInsidePoiById.TryGetValue(poi.Id, out var cachedInside) && cachedInside;
+                var isInside = distanceMeters <= activationRadius;
+                var previousInside = _isInsidePoiById.TryGetValue(poi.PoiId, out var cachedInside) && cachedInside;
 
                 if (!isInside)
                 {
-                    _isInsidePoiById[poi.Id] = false;
-                    _insideDebounceHitsByPoiId[poi.Id] = 0;
+                    _isInsidePoiById[poi.PoiId] = false;
+                    _insideDebounceHitsByPoiId[poi.PoiId] = 0;
                     continue;
                 }
 
-                var previousHits = _insideDebounceHitsByPoiId.TryGetValue(poi.Id, out var hits) ? hits : 0;
+                var previousHits = _insideDebounceHitsByPoiId.TryGetValue(poi.PoiId, out var hits) ? hits : 0;
                 var currentHits = previousHits + 1;
-                _insideDebounceHitsByPoiId[poi.Id] = currentHits;
+                _insideDebounceHitsByPoiId[poi.PoiId] = currentHits;
 
                 var isDebouncedReady = currentHits >= DebounceHitsRequired;
-                var hasCooldown = _lastTriggeredUtcByPoiId.TryGetValue(poi.Id, out var lastTriggeredUtc) &&
+                var hasCooldown = _lastTriggeredUtcByPoiId.TryGetValue(poi.PoiId, out var lastTriggeredUtc) &&
                                   nowUtc - lastTriggeredUtc < TriggerCooldown;
 
                 if (!previousInside && isDebouncedReady && !hasCooldown)
                 {
-                    _isInsidePoiById[poi.Id] = true;
-                    _lastTriggeredUtcByPoiId[poi.Id] = nowUtc;
+                    _isInsidePoiById[poi.PoiId] = true;
+                    _lastTriggeredUtcByPoiId[poi.PoiId] = nowUtc;
 
                     // Luồng proximity: phát intro ngắn gọn khi vào geofence.
-                    _ = TriggerProximityNarrationAsync(serviceProvider, poi.Id);
+                    _ = TriggerProximityNarrationAsync(serviceProvider, poi.PoiId);
 
-                    var triggerText = $"Triggered POI #{poi.Id} at {(int)distanceMeters}m";
+                    var triggerText = $"Triggered POI #{poi.PoiId} at {(int)distanceMeters}m";
                     var notificationManager = NotificationManagerCompat.From(this);
                     if (notificationManager is not null)
                     {
                         // Dùng ID riêng để thông báo geofence không bị ghi đè ngay bởi tracking notification.
-                        var triggerNotificationId = TriggerNotificationBaseId + Math.Abs(poi.Id.GetHashCode(StringComparison.Ordinal) % 1000);
+                        var triggerNotificationId = TriggerNotificationBaseId + Math.Abs(poi.PoiId.GetHashCode(StringComparison.Ordinal) % 1000);
                         notificationManager.Notify(triggerNotificationId, BuildTriggerNotification(triggerText));
                     }
                 }
                 else
                 {
-                    _isInsidePoiById[poi.Id] = true;
+                    _isInsidePoiById[poi.PoiId] = true;
                 }
             }
 
@@ -282,9 +286,16 @@ public sealed class LocationTrackingForegroundService : Service
                 trackingManager.Notify(TrackingNotificationId, BuildTrackingNotification(nearestPoiText));
             }
         }
+        catch (Exception)
+        {
+            // Bắt mọi lỗi của callback nền để không đẩy exception ra Java proxy trên Android.
+        }
         finally
         {
-            _geoSemaphore.Release();
+            if (semaphoreAcquired)
+            {
+                _geoSemaphore.Release();
+            }
         }
     }
 
@@ -294,35 +305,23 @@ public sealed class LocationTrackingForegroundService : Service
         {
             var selectedLanguage = NormalizeLanguageCode(Preferences.Default.Get("selected_language", "vi"));
             var narrationService = serviceProvider.GetService(typeof(INarrationService)) as INarrationService;
-            var dbContextFactory = serviceProvider.GetService(typeof(IDbContextFactory<AppDbContext>)) as IDbContextFactory<AppDbContext>;
+            var poiRepository = serviceProvider.GetService(typeof(IPoiRepository)) as IPoiRepository;
 
-            if (narrationService is null || dbContextFactory is null)
+            if (narrationService is null || poiRepository is null)
             {
                 return;
             }
 
-            await using var dbContext = await dbContextFactory.CreateDbContextAsync();
-
-            var translations = await dbContext.PoiTranslations
-                .AsNoTracking()
-                .Include(x => x.Language)
-                .Where(x => x.PoiId == poiId)
-                .ToListAsync();
-
-            var translation = translations.FirstOrDefault(x => IsLanguageMatch(x.Language?.LanguageCode, selectedLanguage))
-                ?? translations.FirstOrDefault(x => IsLanguageMatch(x.Language?.LanguageCode, "vi"))
-                ?? translations.FirstOrDefault(x => IsLanguageMatch(x.Language?.LanguageCode, "en"))
-                ?? translations.FirstOrDefault();
-
-            if (translation is null)
+            var scanResult = await poiRepository.GetPoiScanResultAsync(poiId, selectedLanguage);
+            if (scanResult is null)
             {
                 return;
             }
 
             // Proximity ưu tiên script đã biên tập để giữ đúng dấu tiếng Việt và ngữ điệu.
-            var shortIntro = !string.IsNullOrWhiteSpace(translation.TtsScript)
-                ? translation.TtsScript
-                : BuildFallbackIntro(translation.LocationName, selectedLanguage);
+            var shortIntro = !string.IsNullOrWhiteSpace(scanResult.TtsScript)
+                ? scanResult.TtsScript
+                : BuildFallbackIntro(scanResult.LocationName, selectedLanguage);
 
             await narrationService.PlayProximityNarrationAsync(shortIntro, selectedLanguage);
         }
@@ -346,10 +345,20 @@ public sealed class LocationTrackingForegroundService : Service
             : $"Bạn đang đến gần {locationName}.";
     }
 
-    private static bool IsLanguageMatch(string? candidateLanguageCode, string expectedLanguageCode)
+    private static int ResolveActivationRadiusMeters(string distanceText)
     {
-        var normalizedCandidate = NormalizeLanguageCode(candidateLanguageCode);
-        return string.Equals(normalizedCandidate, expectedLanguageCode, StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(distanceText))
+        {
+            return 100;
+        }
+
+        var digits = new string(distanceText.Where(char.IsDigit).ToArray());
+        if (int.TryParse(digits, out var parsed) && parsed > 0)
+        {
+            return parsed;
+        }
+
+        return 100;
     }
 
     private static string NormalizeLanguageCode(string? languageCode)
@@ -398,7 +407,14 @@ public sealed class LocationTrackingForegroundService : Service
                 return;
             }
 
-            _ = service.HandleLocationUpdateAsync(latestLocation.Latitude, latestLocation.Longitude);
+            try
+            {
+                _ = service.HandleLocationUpdateAsync(latestLocation.Latitude, latestLocation.Longitude);
+            }
+            catch
+            {
+                // Nuốt lỗi sync rất sớm từ callback Java để tránh crash proxy.
+            }
         }
     }
 }
