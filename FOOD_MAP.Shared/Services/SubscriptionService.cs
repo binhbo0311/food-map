@@ -136,6 +136,42 @@ public sealed class SubscriptionService : ISubscriptionService
             throw new InvalidOperationException("User account was not found.");
         }
 
+        var activePlan = await dbContext.SubscriptionPlans
+            .AsNoTracking()
+            .Where(x => x.IsActive && x.Tier == tier && x.BillingPeriod == billingPeriod)
+            .OrderByDescending(x => x.UpdatedUtc)
+            .ThenByDescending(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (activePlan is null)
+        {
+            throw new InvalidOperationException("No active subscription plan is configured for the selected tier and billing period.");
+        }
+
+        if (!string.Equals(activePlan.Currency, normalizedCurrency, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Payment currency does not match the configured plan currency.");
+        }
+
+        if (activePlan.FixedPrice > 0 && Math.Abs(activePlan.FixedPrice - amount) > 0.01m)
+        {
+            throw new InvalidOperationException("Payment amount does not match the configured plan price.");
+        }
+
+        var normalizedProviderReferenceCode = normalizedTransactionCode.ToUpperInvariant();
+        var duplicatedProviderReference = await dbContext.PaymentTransactions
+            .AsNoTracking()
+            .AnyAsync(
+                x => x.PaymentProvider == paymentProviderType
+                    && x.ProviderReferenceCode != null
+                    && x.ProviderReferenceCode.ToUpper() == normalizedProviderReferenceCode,
+                cancellationToken);
+
+        if (duplicatedProviderReference)
+        {
+            throw new InvalidOperationException("Payment transaction reference was already processed.");
+        }
+
         var now = DateTimeOffset.UtcNow;
         var expiresUtc = CalculateExpiresUtc(now, billingPeriod);
         var transactionCode = await GenerateUniqueTransactionCodeAsync(dbContext, paymentProviderType, cancellationToken);
@@ -167,7 +203,7 @@ public sealed class SubscriptionService : ISubscriptionService
             PaymentProvider = paymentProviderType,
             PaymentStatus = PaymentStatus.Paid,
             TransactionCode = transactionCode,
-            ProviderReferenceCode = normalizedTransactionCode,
+            ProviderReferenceCode = normalizedProviderReferenceCode,
             Amount = amount,
             Currency = normalizedCurrency,
             Notes = "Subscription payment",

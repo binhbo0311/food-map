@@ -183,7 +183,8 @@ public sealed class ApiPoiRepository : IPoiRepository
                 item.NarrationText,
                 item.ImageUrl,
                 item.RichContentHtml,
-                activationRadius: item.ActivationRadius))
+            activationRadius: item.ActivationRadius,
+            priority: item.Priority))
             .ToList();
     }
 

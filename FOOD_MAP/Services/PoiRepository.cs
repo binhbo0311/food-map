@@ -77,7 +77,9 @@ public sealed class PoiRepository : IPoiRepository
                     description,
                     narrationText,
                     translation?.ImageUrl ?? string.Empty,
-                    richContentHtml));
+                    richContentHtml,
+                    activationRadius: poi.ActivationRadius,
+                    priority: poi.Priority));
             }
 
             if (subscriptionPolicy.MaxAccessiblePoiCount.HasValue)

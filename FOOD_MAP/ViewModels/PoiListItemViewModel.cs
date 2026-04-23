@@ -20,6 +20,8 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
 
     public int ActivationRadius { get; }
 
+    public int Priority { get; }
+
     public string Name { get; }
 
     public string DistanceText { get; }
@@ -44,6 +46,7 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
         string imageUrl,
         string richContentHtml,
         int activationRadius = 100,
+        int priority = 0,
         bool isNearest = false)
     {
         PoiId = poiId;
@@ -51,6 +54,7 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
         Latitude = latitude;
         Longitude = longitude;
         ActivationRadius = activationRadius;
+        Priority = priority;
         Name = name;
         DistanceText = distanceText;
         Description = description;

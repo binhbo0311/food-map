@@ -11,7 +11,7 @@ public interface IActiveMobileHeartbeatAgent
 
 public sealed class ActiveMobileHeartbeatAgent : IActiveMobileHeartbeatAgent
 {
-    private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(1);
 
     private readonly IActiveUserTrackerService _activeUserTrackerService;
     private readonly IUserSessionService _userSessionService;

@@ -4,9 +4,12 @@
 @using FOOD_MAP.Shared.Services
 @using Microsoft.EntityFrameworkCore
 @using System.ComponentModel.DataAnnotations
+@using System.Text.Json
+@using Microsoft.JSInterop
 @inject IDbContextFactory<AppDbContext> DbContextFactory
 @inject IPoiWorkflowRepository PoiWorkflowRepository
 @inject PortalUserSessionState PortalUserSessionState
+@inject IJSRuntime JsRuntime
 
 <PageTitle>POI Admin</PageTitle>
 
@@ -104,6 +107,15 @@
         <div class="col-12">
             <label class="form-label">Vietnamese TTS Script (Base)</label>
             <InputTextArea @bind-Value="editorModel.VietnameseTtsScript" class="form-control" rows="3" />
+
+            <div class="d-flex gap-2 mt-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="PlayVietnameseTtsPreviewAsync" disabled="@isBusy">
+                    Preview Web TTS
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="StopVietnameseTtsPreviewAsync" disabled="@isBusy">
+                    Stop TTS
+                </button>
+            </div>
         </div>
 
         <div class="col-12">
@@ -692,6 +704,75 @@ else
         dbContext.Languages.Add(vietnameseLanguage);
         await dbContext.SaveChangesAsync();
         return vietnameseLanguage.Id;
+    }
+
+    private async Task PlayVietnameseTtsPreviewAsync()
+    {
+        var normalizedTtsScript = editorModel.VietnameseTtsScript?.Trim() ?? string.Empty;
+        var normalizedAudioUrl = editorModel.VietnameseAudioFileUrl?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(normalizedTtsScript) && string.IsNullOrWhiteSpace(normalizedAudioUrl))
+        {
+            isErrorStatus = true;
+            statusMessage = "Vui lòng nhập Vietnamese TTS Script hoặc Audio Url để preview.";
+            return;
+        }
+
+        try
+        {
+            var result = await JsRuntime.InvokeAsync<JsonElement>(
+                "foodMapTts.speak",
+                normalizedTtsScript,
+                "vi",
+                normalizedAudioUrl);
+
+            var isOk = false;
+            var message = string.Empty;
+
+            if (result.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            {
+                isOk = result.ValueKind == JsonValueKind.True;
+            }
+            else if (result.ValueKind == JsonValueKind.Object)
+            {
+                if (result.TryGetProperty("ok", out var okProp))
+                {
+                    isOk = okProp.ValueKind == JsonValueKind.True;
+                }
+
+                if (result.TryGetProperty("message", out var messageProp))
+                {
+                    message = messageProp.GetString() ?? string.Empty;
+                }
+            }
+
+            isErrorStatus = !isOk;
+            statusMessage = string.IsNullOrWhiteSpace(message)
+                ? (isOk ? "Đang preview TTS tiếng Việt trên trình duyệt." : "Không thể preview TTS với dữ liệu hiện tại.")
+                : message;
+        }
+        catch (Exception ex)
+        {
+            // Trả lỗi rõ ràng để người quản trị biết nguyên nhân preview thất bại.
+            isErrorStatus = true;
+            statusMessage = $"Không thể preview TTS: {ex.Message}";
+        }
+    }
+
+    private async Task StopVietnameseTtsPreviewAsync()
+    {
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("foodMapTts.stop");
+            isErrorStatus = false;
+            statusMessage = "Đã dừng TTS preview.";
+        }
+        catch (Exception ex)
+        {
+            // Trả lỗi cụ thể để thuận tiện kiểm tra tích hợp JS runtime.
+            isErrorStatus = true;
+            statusMessage = $"Không thể dừng TTS preview: {ex.Message}";
+        }
     }
 
     private sealed class PoiAdminRow

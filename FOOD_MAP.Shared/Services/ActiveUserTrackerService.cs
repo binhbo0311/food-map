@@ -7,7 +7,7 @@ namespace FOOD_MAP.Shared.Services;
 
 public sealed class ActiveUserTrackerService : IActiveUserTrackerService
 {
-    private static readonly TimeSpan ActiveWindow = TimeSpan.FromSeconds(90);
+    private static readonly TimeSpan ActiveWindow = TimeSpan.FromSeconds(1);
     private static readonly SemaphoreSlim StorageBootstrapLock = new(1, 1);
     private static int _isStorageBootstrapped;
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
@@ -60,32 +60,43 @@ public sealed class ActiveUserTrackerService : IActiveUserTrackerService
             return;
         }
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        await EnsureStorageReadyAsync(dbContext, cancellationToken);
-        await PurgeExpiredAsync(dbContext, cancellationToken);
-
-        var normalizedKey = sessionKey.Trim();
-        var row = await dbContext.ActiveClientHeartbeats
-            .FirstOrDefaultAsync(x => x.SessionKey == normalizedKey, cancellationToken);
-
-        if (row is null)
+        if (cancellationToken.IsCancellationRequested)
         {
-            dbContext.ActiveClientHeartbeats.Add(new ActiveClientHeartbeat
+            return;
+        }
+        try
+        {
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync(CancellationToken.None);
+            await EnsureStorageReadyAsync(dbContext, CancellationToken.None);
+            await PurgeExpiredAsync(dbContext, CancellationToken.None);
+
+            var normalizedKey = sessionKey.Trim();
+            var row = await dbContext.ActiveClientHeartbeats
+                .FirstOrDefaultAsync(x => x.SessionKey == normalizedKey, CancellationToken.None);
+
+            if (row is null)
             {
-                ClientType = clientType,
-                UserId = userId,
-                SessionKey = normalizedKey,
-                LastSeenUtc = DateTimeOffset.UtcNow
-            });
-        }
-        else
-        {
-            row.ClientType = clientType;
-            row.UserId = userId;
-            row.LastSeenUtc = DateTimeOffset.UtcNow;
-        }
+                dbContext.ActiveClientHeartbeats.Add(new ActiveClientHeartbeat
+                {
+                    ClientType = clientType,
+                    UserId = userId,
+                    SessionKey = normalizedKey,
+                    LastSeenUtc = DateTimeOffset.UtcNow
+                });
+            }
+            else
+            {
+                row.ClientType = clientType;
+                row.UserId = userId;
+                row.LastSeenUtc = DateTimeOffset.UtcNow;
+            }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
     }
 
     private static async Task EnsureStorageReadyAsync(AppDbContext dbContext, CancellationToken cancellationToken)
@@ -140,17 +151,28 @@ public sealed class ActiveUserTrackerService : IActiveUserTrackerService
 
     private static async Task PurgeExpiredAsync(AppDbContext dbContext, CancellationToken cancellationToken)
     {
-        var cutoffUtc = DateTimeOffset.UtcNow - TimeSpan.FromMinutes(10);
-        var expiredRows = await dbContext.ActiveClientHeartbeats
-            .Where(x => x.LastSeenUtc < cutoffUtc)
-            .ToListAsync(cancellationToken);
+        try
+        {
+            var cutoffUtc = DateTimeOffset.UtcNow - TimeSpan.FromMinutes(10);
+            var expiredRows = await dbContext.ActiveClientHeartbeats
+                .Where(x => x.LastSeenUtc < cutoffUtc)
+                .ToListAsync(CancellationToken.None);
 
-        if (expiredRows.Count == 0)
+            if (expiredRows.Count == 0)
+            {
+                return;
+            }
+
+            dbContext.ActiveClientHeartbeats.RemoveRange(expiredRows);
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+        }
+        catch (DbUpdateConcurrencyException)
         {
             return;
         }
-
-        dbContext.ActiveClientHeartbeats.RemoveRange(expiredRows);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        catch (OperationCanceledException)
+        {
+            return;
+        }
     }
 }

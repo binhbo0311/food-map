@@ -13,7 +13,7 @@ public sealed record PortalSignInResult(bool IsSuccess, string Message, UserRole
 public sealed class PortalSessionService : IAsyncDisposable
 {
     private const string SessionStorageKey = "foodmap.portal.session";
-    private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(1);
 
     private readonly ProtectedSessionStorage _sessionStorage;
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;

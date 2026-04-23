@@ -114,7 +114,7 @@
 </CmsRoleGate>
 
 @code {
-    private static readonly TimeSpan SummaryRefreshInterval = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan SummaryRefreshInterval = TimeSpan.FromSeconds(1);
 
     private ActiveUserSummary _activeSummary = new(0, 0, 0, 0);
     private string _lastSummaryUpdatedAt = "--";

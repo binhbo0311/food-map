@@ -488,7 +488,20 @@ namespace FOOD_MAP
                     return;
                 }
 
-                // Điều hướng sang màn hình cài đặt hồ sơ cho người dùng đã xác thực.
+                // Ưu tiên chuyển tab Settings ở thanh điều hướng dưới nếu đang chạy trong TabbedPage.
+                if (Parent is NavigationPage hostNavigationPage && hostNavigationPage.Parent is TabbedPage tabbedPage)
+                {
+                    var settingsTab = tabbedPage.Children.FirstOrDefault(x =>
+                        string.Equals(x.Title, "Settings", StringComparison.OrdinalIgnoreCase));
+
+                    if (settingsTab is not null)
+                    {
+                        tabbedPage.CurrentPage = settingsTab;
+                        return;
+                    }
+                }
+
+                // Fallback về push trang cài đặt nếu không có tab host.
                 await Navigation.PushAsync(new SettingsPage());
             }, "Settings navigation failed");
         }

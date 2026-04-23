@@ -32,27 +32,35 @@ public static class MobileApiEndpointMapper
             IDbContextFactory<AppDbContext> dbContextFactory,
             CancellationToken cancellationToken) =>
         {
-            var normalizedUserName = TextInputNormalizer.NormalizeSingleLine(request.UserName).ToLowerInvariant();
-            if (string.IsNullOrWhiteSpace(normalizedUserName) || string.IsNullOrWhiteSpace(request.Password))
+            try
             {
-                return Results.Ok(new AuthLoginResponseDto(false, "Vui lòng nhập đầy đủ tài khoản và mật khẩu.", null, null, null));
+                var normalizedUserName = TextInputNormalizer.NormalizeSingleLine(request.UserName).ToLowerInvariant();
+                if (string.IsNullOrWhiteSpace(normalizedUserName) || string.IsNullOrWhiteSpace(request.Password))
+                {
+                    return Results.Ok(new AuthLoginResponseDto(false, "Vui lòng nhập đầy đủ tài khoản và mật khẩu.", null, null, null));
+                }
+
+                await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+                var passwordHash = HashPassword(request.Password);
+
+                var user = await dbContext.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        x => x.UserName.ToLower() == normalizedUserName && x.PasswordHash == passwordHash,
+                        cancellationToken);
+
+                if (user is null)
+                {
+                    return Results.Ok(new AuthLoginResponseDto(false, "Thông tin đăng nhập không đúng.", null, null, null));
+                }
+
+                return Results.Ok(new AuthLoginResponseDto(true, $"Xin chào {user.DisplayName}.", user.Id, user.DisplayName, user.Role));
             }
-
-            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-            var passwordHash = HashPassword(request.Password);
-
-            var user = await dbContext.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    x => x.UserName.ToLower() == normalizedUserName && x.PasswordHash == passwordHash,
-                    cancellationToken);
-
-            if (user is null)
+            catch (Exception)
             {
-                return Results.Ok(new AuthLoginResponseDto(false, "Thông tin đăng nhập không đúng.", null, null, null));
+                // Trả lỗi rõ ràng khi dịch vụ không chạm được PostgreSQL để app mobile hiển thị đúng nguyên nhân.
+                return Results.Ok(new AuthLoginResponseDto(false, "Không thể kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình PostgreSQL trên máy chủ.", null, null, null));
             }
-
-            return Results.Ok(new AuthLoginResponseDto(true, $"Xin chào {user.DisplayName}.", user.Id, user.DisplayName, user.Role));
         });
 
         api.MapPost("/auth/register", async (
@@ -60,42 +68,50 @@ public static class MobileApiEndpointMapper
             IDbContextFactory<AppDbContext> dbContextFactory,
             CancellationToken cancellationToken) =>
         {
-            var normalizedUserName = TextInputNormalizer.NormalizeSingleLine(request.UserName).ToLowerInvariant();
-            var normalizedDisplayName = string.IsNullOrWhiteSpace(request.DisplayName)
-                ? TextInputNormalizer.NormalizeSingleLine(request.UserName)
-                : TextInputNormalizer.NormalizeSingleLine(request.DisplayName);
-
-            if (string.IsNullOrWhiteSpace(normalizedUserName) || string.IsNullOrWhiteSpace(request.Password))
+            try
             {
-                return Results.Ok(new ApiResultDto(false, "Vui lòng nhập đầy đủ tài khoản và mật khẩu."));
+                var normalizedUserName = TextInputNormalizer.NormalizeSingleLine(request.UserName).ToLowerInvariant();
+                var normalizedDisplayName = string.IsNullOrWhiteSpace(request.DisplayName)
+                    ? TextInputNormalizer.NormalizeSingleLine(request.UserName)
+                    : TextInputNormalizer.NormalizeSingleLine(request.DisplayName);
+
+                if (string.IsNullOrWhiteSpace(normalizedUserName) || string.IsNullOrWhiteSpace(request.Password))
+                {
+                    return Results.Ok(new ApiResultDto(false, "Vui lòng nhập đầy đủ tài khoản và mật khẩu."));
+                }
+
+                if (request.Password.Length < 6)
+                {
+                    return Results.Ok(new ApiResultDto(false, "Mật khẩu phải có ít nhất 6 ký tự."));
+                }
+
+                await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+                var userNameExists = await dbContext.Users
+                    .AsNoTracking()
+                    .AnyAsync(x => x.UserName.ToLower() == normalizedUserName, cancellationToken);
+
+                if (userNameExists)
+                {
+                    return Results.Ok(new ApiResultDto(false, "Tên tài khoản đã tồn tại. Vui lòng chọn tên khác."));
+                }
+
+                dbContext.Users.Add(new User
+                {
+                    UserName = normalizedUserName,
+                    DisplayName = normalizedDisplayName,
+                    PasswordHash = HashPassword(request.Password),
+                    CreatedUtc = DateTimeOffset.UtcNow
+                });
+
+                await dbContext.SaveChangesAsync(cancellationToken);
+                return Results.Ok(new ApiResultDto(true, "Tạo tài khoản thành công. Bạn có thể đăng nhập ngay bây giờ."));
             }
-
-            if (request.Password.Length < 6)
+            catch (Exception)
             {
-                return Results.Ok(new ApiResultDto(false, "Mật khẩu phải có ít nhất 6 ký tự."));
+                // Trả thông điệp rõ ràng để tránh mobile chỉ thấy lỗi hệ thống chung chung.
+                return Results.Ok(new ApiResultDto(false, "Không thể kết nối cơ sở dữ liệu. Vui lòng kiểm tra cấu hình PostgreSQL trên máy chủ."));
             }
-
-            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-
-            var userNameExists = await dbContext.Users
-                .AsNoTracking()
-                .AnyAsync(x => x.UserName.ToLower() == normalizedUserName, cancellationToken);
-
-            if (userNameExists)
-            {
-                return Results.Ok(new ApiResultDto(false, "Tên tài khoản đã tồn tại. Vui lòng chọn tên khác."));
-            }
-
-            dbContext.Users.Add(new User
-            {
-                UserName = normalizedUserName,
-                DisplayName = normalizedDisplayName,
-                PasswordHash = HashPassword(request.Password),
-                CreatedUtc = DateTimeOffset.UtcNow
-            });
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return Results.Ok(new ApiResultDto(true, "Tạo tài khoản thành công. Bạn có thể đăng nhập ngay bây giờ."));
         });
     }
 
@@ -185,7 +201,15 @@ public static class MobileApiEndpointMapper
             IActiveUserTrackerService activeUserTrackerService,
             CancellationToken cancellationToken) =>
         {
-            await activeUserTrackerService.TrackMobileHeartbeatAsync(request.UserId, request.SessionKey, cancellationToken);
+            try
+            {
+                await activeUserTrackerService.TrackMobileHeartbeatAsync(request.UserId, request.SessionKey, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return Results.Ok();
+            }
+
             return Results.Ok();
         });
 

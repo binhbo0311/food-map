@@ -2,6 +2,7 @@ using FOOD_MAP.Services;
 using FOOD_MAP.Shared.Configuration;
 using FOOD_MAP.Shared.Services;
 using Microsoft.Extensions.Logging;
+using ZXing.Net.Maui.Controls;
 
 namespace FOOD_MAP
 {
@@ -21,6 +22,7 @@ namespace FOOD_MAP
             builder
                 .UseMauiApp<App>()
                 .UseMauiMaps()
+                .UseBarcodeReader()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -39,6 +41,7 @@ namespace FOOD_MAP
             });
 
             builder.Services.AddSingleton<IPoiRepository, ApiPoiRepository>();
+            builder.Services.AddSingleton<MobilePoiCatalogService>();
             builder.Services.AddSingleton<INarrationService, NarrationService>();
             builder.Services.AddSingleton<IUserSessionService, UserSessionService>();
             builder.Services.AddSingleton<IAuthService, ApiAuthService>();

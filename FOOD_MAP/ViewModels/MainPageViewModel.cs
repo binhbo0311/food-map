@@ -613,6 +613,11 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
         return scanResult;
     }
 
+    public async Task StopTtsAsyncForCamera(CancellationToken cancellationToken = default)
+    {
+        await _narrationService.StopAsync();
+    }
+
     private async Task PlayPoiAsync(PoiListItemViewModel? poi)
     {
         if (poi is null)

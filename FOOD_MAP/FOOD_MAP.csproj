@@ -105,6 +105,9 @@
     <MauiXaml Update="Views\RegisterPage.xaml" Generator="MSBuild:Compile" />
     <MauiXaml Update="MainPage.xaml" Generator="MSBuild:Compile" />
     <MauiXaml Update="Views\SettingsPage.xaml" Generator="MSBuild:Compile" />
+    <MauiXaml Update="Views\HomePage.xaml" Generator="MSBuild:Compile" />
+    <MauiXaml Update="Views\PoiPage.xaml" Generator="MSBuild:Compile" />
+    <MauiXaml Update="Views\CameraPage.xaml" Generator="MSBuild:Compile" />
   </ItemGroup>
 
   <ItemGroup>
@@ -112,6 +115,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
     <PackageReference Include="Microsoft.Maui.Controls.Maps" Version="10.0.51" />
+    <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.7.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
   </ItemGroup>

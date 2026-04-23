@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
+             x:Class="FOOD_MAP.CameraPage"
+             BackgroundColor="#EAF8F8"
+             Title="Camera">
+    <Grid Padding="16" RowDefinitions="Auto,*,Auto">
+        <VerticalStackLayout Spacing="8">
+            <Label Text="Camera" FontSize="28" FontAttributes="Bold" TextColor="#143536" />
+            <Label Text="Quét QR trong khung giới hạn bên trong app. Khi quét link PoiScanner hoặc POI id, TTS sẽ tự chạy." TextColor="#4D6B6C" />
+        </VerticalStackLayout>
+
+        <Border Grid.Row="1" Stroke="#A9E1E2" StrokeThickness="1" BackgroundColor="White" Padding="10" Margin="0,16,0,16">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="24" />
+            </Border.StrokeShape>
+
+            <Grid RowDefinitions="Auto,* ,Auto">
+                <Label Text="Scanner frame" TextColor="#066D72" FontAttributes="Bold" />
+
+                <Grid Grid.Row="1" Margin="0,10,0,10">
+                    <Border Stroke="#0B949A" StrokeThickness="2" BackgroundColor="#F2FBFB">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <zxing:CameraBarcodeReaderView x:Name="BarcodeReaderView"
+                                                        BarcodesDetected="OnBarcodesDetected" />
+                    </Border>
+
+                    <Border HorizontalOptions="Center" VerticalOptions="Center" WidthRequest="260" HeightRequest="260"
+                            Stroke="#0B949A" StrokeThickness="2" BackgroundColor="Transparent" InputTransparent="True">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="24" />
+                        </Border.StrokeShape>
+                    </Border>
+                </Grid>
+
+                <VerticalStackLayout Grid.Row="2" Spacing="10">
+                    <Entry x:Name="QrPayloadEntry"
+                           Placeholder="Dán link PoiScanner hoặc POI id đã quét"
+                           TextChanged="OnQrPayloadChanged"
+                           BackgroundColor="#F2FBFB" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Button Grid.Column="0" Text="Process QR" BackgroundColor="#066D72" TextColor="White" CornerRadius="14" Clicked="OnProcessClicked" />
+                        <Button Grid.Column="1" Text="Stop TTS" BackgroundColor="#D94A4A" TextColor="White" CornerRadius="14" Clicked="OnStopClicked" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
+
+        <Label Grid.Row="2" Text="{Binding StatusMessage}" TextColor="#4D6B6C" FontSize="12" />
+    </Grid>
+</ContentPage>

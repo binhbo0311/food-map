@@ -21,14 +21,15 @@ public partial class LoginPage : ContentPage
     {
         try
         {
-            // Sau khi xác thực (hoặc vào guest), chuyển sang trang chính để bắt đầu tour.
-            await Navigation.PushAsync(new MainPage());
-
-            // Xóa trang login khỏi stack để tránh quay ngược về màn đăng nhập.
-            if (Navigation.NavigationStack.FirstOrDefault() is Page firstPage && firstPage == this)
+            // Sau khi xác thực (hoặc vào guest), chuyển root sang tab dưới để điều hướng nhanh.
+            if (Application.Current?.Windows.Count > 0)
             {
-                Navigation.RemovePage(this);
+                Application.Current.Windows[0].Page = new MainTabsPage();
+                return;
             }
+
+            // Fallback khi runtime không có window khả dụng.
+            await Navigation.PushAsync(new MainTabsPage());
         }
         catch
         {
