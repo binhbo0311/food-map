@@ -1,6 +1,7 @@
 ## MAUI & .NET Default Ignores
 bin/
 obj/
+FOOD_MAP/obj/Debug/net10.0-android/AndroidManifest.xml
 *.user
 *.suo
 .vs/
@@ -43,6 +44,8 @@ _tmp_session*.txt
 
 # Local environment and secrets
 .env.*
+.env.emulator
+.env.device
 secrets.json
 appsettings.Development.json
 appsettings.local.json
