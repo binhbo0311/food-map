@@ -37,4 +37,7 @@ public class POI
     public ICollection<FoodItem> FoodItems { get; set; } = new List<FoodItem>();
 
     public ICollection<TourList> TourLists { get; set; } = new List<TourList>();
+
+    // Tổng số lần TTS được phát cho POI này (geofence proximity + manual play + web scanner).
+    public int ListenCount { get; set; }
 }

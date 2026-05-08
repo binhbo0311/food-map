@@ -793,6 +793,42 @@ public static class MobileApiEndpointMapper
                 string.IsNullOrWhiteSpace(translation.TtsScript) ? translation.Description : translation.TtsScript,
                 foodItems));
         });
+
+        // Increment listen count when TTS is played (Android proximity/manual or Web scanner).
+        api.MapPost("/pois/{poiId}/listen", async (
+            string poiId,
+            IDbContextFactory<AppDbContext> dbContextFactory,
+            CancellationToken cancellationToken) =>
+        {
+            if (string.IsNullOrWhiteSpace(poiId))
+            {
+                return Results.BadRequest("POI ID is required.");
+            }
+
+            var normalizedPoiId = poiId.Trim().ToUpperInvariant();
+            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+            // Use ExecuteUpdateAsync for atomic increment — avoids race condition on concurrent calls.
+            var updated = await dbContext.Pois
+                .Where(x => x.Id == normalizedPoiId)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.ListenCount, x => x.ListenCount + 1), cancellationToken);
+
+            return updated > 0 ? Results.Ok() : Results.NotFound();
+        });
+
+        // Summary stats for admin dashboard: total POI count + total listen count.
+        api.MapGet("/pois/stats", async (
+            IDbContextFactory<AppDbContext> dbContextFactory,
+            CancellationToken cancellationToken) =>
+        {
+            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+            var totalPois = await dbContext.Pois.CountAsync(cancellationToken);
+            var approvedPois = await dbContext.Pois.CountAsync(x => x.ApprovalStatus == PoiApprovalStatus.Approved, cancellationToken);
+            var totalListens = await dbContext.Pois.SumAsync(x => (long)x.ListenCount, cancellationToken);
+
+            return Results.Ok(new PoiStatsDto(totalPois, approvedPois, totalListens));
+        });
     }
 
     private static void MapActivityEndpoints(RouteGroupBuilder api)
@@ -1441,6 +1477,7 @@ public static class MobileApiEndpointMapper
             poi.OwnerId,
             poi.ReviewedByAdminUserId,
             poi.QRCodeId,
+            poi.ListenCount,
             translations,
             ToUserSummaryDto(poi.Owner),
             ToUserSummaryDto(poi.ReviewedByAdminUser));

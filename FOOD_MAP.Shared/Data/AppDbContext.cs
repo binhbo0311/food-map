@@ -86,6 +86,9 @@ public class AppDbContext : DbContext
             entity.Property(x => x.ReviewedByAdminUserId);
             entity.Property(x => x.QRCodeId).HasMaxLength(100);
 
+            // Đếm tổng số lần TTS phát cho POI này; mặc định = 0, chỉ tăng (không bao giờ giảm).
+            entity.Property(x => x.ListenCount).IsRequired().HasDefaultValue(0);
+
             entity.HasOne(x => x.Owner)
                 .WithMany(x => x.OwnedPois)
                 .HasForeignKey(x => x.OwnerId)

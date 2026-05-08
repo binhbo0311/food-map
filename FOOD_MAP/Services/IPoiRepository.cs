@@ -31,4 +31,6 @@ public interface IPoiRepository
         CancellationToken cancellationToken = default);
 
     Task<bool> DeleteTourAsync(string tourCode, CancellationToken cancellationToken = default);
+
+    Task RecordListenAsync(string poiId, CancellationToken cancellationToken = default);
 }

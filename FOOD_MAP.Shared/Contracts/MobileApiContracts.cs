@@ -119,9 +119,18 @@ public sealed record PoiDto(
     int? OwnerId,
     int? ReviewedByAdminUserId,
     string? QRCodeId,
+    int ListenCount,
     IReadOnlyList<PoiTranslationDto> PoiTranslations,
     UserSummaryDto? Owner,
     UserSummaryDto? ReviewedByAdminUser);
+
+/// <summary>
+/// Aggregate stats for the admin dashboard: POI counts and total TTS listen count.
+/// </summary>
+public sealed record PoiStatsDto(
+    int TotalPois,
+    int ApprovedPois,
+    long TotalListens);
 
 public sealed record FoodItemDto(
     int Id,

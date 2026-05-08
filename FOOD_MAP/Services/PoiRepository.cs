@@ -592,6 +592,28 @@ public sealed class PoiRepository : IPoiRepository
         return true;
     }
 
+    public async Task RecordListenAsync(string poiId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(poiId))
+        {
+            return;
+        }
+
+        var normalizedPoiId = poiId.Trim().ToUpperInvariant();
+
+        try
+        {
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            await dbContext.Pois
+                .Where(x => x.Id == normalizedPoiId)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.ListenCount, x => x.ListenCount + 1), cancellationToken);
+        }
+        catch
+        {
+            // Bỏ qua lỗi kết nối db cục bộ vì đây chỉ là analytics.
+        }
+    }
+
     private static bool IsRowVisibleToUser(TourList row, int? currentUserId)
     {
         if (ResolveIsPublic(row))

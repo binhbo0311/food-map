@@ -610,6 +610,7 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
 
         await _narrationService.StopAsync();
         await _narrationService.PlayManualNarrationAsync(scanResult.TtsScript, normalizedLanguageCode, cancellationToken);
+        _ = _poiRepository.RecordListenAsync(normalizedPoiId);
         return scanResult;
     }
 
@@ -679,6 +680,7 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
 
             // Luồng manual: đọc đầy đủ Description theo yêu cầu.
             await _narrationService.PlayManualNarrationAsync(fullDescription, SelectedLanguage);
+            _ = _poiRepository.RecordListenAsync(poi.PoiId);
             narrationSucceeded = true;
         }
         catch

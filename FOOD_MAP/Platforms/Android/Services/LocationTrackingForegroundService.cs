@@ -347,6 +347,9 @@ public sealed class LocationTrackingForegroundService : Service
                         : BuildFallbackIntro(scanResult.LocationName, selectedLanguage);
 
                     pendingItems.Add(new PendingProximityItem(poiId, priority, narrationText, selectedLanguage));
+
+                    // Ghi nhận lượt nghe (fire-and-forget).
+                    _ = poiRepository.RecordListenAsync(poiId);
                 }
                 catch
                 {

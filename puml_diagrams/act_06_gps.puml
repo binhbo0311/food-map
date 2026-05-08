@@ -17,30 +17,30 @@ title UC-06: Geofence với Priority TTS Queue
 
 |LocationTrackingForegroundService|
 start
-:Nhận GPS update (lat, lng);
+:Receive GPS update (lat, lng);
 :GetPoiItemsAsync(language);
 :Khởi tạo triggeredBatch = [];
 
 |LocationTrackingForegroundService|
 repeat
   :Tính distanceMeters đến POI hiện tại;
-  if (distance <= ActivationRadius?) then (Có – trong vùng)
-    if (Lần đầu vào\nVÀ hết cooldown?) then (Có)
-      :Thêm (PoiId, Priority) vào triggeredBatch;
-      :Gửi Android notification;
-    else (Không – đã trong vùng\nhoặc cooldown)
-      :Cập nhật trạng thái inside=true;
+  if (distance <= ActivationRadius?) then (Yes – trong vùng)
+    if (Lần đầu vào\nVÀ hết cooldown?) then (Yes)
+      :Add (PoiId, Priority) vào triggeredBatch;
+      :Send Android notification;
+    else (No – đã trong vùng\nhoặc cooldown)
+      :Update trạng thái inside=true;
     endif
-  else (Không – ngoài vùng)
+  else (No – ngoài vùng)
     :Reset inside=false, debounce=0;
   endif
-repeat while (Còn POI chưa kiểm tra?) is (Có)
-->Không;
+repeat while (Còn POI chưa Check?) is (Yes)
+->No;
 
-if (triggeredBatch rỗng?) then (Có)
-  :Không có gì mới để phát;
+if (triggeredBatch rỗng?) then (Yes)
+  :No Yes gì mới để phát;
   stop
-else (Không – có POI vừa trigger)
+else (No – Yes POI vừa trigger)
   :TriggerProximityBatchAsync(triggeredBatch);
 endif
 
@@ -63,12 +63,12 @@ end note
 repeat
   :Dequeue item priority cao nhất;
   :SpeakTextAsync(text, lang);
-  :Phát TTS cho người dùng nghe;
-repeat while (Queue còn item?) is (Có)
-->Không;
+  :Phát TTS cho User nghe;
+repeat while (Queue còn item?) is (Yes)
+->No;
 stop
 
-|Người Dùng|
+|User|
 note
   Nếu bấm Play thủ công bất kỳ lúc nào:
   → StopAsync() xoá queue + cancel TTS

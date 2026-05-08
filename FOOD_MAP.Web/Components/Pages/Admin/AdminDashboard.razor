@@ -1,7 +1,10 @@
 @page "/admin"
 @using FOOD_MAP.Shared.Services
+@using FOOD_MAP.Shared.Data
+@using Microsoft.EntityFrameworkCore
 @inject PortalUserSessionState PortalUserSessionState
 @inject IActiveUserTrackerService ActiveUserTrackerService
+@inject IDbContextFactory<AppDbContext> DbContextFactory
 @implements IAsyncDisposable
 
 <PageTitle>Admin Dashboard</PageTitle>
@@ -36,6 +39,18 @@
             <div class="border rounded p-3 bg-white h-100">
                 <p class="text-muted mb-1">Active Authenticated Users</p>
                 <h2 class="h4 mb-0">@_activeSummary.ActiveAuthenticatedUsers</h2>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100">
+                <p class="text-muted mb-1">Total POIs</p>
+                <h2 class="h4 mb-0">@_totalPois</h2>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="border rounded p-3 bg-white h-100">
+                <p class="text-muted mb-1">Total POI Listens</p>
+                <h2 class="h4 mb-0">@_totalListens</h2>
             </div>
         </div>
     </div>
@@ -117,6 +132,8 @@
     private static readonly TimeSpan SummaryRefreshInterval = TimeSpan.FromSeconds(1);
 
     private ActiveUserSummary _activeSummary = new(0, 0, 0, 0);
+    private int _totalPois;
+    private long _totalListens;
     private string _lastSummaryUpdatedAt = "--";
     private CancellationTokenSource? _summaryLoopCts;
     private Task? _summaryLoopTask;
@@ -177,6 +194,18 @@
     private async Task LoadSummaryAsync(CancellationToken cancellationToken = default)
     {
         _activeSummary = await ActiveUserTrackerService.GetSummaryAsync(cancellationToken);
+        
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync(cancellationToken);
+            _totalPois = await dbContext.Pois.CountAsync(cancellationToken);
+            _totalListens = await dbContext.Pois.SumAsync(x => (long)x.ListenCount, cancellationToken);
+        }
+        catch
+        {
+            // Bỏ qua lỗi DB cục bộ khi chạy polling
+        }
+
         _lastSummaryUpdatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
     }
 }

@@ -14,31 +14,31 @@ autonumber
 
 title UC-06: Geofence Multi-POI – Priority TTS Queue
 
-actor "Người Dùng" as U
+actor "User" as U
 participant "LocationTracking\nForegroundService" as GEO
 participant "PoiRepository" as Repo
 participant "NarrationService\n(Priority Queue)" as TTS
 database "Cache / API" as DB
 
-== Vị trí GPS cập nhật ==
+== Vị trí GPS Update ==
 
 GEO -> GEO : HandleLocationUpdateAsync(lat, lng)
 GEO -> DB : GetPoiItemsAsync(language)
-DB --> GEO : List<POI> (có Priority, ActivationRadius)
+DB --> GEO : List<POI> (Yes Priority, ActivationRadius)
 
 GEO -> GEO : Loop qua tất cả POI
 
 group Với mỗi POI trong danh sách
     GEO -> GEO : CalculateDistanceMeters(user, poi)
     alt user nằm trong ActivationRadius\n&& !previousInside && !hasCooldown
-        GEO -> GEO : Đánh dấu triggered\nthêm (PoiId, Priority) vào triggeredBatch
+        GEO -> GEO : Đánh dấu triggered\nAdd (PoiId, Priority) vào triggeredBatch
     else Ngoài radius hoặc đang cooldown
-        GEO -> GEO : Cập nhật trạng thái inside/outside
+        GEO -> GEO : Update trạng thái inside/outside
     end
 end
 
 note right of GEO
-  triggeredBatch có thể chứa nhiều POI
+  triggeredBatch Yes thể chứa nhiều POI
   nếu user đứng trong bán kính đồng thời.
   Ví dụ: [POI_A (P=5), POI_B (P=2), POI_C (P=8)]
 end note
@@ -59,7 +59,7 @@ GEO -> TTS : EnqueueProximityBatchAsync(pendingItems)
 note right of TTS
   Sort theo Priority giảm dần:
   POI_C (P=8) → POI_A (P=5) → POI_B (P=2)
-  Phát tuần tự, không overlap.
+  Phát tuần tự, No overlap.
 end note
 
 TTS -> TTS : Sort items: OrderByDescending(Priority)
@@ -72,9 +72,9 @@ loop Xử lý từng item trong queue
     TTS --> U : [TTS phát lời giới thiệu POI]
 end
 
-== Người dùng bấm Play thủ công ==
+== User bấm Play thủ công ==
 
-U -> GEO : Chọn POI → bấm Play
+U -> GEO : Select POI → bấm Play
 GEO -> TTS : StopAsync()\n(xoá queue + cancel playback)
 TTS --> TTS : ClearQueue()
 GEO -> TTS : PlayManualNarrationAsync(fullText, lang)

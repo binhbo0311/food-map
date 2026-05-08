@@ -12,6 +12,7 @@
 @using System.Text.Json
 @inject IDbContextFactory<AppDbContext> DbContextFactory
 @inject IJSRuntime JsRuntime
+@inject HttpClient Http
 
 <PageTitle>POI Scanner</PageTitle>
 
@@ -340,6 +341,9 @@
             return;
         }
 
+        // Ghi nhận lượt nghe để admin theo dõi được tổng số lần phát.
+        _ = RecordListenAsync(selectedPoi.PoiId);
+
         statusClass = mode == "audio" ? "alert-success" : "alert-info";
         statusMessage = mode switch
         {
@@ -423,6 +427,19 @@
     private async Task StopTtsAsync()
     {
         await JsRuntime.InvokeVoidAsync("foodMapTts.stop");
+    }
+
+    private async Task RecordListenAsync(string poiId)
+    {
+        try
+        {
+            // Fire-and-forget: không block UI, bỏ qua lỗi mạng.
+            await Http.PostAsync($"/api/mobile/pois/{poiId}/listen", null);
+        }
+        catch
+        {
+            // Bỏ qua lỗi network — listen count là metric phụ, không được ảnh hưởng UX.
+        }
     }
 
     private sealed class PoiScannerModel

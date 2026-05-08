@@ -561,6 +561,24 @@ public sealed class ApiPoiRepository : IPoiRepository
         return true;
     }
 
+    public async Task RecordListenAsync(string poiId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(poiId))
+        {
+            return;
+        }
+
+        try
+        {
+            var normalizedPoiId = poiId.Trim().ToUpperInvariant();
+            await _httpClient.PostAsync($"api/mobile/pois/{Uri.EscapeDataString(normalizedPoiId)}/listen", null, cancellationToken);
+        }
+        catch
+        {
+            // Bỏ qua lỗi kết nối network vì đây là tính năng tracking analytics phụ.
+        }
+    }
+
     private static IReadOnlyList<PoiListItemViewModel> MapPoiItems(IReadOnlyList<PoiListItemDto> payload)
     {
         return payload.Select(item => new PoiListItemViewModel(
