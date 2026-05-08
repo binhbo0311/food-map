@@ -4,86 +4,122 @@
              x:Class="FOOD_MAP.HomePage"
              BackgroundColor="#EAF8F8"
              Title="Home">
-    <ScrollView>
-        <VerticalStackLayout Spacing="16" Padding="16,16,16,24">
-            <Border BackgroundColor="#066D72" Padding="16" StrokeThickness="0">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="24" />
-                </Border.StrokeShape>
-                <VerticalStackLayout Spacing="6">
-                    <Label Text="Home" FontSize="28" FontAttributes="Bold" TextColor="White" />
-                    <Label Text="Top 5 Food và Visit trong bán kính 3km, ưu tiên Priority cao nhất." TextColor="#D9F2F2" />
-                    <Label Text="Dữ liệu sẽ tự làm mới khi có vị trí mới hoặc bấm Refresh." TextColor="#D9F2F2" FontSize="12" />
+    <RefreshView Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+        <ScrollView>
+            <VerticalStackLayout Spacing="14" Padding="16,10,16,24">
+                <CollectionView ItemsSource="{Binding Sections}" SelectionMode="None">
+                    <CollectionView.EmptyView>
+                        <Label Text="Chưa có POI để hiển thị." TextColor="#4D6B6C" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <VerticalStackLayout Spacing="10" Margin="0,0,0,12">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <Label Text="{Binding Title}" FontSize="18" FontAttributes="Bold" TextColor="#143536" />
+                                </Grid>
+
+                                <CollectionView ItemsSource="{Binding Items}"
+                                                SelectionMode="None"
+                                                ItemsLayout="HorizontalList"
+                                                HeightRequest="230">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border WidthRequest="280"
+                                                    Stroke="#A9E1E2"
+                                                    StrokeThickness="1"
+                                                    BackgroundColor="White"
+                                                    Margin="0,0,12,0"
+                                                    Padding="10">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="18" />
+                                                </Border.StrokeShape>
+
+                                                <Grid RowDefinitions="130,Auto" RowSpacing="8">
+                                                    <Border StrokeThickness="0" BackgroundColor="#F2FBFB">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="14" />
+                                                        </Border.StrokeShape>
+                                                        <Image Source="{Binding ImageUrl}" Aspect="AspectFill" />
+                                                    </Border>
+
+                                                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                        <VerticalStackLayout Spacing="2">
+                                                            <Label Text="{Binding Title}" FontSize="15" FontAttributes="Bold" TextColor="#143536" LineBreakMode="TailTruncation" />
+                                                            <Label Text="{Binding Description}" FontSize="12" TextColor="#4D6B6C" LineBreakMode="TailTruncation" />
+                                                            <Label Text="{Binding DistanceLabel, StringFormat='Khoảng cách: {0}'}" FontSize="11" TextColor="#4D6B6C" />
+                                                        </VerticalStackLayout>
+
+                                                        <Border Grid.Column="1" Padding="8,4" BackgroundColor="#E8F7F8" StrokeThickness="0">
+                                                            <Border.StrokeShape>
+                                                                <RoundRectangle CornerRadius="10" />
+                                                            </Border.StrokeShape>
+                                                            <Label Text="{Binding PriorityLabel}" FontSize="11" TextColor="#066D72" />
+                                                        </Border>
+                                                    </Grid>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Tour" FontSize="18" FontAttributes="Bold" TextColor="#143536" />
+                    <CollectionView ItemsSource="{Binding TourSummaries}"
+                                    SelectionMode="Single"
+                                    SelectionChanged="OnTourSelectionChanged"
+                                    HeightRequest="132">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.EmptyView>
+                            <Label Text="Chưa có tour. Hãy bấm Tạo tour." TextColor="#4D6B6C" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border WidthRequest="230"
+                                        Stroke="#A9E1E2"
+                                        StrokeThickness="1"
+                                        BackgroundColor="White"
+                                        Padding="10">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="{Binding DisplayName}" FontSize="14" FontAttributes="Bold" TextColor="#143536" LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding SummaryText}" FontSize="12" TextColor="#066D72" />
+                                        <Label Text="{Binding TourCode}" FontSize="11" TextColor="#4D6B6C" LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
                 </VerticalStackLayout>
-            </Border>
 
-            <Button Text="Refresh" CornerRadius="14" BackgroundColor="#0B949A" TextColor="White" Clicked="OnRefreshClicked" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <Button Grid.Column="0"
+                        Text="Tạo tour tự động"
+                        CornerRadius="16"
+                        BackgroundColor="#FF4F9A"
+                        TextColor="White"
+                        HeightRequest="46"
+                        Clicked="OnCreateTourClicked" />
 
-            <Label Text="Food" FontSize="18" FontAttributes="Bold" TextColor="#143536" />
-            <CollectionView ItemsSource="{Binding FoodItems}" SelectionMode="None">
-                <CollectionView.EmptyView>
-                    <Label Text="Chưa có Food item nào trong 3km." TextColor="#4D6B6C" />
-                </CollectionView.EmptyView>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Border Stroke="#A9E1E2" StrokeThickness="1" BackgroundColor="White" Margin="0,0,0,10" Padding="10">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="18" />
-                            </Border.StrokeShape>
-                            <Grid ColumnDefinitions="92,*,Auto" ColumnSpacing="12">
-                                <Border HeightRequest="92" WidthRequest="92" StrokeThickness="0" BackgroundColor="#F2FBFB">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="16" />
-                                    </Border.StrokeShape>
-                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFill" />
-                                </Border>
+                    <Button Grid.Column="1"
+                        Text="Tạo tour tùy chỉnh"
+                        CornerRadius="16"
+                        BackgroundColor="#066D72"
+                        TextColor="White"
+                        HeightRequest="46"
+                        Clicked="OnCreateCustomTourClicked" />
+                </Grid>
 
-                                <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
-                                    <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold" TextColor="#143536" LineBreakMode="TailTruncation" />
-                                    <Label Text="{Binding DistanceLabel, StringFormat='Khoảng cách: {0}'}" FontSize="12" TextColor="#4D6B6C" />
-                                    <Label Text="{Binding PriorityLabel, StringFormat='Priority: {0}'}" FontSize="12" TextColor="#066D72" />
-                                </VerticalStackLayout>
-
-                                <Label Grid.Column="2" Text="FOOD" VerticalOptions="Start" TextColor="#066D72" FontAttributes="Bold" />
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-
-            <Label Text="Visit" FontSize="18" FontAttributes="Bold" TextColor="#143536" />
-            <CollectionView ItemsSource="{Binding VisitItems}" SelectionMode="None">
-                <CollectionView.EmptyView>
-                    <Label Text="Chưa có Visit item nào trong 3km." TextColor="#4D6B6C" />
-                </CollectionView.EmptyView>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Border Stroke="#A9E1E2" StrokeThickness="1" BackgroundColor="White" Margin="0,0,0,10" Padding="10">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="18" />
-                            </Border.StrokeShape>
-                            <Grid ColumnDefinitions="92,*,Auto" ColumnSpacing="12">
-                                <Border HeightRequest="92" WidthRequest="92" StrokeThickness="0" BackgroundColor="#F2FBFB">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="16" />
-                                    </Border.StrokeShape>
-                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFill" />
-                                </Border>
-
-                                <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
-                                    <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold" TextColor="#143536" LineBreakMode="TailTruncation" />
-                                    <Label Text="{Binding DistanceLabel, StringFormat='Khoảng cách: {0}'}" FontSize="12" TextColor="#4D6B6C" />
-                                    <Label Text="{Binding PriorityLabel, StringFormat='Priority: {0}'}" FontSize="12" TextColor="#066D72" />
-                                </VerticalStackLayout>
-
-                                <Label Grid.Column="2" Text="VISIT" VerticalOptions="Start" TextColor="#066D72" FontAttributes="Bold" />
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-
-            <Label Text="{Binding StatusMessage}" TextColor="#4D6B6C" FontSize="12" />
-        </VerticalStackLayout>
-    </ScrollView>
+                <Label Text="{Binding StatusMessage}" TextColor="#4D6B6C" FontSize="12" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
 </ContentPage>

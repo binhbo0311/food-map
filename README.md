@@ -62,10 +62,10 @@ Bức tranh sơ đồ quan hệ Entity của dự án với PostgreSQL.
 
 ---
 
-## 6. ACTIVITY DIAGRAMS — SƠ ĐỒ HOẠT ĐỘNG (17 Chức Năng)
+## 6. ACTIVITY DIAGRAMS — SƠ ĐỒ HOẠT ĐỘNG (18 Chức Năng)
 
 <details>
-<summary><b>Nhấn vào đây để xem toàn bộ 17 Sơ Đồ Hoạt Động</b></summary>
+<summary><b>Nhấn vào đây để xem toàn bộ 18 Sơ Đồ Hoạt Động</b></summary>
 
 ### 6.1 Đăng Nhập / Đăng Ký / Tiếp Tục Khách
 ![act_01_login](FOOD_MAP/Resources/Images/act_01_login.png)
@@ -118,14 +118,17 @@ Bức tranh sơ đồ quan hệ Entity của dự án với PostgreSQL.
 ### 6.17 Quản Lý Gói Dịch Vụ (Subscription)
 ![act_17_subscription](FOOD_MAP/Resources/Images/act_17_subscription.png)
 
+### 6.18 Theo Dõi Người Dùng Hoạt Động
+![act_18_usertracking](FOOD_MAP/Resources/Images/act_18_usertracking.png)
+
 </details>
 
 ---
 
-## 7. SEQUENCE DIAGRAMS — SƠ ĐỒ TRÌNH TỰ (17 Chức Năng)
+## 7. SEQUENCE DIAGRAMS — SƠ ĐỒ TRÌNH TỰ (18 Chức Năng)
 
 <details>
-<summary><b>Nhấn vào đây để xem toàn bộ 17 Sơ Đồ Trình Tự</b></summary>
+<summary><b>Nhấn vào đây để xem toàn bộ 18 Sơ Đồ Trình Tự</b></summary>
 
 ### 7.1 Đăng Nhập / Đăng Ký
 ![seq_01_login](FOOD_MAP/Resources/Images/seq_01_login.png)
@@ -178,6 +181,9 @@ Bức tranh sơ đồ quan hệ Entity của dự án với PostgreSQL.
 ### 7.17 Quản Lý Gói Dịch Vụ (Subscription)
 ![seq_17_subscription](FOOD_MAP/Resources/Images/seq_17_subscription.png)
 
+### 7.18 Theo Dõi Người Dùng Hoạt Động
+![seq_18_usertracking](FOOD_MAP/Resources/Images/seq_18_usertracking.png)
+
 </details>
 
 ---
@@ -211,7 +217,6 @@ Bức tranh sơ đồ quan hệ Entity của dự án với PostgreSQL.
 | (new) | User quẹt thẻ thanh toán | Pending |
 | Pending | Xác thực tín dụng Bank / Stripe OK | Active (Giao dịch hoàn tất) |
 | Active | Check cron job định kỳ bị lố thời gian hiệu lực | Expired |
-
 
 
 

@@ -1,50 +1,89 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using FOOD_MAP.Services;
+using FOOD_MAP.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FOOD_MAP;
 
 public partial class PoiPage : ContentPage
 {
-    private readonly MobilePoiCatalogService _catalogService;
-    private readonly string _languageCode;
+    private readonly MainPageViewModel _viewModel;
+    private bool _isLoading;
 
     public PoiPage()
     {
         InitializeComponent();
 
         var services = IPlatformApplication.Current?.Services ?? throw new InvalidOperationException("Service provider is not available.");
-        _catalogService = services.GetRequiredService<MobilePoiCatalogService>();
-        _languageCode = Preferences.Default.Get("selected_language", "vi");
+        _viewModel = new MainPageViewModel(
+            services.GetRequiredService<IPoiRepository>(),
+            services.GetRequiredService<INarrationService>(),
+            services.GetRequiredService<IDataService>(),
+            services.GetRequiredService<IUserSessionService>(),
+            services.GetRequiredService<IUserActivityRepository>());
+
         BindingContext = this;
+        RefreshCommand = new Command(async () => await LoadAsync(true));
     }
 
-    public ObservableCollection<PoiCatalogRow> PoiItems { get; } = [];
+    public MainPageViewModel ViewModel => _viewModel;
+
+    public ICommand RefreshCommand { get; }
+
+    public bool IsRefreshing { get; private set; }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await LoadAsync();
+        await LoadAsync(false);
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(bool isRefresh)
     {
+        if (_isLoading)
+        {
+            return;
+        }
+
+        _isLoading = true;
+        if (isRefresh)
+        {
+            IsRefreshing = true;
+            OnPropertyChanged(nameof(IsRefreshing));
+        }
+
         try
         {
-            var snapshot = await _catalogService.BuildSnapshotAsync(_languageCode);
-            PoiItems.Clear();
-            foreach (var row in snapshot.NearbyPoiItems)
-            {
-                PoiItems.Add(row);
-            }
+            _viewModel.InvalidateData();
+            await _viewModel.LoadPoisAsync();
         }
         catch
         {
         }
+        finally
+        {
+            if (isRefresh)
+            {
+                IsRefreshing = false;
+                OnPropertyChanged(nameof(IsRefreshing));
+            }
+
+            _isLoading = false;
+        }
     }
 
-    private async void OnRefreshClicked(object? sender, EventArgs e)
+    private async void OnPoiSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        await LoadAsync();
+        if (e.CurrentSelection.FirstOrDefault() is not PoiListItemViewModel poiItem)
+        {
+            return;
+        }
+
+        await _viewModel.OnPoiSelectedAsync(poiItem);
+        if (sender is CollectionView collectionView)
+        {
+            collectionView.SelectedItem = null;
+        }
     }
 }

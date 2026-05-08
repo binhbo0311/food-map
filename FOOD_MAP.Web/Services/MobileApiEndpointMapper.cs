@@ -224,6 +224,341 @@ public static class MobileApiEndpointMapper
 
     private static void MapPoiEndpoints(RouteGroupBuilder api)
     {
+        api.MapGet("/tours", async (
+            int? userId,
+            IDbContextFactory<AppDbContext> dbContextFactory,
+            CancellationToken cancellationToken) =>
+        {
+            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+            var tourSummaries = await dbContext.TourLists
+                .AsNoTracking()
+                .OrderBy(x => x.TourCode)
+                .ThenBy(x => x.SortOrder)
+                .ThenBy(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            var scopedRows = tourSummaries.Where(row =>
+                IsTourRowVisibleToUser(row, userId));
+
+            var response = scopedRows
+                .GroupBy(x => x.TourCode, StringComparer.OrdinalIgnoreCase)
+                .Select(group =>
+                {
+                    var first = group.First();
+                    return new TourSummaryDto(
+                        group.Key,
+                        group.Count(),
+                        first.TourName,
+                        ResolveOwnerUserId(first),
+                        ResolveIsPublic(first));
+                })
+                .OrderBy(x => x.TourCode, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return Results.Ok(response);
+        });
+
+        api.MapPost("/tours", async (
+            CreateTourRequestDto request,
+            IDbContextFactory<AppDbContext> dbContextFactory,
+            CancellationToken cancellationToken) =>
+        {
+            if (request.PoiIds is null || request.PoiIds.Count == 0)
+            {
+                return Results.BadRequest("Tour cần ít nhất 1 POI.");
+            }
+
+            var canPublishTour = request.UserRole is UserRole.Owner or UserRole.Admin;
+            var isPublicTour = request.IsPublic && canPublishTour;
+
+            var scopePrefix = isPublicTour
+                ? "PUB"
+                : $"USR_{request.UserId ?? 0}";
+
+            var normalizedName = string.IsNullOrWhiteSpace(request.RequestedName)
+                ? "TOUR"
+                : new string(request.RequestedName.Trim().ToUpperInvariant().Where(ch => char.IsLetterOrDigit(ch) || ch == '_').ToArray());
+
+            if (string.IsNullOrWhiteSpace(normalizedName))
+            {
+                normalizedName = "TOUR";
+            }
+
+            var tourCode = $"{scopePrefix}_{normalizedName}_{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
+            var normalizedPoiIds = request.PoiIds
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim().ToUpperInvariant())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (normalizedPoiIds.Count == 0)
+            {
+                return Results.BadRequest("Danh sách POI không hợp lệ.");
+            }
+
+            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+            var approvedPoiIds = await dbContext.Pois
+                .AsNoTracking()
+                .Where(x => normalizedPoiIds.Contains(x.Id) && x.ApprovalStatus == PoiApprovalStatus.Approved)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            var orderedValidPoiIds = normalizedPoiIds
+                .Where(x => approvedPoiIds.Contains(x, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            if (orderedValidPoiIds.Count == 0)
+            {
+                return Results.BadRequest("Không có POI hợp lệ để tạo tour.");
+            }
+
+            var nowUtc = DateTimeOffset.UtcNow;
+            var rows = orderedValidPoiIds
+                .Select((poiId, index) => new TourList
+                {
+                    TourCode = tourCode,
+                    TourName = normalizedName,
+                    OwnerUserId = request.UserId,
+                    IsPublic = isPublicTour,
+                    PoiId = poiId,
+                    SortOrder = index,
+                    CreatedUtc = nowUtc
+                })
+                .ToList();
+
+            await dbContext.TourLists.AddRangeAsync(rows, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return Results.Ok(new TourSummaryDto(tourCode, rows.Count, normalizedName, request.UserId, isPublicTour));
+        });
+
+        api.MapPut("/tours/{tourCode}", async (
+            string tourCode,
+            UpdateTourRequestDto request,
+            IDbContextFactory<AppDbContext> dbContextFactory,
+            CancellationToken cancellationToken) =>
+        {
+            var normalizedTourCode = string.IsNullOrWhiteSpace(tourCode)
+                ? string.Empty
+                : tourCode.Trim().ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(normalizedTourCode))
+            {
+                return Results.NotFound();
+            }
+
+            var normalizedPoiIds = request.PoiIds
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim().ToUpperInvariant())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (normalizedPoiIds.Count == 0)
+            {
+                return Results.BadRequest("Danh sách POI không hợp lệ.");
+            }
+
+            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+            var existingRows = await dbContext.TourLists
+                .Where(x => x.TourCode == normalizedTourCode)
+                .ToListAsync(cancellationToken);
+
+            if (existingRows.Count == 0)
+            {
+                return Results.NotFound();
+            }
+
+            var existingHeader = existingRows[0];
+            if (!CanManageTour(existingHeader, request.UserId, request.UserRole))
+            {
+                return Results.Forbid();
+            }
+
+            var approvedPoiIds = await dbContext.Pois
+                .AsNoTracking()
+                .Where(x => normalizedPoiIds.Contains(x.Id) && x.ApprovalStatus == PoiApprovalStatus.Approved)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            var orderedValidPoiIds = normalizedPoiIds
+                .Where(x => approvedPoiIds.Contains(x, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            if (orderedValidPoiIds.Count == 0)
+            {
+                return Results.BadRequest("Không có POI hợp lệ để cập nhật tour.");
+            }
+
+            var updatedTourName = string.IsNullOrWhiteSpace(request.RequestedName)
+                ? existingHeader.TourName
+                : new string(request.RequestedName.Trim().ToUpperInvariant().Where(ch => char.IsLetterOrDigit(ch) || ch == '_').ToArray());
+
+            if (string.IsNullOrWhiteSpace(updatedTourName))
+            {
+                updatedTourName = existingHeader.TourName;
+            }
+
+            var updatedOwnerUserId = ResolveOwnerUserId(existingHeader);
+            var updatedIsPublic = ResolveIsPublic(existingHeader);
+
+            dbContext.TourLists.RemoveRange(existingRows);
+
+            var nowUtc = DateTimeOffset.UtcNow;
+            var updatedRows = orderedValidPoiIds
+                .Select((poiId, index) => new TourList
+                {
+                    TourCode = normalizedTourCode,
+                    TourName = updatedTourName,
+                    OwnerUserId = updatedOwnerUserId,
+                    IsPublic = updatedIsPublic,
+                    PoiId = poiId,
+                    SortOrder = index,
+                    CreatedUtc = nowUtc
+                })
+                .ToList();
+
+            await dbContext.TourLists.AddRangeAsync(updatedRows, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return Results.Ok(new TourSummaryDto(normalizedTourCode, updatedRows.Count, updatedTourName, updatedOwnerUserId, updatedIsPublic));
+        });
+
+        api.MapDelete("/tours/{tourCode}", async (
+            string tourCode,
+            int? userId,
+            string? userRole,
+            IDbContextFactory<AppDbContext> dbContextFactory,
+            CancellationToken cancellationToken) =>
+        {
+            var normalizedTourCode = string.IsNullOrWhiteSpace(tourCode)
+                ? string.Empty
+                : tourCode.Trim().ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(normalizedTourCode))
+            {
+                return Results.NotFound();
+            }
+
+            var parsedRole = ParseUserRole(userRole);
+
+            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+            var rows = await dbContext.TourLists
+                .Where(x => x.TourCode == normalizedTourCode)
+                .ToListAsync(cancellationToken);
+
+            if (rows.Count == 0)
+            {
+                return Results.NotFound();
+            }
+
+            if (!CanManageTour(rows[0], userId, parsedRole))
+            {
+                return Results.Forbid();
+            }
+
+            dbContext.TourLists.RemoveRange(rows);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Results.Ok();
+        });
+
+        api.MapGet("/tours/{tourCode}/pois", async (
+            string tourCode,
+            string languageCode,
+            int? userId,
+            IDbContextFactory<AppDbContext> dbContextFactory,
+            ISubscriptionService subscriptionService,
+            CancellationToken cancellationToken) =>
+        {
+            var normalizedTourCode = string.IsNullOrWhiteSpace(tourCode)
+                ? "DEFAULT"
+                : tourCode.Trim().ToUpperInvariant();
+            var normalizedLanguageCode = NormalizeLanguageCode(languageCode);
+
+            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+            var subscriptionPolicy = await subscriptionService.GetCurrentPolicyAsync(userId, cancellationToken);
+
+            var tourRows = await dbContext.TourLists
+                .AsNoTracking()
+                .Where(x => x.TourCode == normalizedTourCode)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            if (tourRows.Count == 0)
+            {
+                return Results.Ok(Array.Empty<PoiListItemDto>());
+            }
+
+            if (!IsTourRowVisibleToUser(tourRows[0], userId))
+            {
+                return Results.Ok(Array.Empty<PoiListItemDto>());
+            }
+
+            var orderedPoiIds = tourRows.Select(x => x.PoiId).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+            var pois = await dbContext.Pois
+                .AsNoTracking()
+                .Where(x => orderedPoiIds.Contains(x.Id) && x.ApprovalStatus == PoiApprovalStatus.Approved)
+                .ToListAsync(cancellationToken);
+
+            if (pois.Count == 0)
+            {
+                return Results.Ok(Array.Empty<PoiListItemDto>());
+            }
+
+            var translations = await dbContext.PoiTranslations
+                .AsNoTracking()
+                .Include(x => x.Language)
+                .Where(x => orderedPoiIds.Contains(x.PoiId))
+                .ToListAsync(cancellationToken);
+
+            var poiById = pois.ToDictionary(x => x.Id, StringComparer.OrdinalIgnoreCase);
+            var items = new List<PoiListItemDto>();
+
+            foreach (var poiId in orderedPoiIds)
+            {
+                if (!poiById.TryGetValue(poiId, out var poi))
+                {
+                    continue;
+                }
+
+                var translation = translations.FirstOrDefault(x => x.PoiId == poi.Id && IsLanguageMatch(x.Language?.LanguageCode, normalizedLanguageCode))
+                    ?? translations.FirstOrDefault(x => x.PoiId == poi.Id && IsLanguageMatch(x.Language?.LanguageCode, "en"))
+                    ?? translations.FirstOrDefault(x => x.PoiId == poi.Id && IsLanguageMatch(x.Language?.LanguageCode, "vi"))
+                    ?? translations.FirstOrDefault(x => x.PoiId == poi.Id);
+
+                var displayName = translation?.LocationName ?? $"POI #{poi.Id}";
+                var description = translation?.Description ?? string.Empty;
+                var narrationText = string.IsNullOrWhiteSpace(translation?.TtsScript)
+                    ? description
+                    : translation!.TtsScript;
+
+                items.Add(new PoiListItemDto(
+                    poi.Id,
+                    poi.Type,
+                    poi.Latitude,
+                    poi.Longitude,
+                    poi.ActivationRadius,
+                    poi.Priority,
+                    displayName,
+                    $"Activation radius: {poi.ActivationRadius}m",
+                    description,
+                    narrationText,
+                    translation?.ImageUrl ?? string.Empty,
+                    translation?.RichContentHtml ?? string.Empty));
+            }
+
+            if (subscriptionPolicy.MaxAccessiblePoiCount.HasValue)
+            {
+                items = items.Take(subscriptionPolicy.MaxAccessiblePoiCount.Value).ToList();
+            }
+
+            return Results.Ok(items);
+        });
+
         api.MapGet("/pois", async (
             string languageCode,
             int? userId,
@@ -978,6 +1313,64 @@ public static class MobileApiEndpointMapper
         return string.IsNullOrWhiteSpace(poiId)
             ? string.Empty
             : poiId.Trim().ToUpperInvariant();
+    }
+
+    private static UserRole ParseUserRole(string? rawRole)
+    {
+        if (Enum.TryParse<UserRole>(rawRole, true, out var parsedRole))
+        {
+            return parsedRole;
+        }
+
+        return UserRole.User;
+    }
+
+    private static bool IsTourRowVisibleToUser(TourList row, int? userId)
+    {
+        if (ResolveIsPublic(row))
+        {
+            return true;
+        }
+
+        var ownerUserId = ResolveOwnerUserId(row);
+        return userId.HasValue && ownerUserId.HasValue && ownerUserId.Value == userId.Value;
+    }
+
+    private static bool CanManageTour(TourList row, int? userId, UserRole role)
+    {
+        if (ResolveIsPublic(row))
+        {
+            return role is UserRole.Owner or UserRole.Admin;
+        }
+
+        var ownerUserId = ResolveOwnerUserId(row);
+        return userId.HasValue && ownerUserId.HasValue && ownerUserId.Value == userId.Value;
+    }
+
+    private static int? ResolveOwnerUserId(TourList row)
+    {
+        if (row.OwnerUserId.HasValue)
+        {
+            return row.OwnerUserId;
+        }
+
+        if (!row.TourCode.StartsWith("USR_", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var segments = row.TourCode.Split('_', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 3)
+        {
+            return null;
+        }
+
+        return int.TryParse(segments[1], out var ownerId) ? ownerId : null;
+    }
+
+    private static bool ResolveIsPublic(TourList row)
+    {
+        return row.IsPublic || row.TourCode.StartsWith("PUB_", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string HashPassword(string plainText)

@@ -1,49 +1,214 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:FOOD_MAP.ViewModels"
              x:Class="FOOD_MAP.PoiPage"
              BackgroundColor="#EAF8F8"
              Title="POI">
-    <Grid RowDefinitions="Auto,*" Padding="16">
-        <VerticalStackLayout Spacing="8">
-            <Label Text="Nearby POI" FontSize="28" FontAttributes="Bold" TextColor="#143536" />
-            <Label Text="Favorited items luôn được ghim lên đầu, sau đó mới đến khoảng cách gần nhất." TextColor="#4D6B6C" />
-            <Button Text="Refresh" CornerRadius="14" BackgroundColor="#0B949A" TextColor="White" Clicked="OnRefreshClicked" />
-        </VerticalStackLayout>
+    <RefreshView Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+        <Grid Padding="14" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="10">
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Label Text="Language"
+                       VerticalOptions="Center"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       TextColor="#143536" />
 
-        <CollectionView Grid.Row="1" ItemsSource="{Binding PoiItems}" SelectionMode="None" Margin="0,16,0,0">
-            <CollectionView.EmptyView>
-                <Label Text="Chưa có POI nào để hiển thị." TextColor="#4D6B6C" />
-            </CollectionView.EmptyView>
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Border Stroke="#A9E1E2" StrokeThickness="1" BackgroundColor="White" Margin="0,0,0,10" Padding="10">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="18" />
-                        </Border.StrokeShape>
-                        <Grid ColumnDefinitions="92,*,Auto" ColumnSpacing="12">
-                            <Border HeightRequest="92" WidthRequest="92" StrokeThickness="0" BackgroundColor="#F2FBFB">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="16" />
-                                </Border.StrokeShape>
-                                <Image Source="{Binding ImageUrl}" Aspect="AspectFill" />
-                            </Border>
+                <Picker Grid.Column="1"
+                        HeightRequest="40"
+                        BackgroundColor="#F2FBFB"
+                        TextColor="#066D72"
+                        Title="Select language"
+                        ItemsSource="{Binding ViewModel.AvailableLanguages}"
+                        SelectedItem="{Binding ViewModel.SelectedLanguage, Mode=TwoWay}" />
+            </Grid>
 
-                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
-                                <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold" TextColor="#143536" LineBreakMode="TailTruncation" />
-                                <Label Text="{Binding DistanceLabel, StringFormat='Khoảng cách: {0}'}" FontSize="12" TextColor="#4D6B6C" />
-                                <Label Text="{Binding PriorityLabel, StringFormat='Priority: {0}'}" FontSize="12" TextColor="#066D72" />
-                                <Label Text="{Binding IsFavorite, StringFormat='Fav: {0}'}" FontSize="12" TextColor="#9A6B00" />
-                            </VerticalStackLayout>
+            <SearchBar Grid.Row="1"
+                       HeightRequest="42"
+                       Placeholder="Tìm POI theo tên hoặc mô tả"
+                       Text="{Binding ViewModel.SearchQuery, Mode=TwoWay}"
+                       BackgroundColor="#F2FBFB"
+                       TextColor="#143536"
+                       PlaceholderColor="#4D6B6C"
+                       CancelButtonColor="#066D72" />
 
-                            <VerticalStackLayout Grid.Column="2" HorizontalOptions="End" VerticalOptions="Center" Spacing="6">
-                                <Label Text="{Binding IsFavorite, StringFormat='Favorite: {0}'}" TextColor="#9A6B00" FontAttributes="Bold" HorizontalTextAlignment="End" />
-                                <Label Text="{Binding PoiType}" TextColor="#066D72" HorizontalTextAlignment="End" />
-                            </VerticalStackLayout>
-                        </Grid>
-                    </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-    </Grid>
+            <Border Grid.Row="2"
+                    IsVisible="{Binding ViewModel.IsTtsPlaying}"
+                    Stroke="#A9E1E2"
+                    StrokeThickness="1"
+                    BackgroundColor="#F2FBFB"
+                    Padding="10,8">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="4" ColumnSpacing="8">
+                    <Label Grid.Row="0"
+                           Grid.Column="0"
+                           Text="{Binding ViewModel.CurrentTtsTitle}"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+
+                    <Button Grid.Row="0"
+                            Grid.Column="1"
+                            Text="Stop"
+                            WidthRequest="74"
+                            HeightRequest="34"
+                            CornerRadius="10"
+                            Command="{Binding ViewModel.StopTtsCommand}"
+                            BackgroundColor="#D94A4A"
+                            TextColor="White" />
+
+                    <ProgressBar Grid.Row="1"
+                                 Grid.ColumnSpan="2"
+                                 Progress="{Binding ViewModel.TtsProgress}"
+                                 ProgressColor="#066D72"
+                                 BackgroundColor="#D6ECEC"
+                                 HeightRequest="6" />
+
+                    <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto">
+                        <Label Grid.Column="0"
+                               Text="{Binding ViewModel.TtsElapsedText, StringFormat='Đã phát: {0}'}"
+                               FontSize="12"
+                               TextColor="#4D6B6C" />
+
+                        <Label Grid.Column="1"
+                               Text="{Binding ViewModel.TtsTotalText, StringFormat='Ước tính: {0}'}"
+                               FontSize="12"
+                               TextColor="#4D6B6C" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="3"
+                    IsVisible="{Binding ViewModel.IsFoodMenuVisible}"
+                    Stroke="#A9E1E2"
+                    StrokeThickness="1"
+                    BackgroundColor="#F2FBFB"
+                    Padding="10,8">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="{Binding ViewModel.FoodMenuHeader}"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#143536" />
+
+                    <CollectionView ItemsSource="{Binding ViewModel.FoodMenuItems}"
+                                    SelectionMode="None"
+                                    HeightRequest="130">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                                    <VerticalStackLayout Spacing="1">
+                                        <Label Text="{Binding Name}"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="#143536" />
+                                        <Label Text="{Binding Description}"
+                                               FontSize="11"
+                                               TextColor="#4D6B6C"
+                                               LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout Grid.Column="1"
+                                                        Spacing="1"
+                                                        HorizontalOptions="End"
+                                                        VerticalOptions="Center">
+                                        <Label Text="{Binding PriceText}"
+                                               FontSize="11"
+                                               HorizontalTextAlignment="End"
+                                               TextColor="#066D72" />
+                                        <Label Text="{Binding AvailabilityText}"
+                                               FontSize="10"
+                                               HorizontalTextAlignment="End"
+                                               TextColor="#4D6B6C" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <CollectionView Grid.Row="4"
+                            ItemsSource="{Binding ViewModel.PoiItems}"
+                            SelectionMode="Single"
+                            SelectionChanged="OnPoiSelectionChanged">
+                <CollectionView.EmptyView>
+                    <Label Text="Chưa có POI nào để hiển thị." TextColor="#4D6B6C" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="viewModels:PoiListItemViewModel">
+                        <Border Stroke="#A9E1E2"
+                                StrokeThickness="1"
+                                Padding="10"
+                                Margin="0,0,0,8"
+                                BackgroundColor="White">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+
+                            <Grid ColumnDefinitions="92,*,Auto" ColumnSpacing="10">
+                                <Border HeightRequest="92" WidthRequest="92" StrokeThickness="0" BackgroundColor="#F2FBFB">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFill" />
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                    <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" TextColor="#143536" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding Description}" FontSize="12" TextColor="#4D6B6C" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding DistanceText}" FontSize="11" TextColor="#4D6B6C" />
+
+                                    <Button Text="Play"
+                                            HeightRequest="34"
+                                            WidthRequest="80"
+                                            HorizontalOptions="Start"
+                                            CornerRadius="10"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ViewModel.PlayPoiCommand}"
+                                            CommandParameter="{Binding}"
+                                            BackgroundColor="#066D72"
+                                            TextColor="White" />
+                                </VerticalStackLayout>
+
+                                <Button Grid.Column="2"
+                                        Text="♡"
+                                        WidthRequest="36"
+                                        HeightRequest="36"
+                                        CornerRadius="18"
+                                        VerticalOptions="Start"
+                                        HorizontalOptions="End"
+                                        FontSize="18"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ViewModel.ToggleFavoriteCommand}"
+                                        CommandParameter="{Binding}">
+                                    <Button.Triggers>
+                                        <DataTrigger TargetType="Button" Binding="{Binding IsFavorite}" Value="True">
+                                            <Setter Property="Text" Value="❤" />
+                                            <Setter Property="TextColor" Value="#FF4F9A" />
+                                            <Setter Property="BackgroundColor" Value="#FFE8F2" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Button" Binding="{Binding IsFavorite}" Value="False">
+                                            <Setter Property="Text" Value="♡" />
+                                            <Setter Property="TextColor" Value="#FF4F9A" />
+                                            <Setter Property="BackgroundColor" Value="#FFF4FA" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Button"
+                                                     Binding="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ViewModel.IsAuthenticatedUser}"
+                                                     Value="False">
+                                            <Setter Property="IsEnabled" Value="False" />
+                                            <Setter Property="Opacity" Value="0.55" />
+                                        </DataTrigger>
+                                    </Button.Triggers>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </RefreshView>
 </ContentPage>

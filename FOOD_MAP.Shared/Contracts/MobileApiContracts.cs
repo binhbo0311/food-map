@@ -59,6 +59,26 @@ public sealed record PoiScanResultDto(
     string TtsScript,
     IReadOnlyList<FoodMenuItemDto> FoodItems);
 
+public sealed record TourSummaryDto(
+    string TourCode,
+    int PoiCount,
+    string? TourName,
+    int? OwnerUserId,
+    bool IsPublic);
+
+public sealed record CreateTourRequestDto(
+    int? UserId,
+    UserRole UserRole,
+    string? RequestedName,
+    bool IsPublic,
+    IReadOnlyList<string> PoiIds);
+
+public sealed record UpdateTourRequestDto(
+    int? UserId,
+    UserRole UserRole,
+    string? RequestedName,
+    IReadOnlyList<string> PoiIds);
+
 public sealed record SetFavoriteRequestDto(string PoiId, bool IsFavorite);
 
 public sealed record AddTourRequestDto(string PoiId, string LanguageCode, string TriggerType);

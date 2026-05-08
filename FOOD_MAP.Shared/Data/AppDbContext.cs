@@ -26,6 +26,8 @@ public class AppDbContext : DbContext
 
     public DbSet<UserTour> UserTours => Set<UserTour>();
 
+    public DbSet<TourList> TourLists => Set<TourList>();
+
     public DbSet<FoodItem> FoodItems => Set<FoodItem>();
 
     public DbSet<OwnerRegistrationRequest> OwnerRegistrationRequests => Set<OwnerRegistrationRequest>();
@@ -301,6 +303,35 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(x => new { x.UserId, x.VisitedUtc });
             entity.HasIndex(x => new { x.PoiId, x.VisitedUtc });
+        });
+
+        modelBuilder.Entity<TourList>(entity =>
+        {
+            entity.ToTable("TourList");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.TourCode).IsRequired().HasMaxLength(50);
+            entity.Property(x => x.TourName).HasMaxLength(150);
+            entity.Property(x => x.OwnerUserId);
+            entity.Property(x => x.IsPublic).IsRequired();
+            entity.Property(x => x.PoiId).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.SortOrder).IsRequired();
+            entity.Property(x => x.CreatedUtc).IsRequired();
+
+            entity.HasOne(x => x.Poi)
+                .WithMany(x => x.TourLists)
+                .HasForeignKey(x => x.PoiId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.OwnerUser)
+                .WithMany()
+                .HasForeignKey(x => x.OwnerUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => new { x.TourCode, x.SortOrder }).IsUnique();
+            entity.HasIndex(x => new { x.TourCode, x.PoiId }).IsUnique();
+            entity.HasIndex(x => x.IsPublic);
+            entity.HasIndex(x => new { x.OwnerUserId, x.IsPublic });
         });
 
         modelBuilder.Entity<FoodItem>(entity =>

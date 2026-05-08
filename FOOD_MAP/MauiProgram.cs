@@ -47,6 +47,7 @@ namespace FOOD_MAP
             builder.Services.AddSingleton<IAuthService, ApiAuthService>();
             builder.Services.AddSingleton<IUserProfileService, ApiUserProfileService>();
             builder.Services.AddSingleton<IUserActivityRepository, ApiUserActivityRepository>();
+            builder.Services.AddSingleton<ISyncService, ApiSyncService>();
             builder.Services.AddSingleton<IActiveUserTrackerService, ApiActiveUserTrackerService>();
             builder.Services.AddSingleton<IActiveMobileHeartbeatAgent, ActiveMobileHeartbeatAgent>();
             builder.Services.AddSingleton<ViewModels.LoginViewModel>();
@@ -78,15 +79,25 @@ namespace FOOD_MAP
             }
 
 #if ANDROID
-            // Khi APK deploy lên máy thật: không có file .env nên đọc URL đã được bake
-            // vào AndroidManifest meta-data lúc build (inject từ MOBILE_API_BASE_URL trong .env).
-            var bakedUrl = ReadAndroidManifestMetaString(AndroidManifestApiUrlMetaKey);
-            if (!string.IsNullOrWhiteSpace(bakedUrl))
+            // Emulator luôn ưu tiên host 10.0.2.2 thay vì URL baked để tránh timeout do trỏ sai LAN IP.
+            if (!IsAndroidEmulator())
             {
-                return EnsureValidMobileApiBaseUrl(bakedUrl.Trim());
+                // Khi APK deploy lên máy thật: không có file .env nên đọc URL đã được bake
+                // vào AndroidManifest meta-data lúc build (inject từ MOBILE_API_BASE_URL trong .env).
+                var bakedUrl = ReadAndroidManifestMetaString(AndroidManifestApiUrlMetaKey);
+                if (!string.IsNullOrWhiteSpace(bakedUrl))
+                {
+                    return EnsureValidMobileApiBaseUrl(bakedUrl.Trim());
+                }
             }
 #endif
             var host = Environment.GetEnvironmentVariable("MOBILE_API_HOST");
+#if ANDROID
+            if (string.IsNullOrWhiteSpace(host) && IsAndroidEmulator())
+            {
+                host = "10.0.2.2";
+            }
+#endif
             if (string.IsNullOrWhiteSpace(host) && IsDevelopmentEnvironment())
             {
                 host = "10.0.2.2";
@@ -193,6 +204,32 @@ namespace FOOD_MAP
             catch
             {
                 return null;
+            }
+        }
+
+        private static bool IsAndroidEmulator()
+        {
+            try
+            {
+                var fingerprint = Android.OS.Build.Fingerprint ?? string.Empty;
+                var model = Android.OS.Build.Model ?? string.Empty;
+                var product = Android.OS.Build.Product ?? string.Empty;
+                var manufacturer = Android.OS.Build.Manufacturer ?? string.Empty;
+                var brand = Android.OS.Build.Brand ?? string.Empty;
+                var device = Android.OS.Build.Device ?? string.Empty;
+
+                return fingerprint.Contains("generic", StringComparison.OrdinalIgnoreCase)
+                    || fingerprint.Contains("emulator", StringComparison.OrdinalIgnoreCase)
+                    || model.Contains("Emulator", StringComparison.OrdinalIgnoreCase)
+                    || model.Contains("Android SDK built for", StringComparison.OrdinalIgnoreCase)
+                    || manufacturer.Contains("Genymotion", StringComparison.OrdinalIgnoreCase)
+                    || brand.StartsWith("generic", StringComparison.OrdinalIgnoreCase)
+                    || device.StartsWith("generic", StringComparison.OrdinalIgnoreCase)
+                    || product.Contains("sdk", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
             }
         }
 #endif

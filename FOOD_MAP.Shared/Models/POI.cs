@@ -35,4 +35,6 @@ public class POI
     public ICollection<POITranslation> PoiTranslations { get; set; } = new List<POITranslation>();
 
     public ICollection<FoodItem> FoodItems { get; set; } = new List<FoodItem>();
+
+    public ICollection<TourList> TourLists { get; set; } = new List<TourList>();
 }

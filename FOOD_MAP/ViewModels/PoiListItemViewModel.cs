@@ -121,3 +121,53 @@ public sealed class PoiListItemViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }
+
+public sealed class TourSummaryViewModel
+{
+    public TourSummaryViewModel(string tourCode, int poiCount, string? tourName = null, int? ownerUserId = null, bool? isPublic = null)
+    {
+        TourCode = string.IsNullOrWhiteSpace(tourCode) ? "DEFAULT" : tourCode.Trim().ToUpperInvariant();
+        PoiCount = poiCount;
+        OwnerUserId = ownerUserId;
+
+        IsPublic = isPublic ?? TourCode.StartsWith("PUB_", StringComparison.OrdinalIgnoreCase);
+        IsPrivate = TourCode.StartsWith("USR_", StringComparison.OrdinalIgnoreCase);
+
+        var displayCore = string.IsNullOrWhiteSpace(tourName) ? TourCode : tourName.Trim();
+        if (string.IsNullOrWhiteSpace(tourName))
+        {
+            if (IsPublic)
+            {
+                displayCore = TourCode[4..];
+            }
+            else if (IsPrivate)
+            {
+                var secondUnderscoreIndex = TourCode.IndexOf('_', 4);
+                if (secondUnderscoreIndex > 0 && secondUnderscoreIndex + 1 < TourCode.Length)
+                {
+                    displayCore = TourCode[(secondUnderscoreIndex + 1)..];
+                }
+            }
+        }
+
+        DisplayName = string.IsNullOrWhiteSpace(displayCore)
+            ? "Tour"
+            : displayCore.Replace('_', ' ');
+    }
+
+    public string TourCode { get; }
+
+    public bool IsPublic { get; }
+
+    public bool IsPrivate { get; }
+
+    public int? OwnerUserId { get; }
+
+    public string DisplayName { get; }
+
+    public int PoiCount { get; }
+
+    public string SummaryText => IsPublic
+        ? $"Public • {PoiCount} POI"
+        : $"Private • {PoiCount} POI";
+}

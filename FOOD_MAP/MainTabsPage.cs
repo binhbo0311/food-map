@@ -1,39 +1,41 @@
 namespace FOOD_MAP;
 
-public sealed class MainTabsPage : TabbedPage
+public sealed class MainTabsPage : Shell
 {
     public MainTabsPage()
     {
         Title = "FOOD_MAP";
-        BarBackgroundColor = Color.FromArgb("#066D72");
-        BarTextColor = Colors.White;
-        SelectedTabColor = Colors.White;
-        UnselectedTabColor = Color.FromArgb("#BFE6E7");
+        FlyoutBehavior = FlyoutBehavior.Disabled;
+        BackgroundColor = Color.FromArgb("#EAF8F8");
 
-        // Tách các luồng chính thành tab dưới để người dùng chuyển nhanh giữa bản đồ, Home, POI, Camera và Settings.
-        Children.Add(new NavigationPage(new HomePage())
-        {
-            Title = "Home"
-        });
+        Routing.RegisterRoute(nameof(TourPage), typeof(TourPage));
+        Routing.RegisterRoute(nameof(TourBuilderPage), typeof(TourBuilderPage));
 
-        Children.Add(new NavigationPage(new MainPage())
+        Items.Add(new TabBar
         {
-            Title = "Map"
+            Items =
+            {
+                CreateTab("Home", "home.png", () => new HomePage()),
+                CreateTab("Map", "mapicon.png", () => new MainPage()),
+                CreateTab("POI", "pinicon.png", () => new PoiPage()),
+                CreateTab("Camera", "qrscannericon.png", () => new CameraPage()),
+                CreateTab("Settings", "settingicon.png", () => new SettingsPage())
+            }
         });
+    }
 
-        Children.Add(new NavigationPage(new PoiPage())
+    private static ShellContent CreateTab(string title, string icon, Func<Page> pageFactory)
+    {
+        return new ShellContent
         {
-            Title = "POI"
-        });
-
-        Children.Add(new NavigationPage(new CameraPage())
-        {
-            Title = "Camera"
-        });
-
-        Children.Add(new NavigationPage(new SettingsPage())
-        {
-            Title = "Settings"
-        });
+            Title = title,
+            Icon = icon,
+            ContentTemplate = new DataTemplate(() =>
+            {
+                var page = pageFactory();
+                Shell.SetNavBarIsVisible(page, false);
+                return page;
+            })
+        };
     }
 }

@@ -1,6 +1,7 @@
 using FOOD_MAP.Shared.Data;
 using FOOD_MAP.Shared.Models;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System.Threading;
 
 namespace FOOD_MAP.Shared.Services;
@@ -30,7 +31,16 @@ public sealed class ActiveUserTrackerService : IActiveUserTrackerService
     public async Task<ActiveUserSummary> GetSummaryAsync(CancellationToken cancellationToken = default)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        await EnsureStorageReadyAsync(dbContext, cancellationToken);
+        try
+        {
+            await EnsureStorageReadyAsync(dbContext, cancellationToken);
+        }
+        catch (TimeoutException)
+        {
+        }
+        catch (NpgsqlException)
+        {
+        }
         await PurgeExpiredAsync(dbContext, cancellationToken);
 
         var now = DateTimeOffset.UtcNow;
@@ -67,31 +77,23 @@ public sealed class ActiveUserTrackerService : IActiveUserTrackerService
         try
         {
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync(CancellationToken.None);
-            await EnsureStorageReadyAsync(dbContext, CancellationToken.None);
             await PurgeExpiredAsync(dbContext, CancellationToken.None);
 
             var normalizedKey = sessionKey.Trim();
-            var row = await dbContext.ActiveClientHeartbeats
-                .FirstOrDefaultAsync(x => x.SessionKey == normalizedKey, CancellationToken.None);
+            var nowUtc = DateTimeOffset.UtcNow;
+            var heartbeatId = Guid.NewGuid().ToString("N");
 
-            if (row is null)
-            {
-                dbContext.ActiveClientHeartbeats.Add(new ActiveClientHeartbeat
-                {
-                    ClientType = clientType,
-                    UserId = userId,
-                    SessionKey = normalizedKey,
-                    LastSeenUtc = DateTimeOffset.UtcNow
-                });
-            }
-            else
-            {
-                row.ClientType = clientType;
-                row.UserId = userId;
-                row.LastSeenUtc = DateTimeOffset.UtcNow;
-            }
-
-            await dbContext.SaveChangesAsync(CancellationToken.None);
+            await dbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO "ActiveClientHeartbeats" ("Id", "ClientType", "UserId", "LastSeenUtc", "SessionKey")
+                VALUES ({heartbeatId}, {clientType}, {userId}, {nowUtc}, {normalizedKey})
+                ON CONFLICT ("SessionKey")
+                DO UPDATE SET
+                    "ClientType" = EXCLUDED."ClientType",
+                    "UserId" = EXCLUDED."UserId",
+                    "LastSeenUtc" = EXCLUDED."LastSeenUtc";
+                """,
+                CancellationToken.None);
         }
         catch (OperationCanceledException)
         {
@@ -114,32 +116,45 @@ public sealed class ActiveUserTrackerService : IActiveUserTrackerService
                 return;
             }
 
-            await dbContext.Database.ExecuteSqlRawAsync(
-                """
-                CREATE TABLE IF NOT EXISTS "ActiveClientHeartbeats" (
-                    "Id" character varying(64) NOT NULL,
-                    "ClientType" character varying(20) NOT NULL,
-                    "UserId" integer NULL,
-                    "LastSeenUtc" timestamp with time zone NOT NULL,
-                    "SessionKey" character varying(120) NOT NULL,
-                    CONSTRAINT "PK_ActiveClientHeartbeats" PRIMARY KEY ("Id")
-                );
-                """,
-                cancellationToken);
+            try
+            {
+                await dbContext.Database.ExecuteSqlRawAsync(
+                    """
+                    CREATE TABLE IF NOT EXISTS "ActiveClientHeartbeats" (
+                        "Id" character varying(64) NOT NULL,
+                        "ClientType" character varying(20) NOT NULL,
+                        "UserId" integer NULL,
+                        "LastSeenUtc" timestamp with time zone NOT NULL,
+                        "SessionKey" character varying(120) NOT NULL,
+                        CONSTRAINT "PK_ActiveClientHeartbeats" PRIMARY KEY ("Id")
+                    );
+                    """,
+                    cancellationToken);
 
-            await dbContext.Database.ExecuteSqlRawAsync(
-                """
-                CREATE UNIQUE INDEX IF NOT EXISTS "IX_ActiveClientHeartbeats_SessionKey"
-                ON "ActiveClientHeartbeats" ("SessionKey");
-                """,
-                cancellationToken);
+                await dbContext.Database.ExecuteSqlRawAsync(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_ActiveClientHeartbeats_SessionKey"
+                    ON "ActiveClientHeartbeats" ("SessionKey");
+                    """,
+                    cancellationToken);
 
-            await dbContext.Database.ExecuteSqlRawAsync(
-                """
-                CREATE INDEX IF NOT EXISTS "IX_ActiveClientHeartbeats_ClientType_LastSeenUtc"
-                ON "ActiveClientHeartbeats" ("ClientType", "LastSeenUtc");
-                """,
-                cancellationToken);
+                await dbContext.Database.ExecuteSqlRawAsync(
+                    """
+                    CREATE INDEX IF NOT EXISTS "IX_ActiveClientHeartbeats_ClientType_LastSeenUtc"
+                    ON "ActiveClientHeartbeats" ("ClientType", "LastSeenUtc");
+                    """,
+                    cancellationToken);
+            }
+            catch (TimeoutException)
+            {
+                Volatile.Write(ref _isStorageBootstrapped, 1);
+                return;
+            }
+            catch (NpgsqlException)
+            {
+                Volatile.Write(ref _isStorageBootstrapped, 1);
+                return;
+            }
 
             Volatile.Write(ref _isStorageBootstrapped, 1);
         }

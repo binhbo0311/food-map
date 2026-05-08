@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FOOD_MAP.TourBuilderPage"
+             BackgroundColor="#EAF8F8"
+             Title="Tour Builder">
+    <Grid Padding="14,10,14,16" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+        <VerticalStackLayout Spacing="4">
+            <Label Text="Tạo/Sửa tour tùy chỉnh" FontSize="20" FontAttributes="Bold" TextColor="#143536" />
+            <Label Text="Chọn POI theo ý bạn rồi lưu thành tour private hoặc public." TextColor="#4D6B6C" />
+        </VerticalStackLayout>
+
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+            <Label Text="Tên tour" VerticalOptions="Center" TextColor="#143536" FontAttributes="Bold" />
+            <Entry Grid.Column="1"
+                   Text="{Binding TourName, Mode=TwoWay}"
+                   Placeholder="Ví dụ: city_mix"
+                   BackgroundColor="White"
+                   TextColor="#143536" />
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+            <Label Text="Public" VerticalOptions="Center" TextColor="#143536" FontAttributes="Bold" />
+            <Switch Grid.Column="1"
+                    IsToggled="{Binding IsPublic, Mode=TwoWay}"
+                    IsEnabled="{Binding CanPublishPublicTour}" />
+            <Label Grid.Column="2"
+                   Text="{Binding PublishHintText}"
+                   VerticalOptions="Center"
+                   TextColor="#4D6B6C"
+                   FontSize="12" />
+        </Grid>
+
+        <CollectionView Grid.Row="3"
+                        ItemsSource="{Binding CandidatePois}"
+                        SelectionMode="None">
+            <CollectionView.EmptyView>
+                <Label Text="Không có POI khả dụng để tạo tour." TextColor="#4D6B6C" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Stroke="#A9E1E2"
+                            StrokeThickness="1"
+                            BackgroundColor="White"
+                            Padding="10"
+                            Margin="0,0,0,8">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+
+                        <Grid ColumnDefinitions="Auto,92,*,Auto" ColumnSpacing="10">
+                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalOptions="Center" />
+
+                            <Border Grid.Column="1" HeightRequest="82" WidthRequest="92" BackgroundColor="#F2FBFB" StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <Image Source="{Binding ImageUrl}" Aspect="AspectFill" />
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
+                                <Label Text="{Binding Name}" FontSize="14" FontAttributes="Bold" TextColor="#143536" />
+                                <Label Text="{Binding Description}" FontSize="11" TextColor="#4D6B6C" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding PoiTypeText}" FontSize="11" TextColor="#066D72" />
+                            </VerticalStackLayout>
+
+                            <Label Grid.Column="3"
+                                   Text="{Binding IsSelected, StringFormat='\u2713'}"
+                                   FontSize="14"
+                                   TextColor="#066D72"
+                                   VerticalOptions="Center"
+                                   HorizontalOptions="End" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Grid Grid.Row="4" ColumnDefinitions="*,*" ColumnSpacing="10">
+            <Button Grid.Column="0"
+                    Text="Lưu tour"
+                    BackgroundColor="#066D72"
+                    TextColor="White"
+                    CornerRadius="14"
+                    HeightRequest="44"
+                    Clicked="OnSaveClicked" />
+            <Button Grid.Column="1"
+                    Text="Hủy"
+                    BackgroundColor="#D6ECEC"
+                    TextColor="#143536"
+                    CornerRadius="14"
+                    HeightRequest="44"
+                    Clicked="OnCancelClicked" />
+        </Grid>
+    </Grid>
+</ContentPage>

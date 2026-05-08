@@ -13,4 +13,22 @@ public interface IPoiRepository
     Task<IReadOnlyList<PoiAvailableLanguageOption>> GetAvailableLanguagesForPoiAsync(string poiId, CancellationToken cancellationToken = default);
 
     Task<PoiScanResult?> GetPoiScanResultAsync(string poiId, string languageCode, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<PoiListItemViewModel>> GetTourPoiItemsAsync(string tourCode, string languageCode, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<TourSummaryViewModel>> GetTourSummariesAsync(CancellationToken cancellationToken = default);
+
+    Task<TourSummaryViewModel?> CreateTourAsync(
+        string? requestedName,
+        IReadOnlyList<string> poiIds,
+        bool isPublic,
+        CancellationToken cancellationToken = default);
+
+    Task<TourSummaryViewModel?> UpdateTourAsync(
+        string tourCode,
+        string? requestedName,
+        IReadOnlyList<string> poiIds,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteTourAsync(string tourCode, CancellationToken cancellationToken = default);
 }

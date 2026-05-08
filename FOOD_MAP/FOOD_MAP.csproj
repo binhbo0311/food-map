@@ -89,6 +89,7 @@
     <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
 
     <!-- Images -->
+    <MauiImage Include="Resources\Images\*.png" />
     <MauiImage Remove="Resources\Images\*.jpg" />
     <MauiImage Include="Resources\Images\dotnet_bot.svg" BaseSize="168,208" />
 
@@ -108,6 +109,8 @@
     <MauiXaml Update="Views\HomePage.xaml" Generator="MSBuild:Compile" />
     <MauiXaml Update="Views\PoiPage.xaml" Generator="MSBuild:Compile" />
     <MauiXaml Update="Views\CameraPage.xaml" Generator="MSBuild:Compile" />
+    <MauiXaml Update="Views\TourPage.xaml" Generator="MSBuild:Compile" />
+    <MauiXaml Update="Views\TourBuilderPage.xaml" Generator="MSBuild:Compile" />
   </ItemGroup>
 
   <ItemGroup>

@@ -4,7 +4,8 @@
              xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
              x:Class="FOOD_MAP.CameraPage"
              BackgroundColor="#EAF8F8"
-             Title="Camera">
+             Title="Camera"
+             Loaded="OnLoaded">
     <Grid Padding="16" RowDefinitions="Auto,*,Auto">
         <VerticalStackLayout Spacing="8">
             <Label Text="Camera" FontSize="28" FontAttributes="Bold" TextColor="#143536" />
@@ -16,16 +17,17 @@
                 <RoundRectangle CornerRadius="24" />
             </Border.StrokeShape>
 
-            <Grid RowDefinitions="Auto,* ,Auto">
+            <Grid RowDefinitions="Auto,*,Auto">
                 <Label Text="Scanner frame" TextColor="#066D72" FontAttributes="Bold" />
 
-                <Grid Grid.Row="1" Margin="0,10,0,10">
-                    <Border Stroke="#0B949A" StrokeThickness="2" BackgroundColor="#F2FBFB">
+                <Grid Grid.Row="1" Margin="0,10,0,10" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Border WidthRequest="320" HeightRequest="320" Stroke="#0B949A" StrokeThickness="2" BackgroundColor="#F2FBFB">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="20" />
                         </Border.StrokeShape>
-                        <zxing:CameraBarcodeReaderView x:Name="BarcodeReaderView"
-                                                        BarcodesDetected="OnBarcodesDetected" />
+                        <Grid x:Name="ScannerHost"
+                              HorizontalOptions="Fill"
+                              VerticalOptions="Fill" />
                     </Border>
 
                     <Border HorizontalOptions="Center" VerticalOptions="Center" WidthRequest="260" HeightRequest="260"

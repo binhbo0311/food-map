@@ -25,7 +25,11 @@ public sealed record PoiCatalogRow(PoiListItemViewModel Item, double? DistanceKm
 
 public sealed record HomePoiSection(string Title, IReadOnlyList<PoiCatalogRow> Items);
 
-public sealed record HomePoiSnapshot(IReadOnlyList<HomePoiSection> Sections, IReadOnlyList<PoiCatalogRow> NearbyPoiItems, bool HasLocation);
+public sealed record HomePoiSnapshot(
+    IReadOnlyList<HomePoiSection> Sections,
+    IReadOnlyList<PoiCatalogRow> NearbyPoiItems,
+    IReadOnlyList<PoiCatalogRow> FeaturedItems,
+    bool HasLocation);
 
 public sealed class MobilePoiCatalogService
 {
@@ -58,6 +62,8 @@ public sealed class MobilePoiCatalogService
             .ThenBy(row => row.Title, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        var featuredRows = BuildFeaturedRows(catalogRows);
+
         return new HomePoiSnapshot(
             new[]
             {
@@ -65,19 +71,40 @@ public sealed class MobilePoiCatalogService
                 new HomePoiSection("Visit", visitRows)
             },
             nearbyRows,
+            featuredRows,
             hasLocation);
     }
 
     private static IReadOnlyList<PoiCatalogRow> BuildHomeRows(List<PoiCatalogRow> catalogRows, bool isFoodPoi)
     {
-        return catalogRows
+        const int targetCount = 5;
+
+        var scopedRows = catalogRows
             .Where(row => row.IsFoodPoi == isFoodPoi)
+            .ToList();
+
+        var featured = scopedRows
             .Where(row => row.DistanceKm.HasValue && row.DistanceKm.Value <= HomeRadiusKm)
             .OrderByDescending(row => row.Item.Priority)
             .ThenBy(row => row.DistanceKm ?? double.MaxValue)
             .ThenBy(row => row.Title, StringComparer.OrdinalIgnoreCase)
-            .Take(5)
+            .Take(targetCount)
             .ToList();
+
+        if (featured.Count < targetCount)
+        {
+            var fallbackRows = scopedRows
+                .Where(row => !featured.Any(selected => string.Equals(selected.Item.PoiId, row.Item.PoiId, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(row => row.DistanceKm ?? double.MaxValue)
+                .ThenByDescending(row => row.Item.Priority)
+                .ThenBy(row => row.Title, StringComparer.OrdinalIgnoreCase)
+                .Take(targetCount - featured.Count)
+                .ToList();
+
+            featured.AddRange(fallbackRows);
+        }
+
+        return featured;
     }
 
     private static double? CalculateDistanceKm(Location? currentLocation, PoiListItemViewModel item)
@@ -89,5 +116,36 @@ public sealed class MobilePoiCatalogService
 
         var poiLocation = new Location(item.Latitude, item.Longitude);
         return Location.CalculateDistance(currentLocation, poiLocation, DistanceUnits.Kilometers);
+    }
+
+    private static IReadOnlyList<PoiCatalogRow> BuildFeaturedRows(List<PoiCatalogRow> catalogRows)
+    {
+        const int targetCount = 5;
+
+        var nearbyRows = catalogRows
+            .Where(row => row.DistanceKm.HasValue && row.DistanceKm.Value <= HomeRadiusKm)
+            .ToList();
+
+        var featured = nearbyRows
+            .OrderByDescending(row => row.Item.Priority)
+            .ThenBy(row => row.DistanceKm ?? double.MaxValue)
+            .ThenBy(row => row.Title, StringComparer.OrdinalIgnoreCase)
+            .Take(targetCount)
+            .ToList();
+
+        if (featured.Count < targetCount)
+        {
+            var fallbackRows = catalogRows
+                .Where(row => !featured.Any(selected => string.Equals(selected.Item.PoiId, row.Item.PoiId, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(row => row.DistanceKm ?? double.MaxValue)
+                .ThenByDescending(row => row.Item.Priority)
+                .ThenBy(row => row.Title, StringComparer.OrdinalIgnoreCase)
+                .Take(targetCount - featured.Count)
+                .ToList();
+
+            featured.AddRange(fallbackRows);
+        }
+
+        return featured;
     }
 }
