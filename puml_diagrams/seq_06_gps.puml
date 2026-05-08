@@ -1,0 +1,83 @@
+@startuml seq_06_gps
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontSize 12
+skinparam sequenceArrowColor black
+skinparam sequenceParticipantBorderColor black
+skinparam sequenceParticipantBackgroundColor white
+skinparam sequenceLifeLineBorderColor black
+skinparam sequenceGroupBorderColor black
+skinparam noteBackgroundColor white
+skinparam noteBorderColor black
+autonumber
+
+title UC-06: Geofence Multi-POI – Priority TTS Queue
+
+actor "Người Dùng" as U
+participant "LocationTracking\nForegroundService" as GEO
+participant "PoiRepository" as Repo
+participant "NarrationService\n(Priority Queue)" as TTS
+database "Cache / API" as DB
+
+== Vị trí GPS cập nhật ==
+
+GEO -> GEO : HandleLocationUpdateAsync(lat, lng)
+GEO -> DB : GetPoiItemsAsync(language)
+DB --> GEO : List<POI> (có Priority, ActivationRadius)
+
+GEO -> GEO : Loop qua tất cả POI
+
+group Với mỗi POI trong danh sách
+    GEO -> GEO : CalculateDistanceMeters(user, poi)
+    alt user nằm trong ActivationRadius\n&& !previousInside && !hasCooldown
+        GEO -> GEO : Đánh dấu triggered\nthêm (PoiId, Priority) vào triggeredBatch
+    else Ngoài radius hoặc đang cooldown
+        GEO -> GEO : Cập nhật trạng thái inside/outside
+    end
+end
+
+note right of GEO
+  triggeredBatch có thể chứa nhiều POI
+  nếu user đứng trong bán kính đồng thời.
+  Ví dụ: [POI_A (P=5), POI_B (P=2), POI_C (P=8)]
+end note
+
+== Enqueue một lần duy nhất sau loop ==
+
+GEO -> GEO : TriggerProximityBatchAsync(triggeredBatch)
+
+loop Với mỗi (PoiId, Priority) trong batch
+    GEO -> Repo : GetPoiScanResultAsync(poiId, lang)
+    Repo -> DB : Fetch từ cache hoặc API
+    DB --> Repo : ScanResult (TtsScript, LocationName)
+    Repo --> GEO : PendingProximityItem(poiId, priority, text, lang)
+end
+
+GEO -> TTS : EnqueueProximityBatchAsync(pendingItems)
+
+note right of TTS
+  Sort theo Priority giảm dần:
+  POI_C (P=8) → POI_A (P=5) → POI_B (P=2)
+  Phát tuần tự, không overlap.
+end note
+
+TTS -> TTS : Sort items: OrderByDescending(Priority)
+TTS -> TTS : Merge vào _priorityQueue\n(bỏ duplicate PoiId)
+TTS -> TTS : ProcessQueueAsync() [background loop]
+
+loop Xử lý từng item trong queue
+    TTS -> TTS : Dequeue item priority cao nhất
+    TTS -> TTS : SpeakTextInternalAsync(text, lang)
+    TTS --> U : [TTS phát lời giới thiệu POI]
+end
+
+== Người dùng bấm Play thủ công ==
+
+U -> GEO : Chọn POI → bấm Play
+GEO -> TTS : StopAsync()\n(xoá queue + cancel playback)
+TTS --> TTS : ClearQueue()
+GEO -> TTS : PlayManualNarrationAsync(fullText, lang)
+TTS --> U : [TTS phát toàn bộ nội dung]
+
+@enduml

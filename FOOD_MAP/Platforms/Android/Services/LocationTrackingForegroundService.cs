@@ -221,6 +221,10 @@ public sealed class LocationTrackingForegroundService : Service
             var nearestPoiText = "No nearby POI";
             double nearestDistance = double.MaxValue;
 
+            // Collect tất cả POI vừa được trigger trong lần update này.
+            // Sau vòng lặp sẽ enqueue một lần duy nhất theo priority order.
+            var triggeredPois = new List<(string PoiId, int Priority)>();
+
             foreach (var poi in pois)
             {
                 var activationRadius = poi.ActivationRadius > 0
@@ -262,10 +266,10 @@ public sealed class LocationTrackingForegroundService : Service
                     _isInsidePoiById[poi.PoiId] = true;
                     _lastTriggeredUtcByPoiId[poi.PoiId] = nowUtc;
 
-                    // Luồng proximity: phát intro ngắn gọn khi vào geofence.
-                    _ = TriggerProximityNarrationAsync(serviceProvider, poi.PoiId);
+                    // Thêm vào batch để enqueue cùng lúc sau vòng lặp (có priority sort).
+                    triggeredPois.Add((poi.PoiId, poi.Priority));
 
-                    var triggerText = $"Triggered POI #{poi.PoiId} at {(int)distanceMeters}m";
+                    var triggerText = $"Triggered POI #{poi.PoiId} (P{poi.Priority}) at {(int)distanceMeters}m";
                     var notificationManager = NotificationManagerCompat.From(this);
                     if (notificationManager is not null)
                     {
@@ -278,6 +282,12 @@ public sealed class LocationTrackingForegroundService : Service
                 {
                     _isInsidePoiById[poi.PoiId] = true;
                 }
+            }
+
+            // Enqueue một lần duy nhất: NarrationService sẽ sort theo priority và phát tuần tự.
+            if (triggeredPois.Count > 0)
+            {
+                _ = TriggerProximityBatchAsync(serviceProvider, triggeredPois);
             }
 
             var trackingManager = NotificationManagerCompat.From(this);
@@ -299,7 +309,13 @@ public sealed class LocationTrackingForegroundService : Service
         }
     }
 
-    private static async Task TriggerProximityNarrationAsync(IServiceProvider serviceProvider, string poiId)
+    /// <summary>
+    /// Resolve TtsScript cho nhiều POI cùng lúc rồi enqueue vào NarrationService theo priority.
+    /// POI có priority cao hơn sẽ được phát trước.
+    /// </summary>
+    private static async Task TriggerProximityBatchAsync(
+        IServiceProvider serviceProvider,
+        IReadOnlyList<(string PoiId, int Priority)> triggeredPois)
     {
         try
         {
@@ -312,22 +328,43 @@ public sealed class LocationTrackingForegroundService : Service
                 return;
             }
 
-            var scanResult = await poiRepository.GetPoiScanResultAsync(poiId, selectedLanguage);
-            if (scanResult is null)
+            // Fetch TtsScript cho từng POI, giữ nguyên priority để sort sau.
+            var pendingItems = new List<PendingProximityItem>();
+
+            foreach (var (poiId, priority) in triggeredPois)
+            {
+                try
+                {
+                    var scanResult = await poiRepository.GetPoiScanResultAsync(poiId, selectedLanguage);
+                    if (scanResult is null)
+                    {
+                        continue;
+                    }
+
+                    // Proximity ưu tiên script đã biên tập để giữ đúng dấu tiếng Việt và ngữ điệu.
+                    var narrationText = !string.IsNullOrWhiteSpace(scanResult.TtsScript)
+                        ? scanResult.TtsScript
+                        : BuildFallbackIntro(scanResult.LocationName, selectedLanguage);
+
+                    pendingItems.Add(new PendingProximityItem(poiId, priority, narrationText, selectedLanguage));
+                }
+                catch
+                {
+                    // Bỏ qua POI lỗi, tiếp tục với POI tiếp theo.
+                }
+            }
+
+            if (pendingItems.Count == 0)
             {
                 return;
             }
 
-            // Proximity ưu tiên script đã biên tập để giữ đúng dấu tiếng Việt và ngữ điệu.
-            var shortIntro = !string.IsNullOrWhiteSpace(scanResult.TtsScript)
-                ? scanResult.TtsScript
-                : BuildFallbackIntro(scanResult.LocationName, selectedLanguage);
-
-            await narrationService.PlayProximityNarrationAsync(shortIntro, selectedLanguage);
+            // NarrationService sẽ sort lại theo priority trước khi phát.
+            await narrationService.EnqueueProximityBatchAsync(pendingItems);
         }
         catch
         {
-            // Nếu proximity narration lỗi thì bỏ qua để không ảnh hưởng luồng tracking.
+            // Nếu batch narration lỗi thì bỏ qua để không ảnh hưởng luồng tracking.
         }
     }
 

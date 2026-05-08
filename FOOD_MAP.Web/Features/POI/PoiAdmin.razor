@@ -10,6 +10,9 @@
 @inject IPoiWorkflowRepository PoiWorkflowRepository
 @inject PortalUserSessionState PortalUserSessionState
 @inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <PageTitle>POI Admin</PageTitle>
 
@@ -32,6 +35,23 @@
         @statusMessage
     </div>
 }
+
+<section class="border rounded p-3 mb-3 bg-white">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h5 mb-0">📍 POI Map Picker</h2>
+        <small class="text-muted">Click on map to set Latitude &amp; Longitude &bull; Drag marker to adjust</small>
+    </div>
+    <div id="poi-admin-map" style="height:420px; border-radius:8px; border:1px solid #dee2e6;"></div>
+    @if (mapPickedLat != 0 || mapPickedLng != 0)
+    {
+        <div class="mt-2 p-2 bg-light-subtle rounded d-flex align-items-center gap-3">
+            <span class="text-muted small">📌 Picked:</span>
+            <strong class="small">Lat: @mapPickedLat.ToString("F6")</strong>
+            <strong class="small">Lng: @mapPickedLng.ToString("F6")</strong>
+            <button type="button" class="btn btn-sm btn-success" @onclick="ApplyMapPickedCoords">Apply to Form ✓</button>
+        </div>
+    }
+</section>
 
 <EditForm Model="editorModel" OnValidSubmit="HandleSubmitAsync" class="border rounded p-3 mb-3 bg-light-subtle">
     <DataAnnotationsValidator />
@@ -284,6 +304,7 @@ else
     private bool isEditMode;
     private bool isErrorStatus;
     private bool hasLoadedData;
+    private bool mapInitialized;
     private string? editingPoiId;
     private string poiSearchKeyword = string.Empty;
     private string poiTypeFilter = string.Empty;
@@ -293,6 +314,10 @@ else
     private int poiPageSize = 10;
     private int poiPageIndex = 1;
     private string statusMessage = string.Empty;
+    private double mapPickedLat;
+    private double mapPickedLng;
+
+    private DotNetObjectReference<PoiAdmin>? _dotNetRef;
 
     private static readonly int[] GridPageSizeOptions = [10, 20, 50];
 
@@ -305,6 +330,7 @@ else
 
         hasLoadedData = true;
         await LoadPoiItemsAsync();
+        await InitOrRefreshMapAsync();
     }
 
     private async Task LoadPoiItemsAsync()
@@ -372,6 +398,83 @@ else
         {
             isBusy = false;
         }
+
+        // Làm mới marker trên map sau khi reload dữ liệu POI.
+        await InitOrRefreshMapAsync();
+    }
+
+    // ── MAP INTEROP ──────────────────────────────────────────────────────────────
+
+    /// <summary>Khởi tạo hoặc refresh Leaflet map với toàn bộ POI marker hiện có.</summary>
+    private async Task InitOrRefreshMapAsync()
+    {
+        _dotNetRef ??= DotNetObjectReference.Create(this);
+
+        // Chuyển danh sách POI thành JSON cho JS.
+        var markers = poiItems.Select(p => new
+        {
+            id = p.Id,
+            lat = p.Latitude,
+            lng = p.Longitude,
+            name = string.IsNullOrWhiteSpace(p.VietnameseName) ? p.Id : p.VietnameseName,
+            isEditing = p.Id == editingPoiId
+        }).ToList();
+
+        var markersJson = JsonSerializer.Serialize(markers);
+
+        // Center map vào POI đầu tiên hoặc Việt Nam nếu chưa có data.
+        var centerLat = poiItems.Count > 0 ? poiItems[0].Latitude : 16.0;
+        var centerLng = poiItems.Count > 0 ? poiItems[0].Longitude : 108.0;
+
+        if (isEditMode && editingPoiId != null)
+        {
+            var editing = poiItems.FirstOrDefault(p => p.Id == editingPoiId);
+            if (editing != null)
+            {
+                centerLat = editing.Latitude;
+                centerLng = editing.Longitude;
+            }
+        }
+
+        try
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "poiAdminMap.init",
+                "poi-admin-map",
+                centerLat, centerLng,
+                markersJson,
+                _dotNetRef);
+
+            mapInitialized = true;
+        }
+        catch
+        {
+            // Map không bắt buộc - bỏ qua lỗi JS khi component chưa render xong.
+        }
+    }
+
+    /// <summary>Callback được gọi từ JS khi user click trên map để chọn toạ độ.</summary>
+    [JSInvokable]
+    public void OnMapClicked(double lat, double lng)
+    {
+        mapPickedLat = lat;
+        mapPickedLng = lng;
+        StateHasChanged();
+    }
+
+    /// <summary>Áp dụng toạ độ đã pick trên map vào form editor.</summary>
+    private void ApplyMapPickedCoords()
+    {
+        editorModel.Latitude = mapPickedLat;
+        editorModel.Longitude = mapPickedLng;
+        isErrorStatus = false;
+        statusMessage = $"Coordinates applied from map: ({mapPickedLat:F6}, {mapPickedLng:F6})";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _dotNetRef?.Dispose();
+        try { await JsRuntime.InvokeVoidAsync("poiAdminMap.destroy", "poi-admin-map"); } catch { }
     }
 
     private async Task HandleSubmitAsync()
@@ -544,7 +647,30 @@ else
         editorModel.VietnameseRichContentHtml = poi.VietnameseRichContentHtml;
 
         isErrorStatus = false;
-        statusMessage = $"Editing POI #{poi.Id}";
+        statusMessage = $"Editing POI #{poi.Id} — click map to update coordinates";
+
+        // Cập nhật map highlight marker của POI đang edit.
+        _ = RefreshMapMarkersAsync(poi.Latitude, poi.Longitude);
+    }
+
+    /// <summary>Chỉ refresh marker highlight mà không reinit toàn bộ map.</summary>
+    private async Task RefreshMapMarkersAsync(double panLat, double panLng)
+    {
+        var markers = poiItems.Select(p => new
+        {
+            id = p.Id,
+            lat = p.Latitude,
+            lng = p.Longitude,
+            name = string.IsNullOrWhiteSpace(p.VietnameseName) ? p.Id : p.VietnameseName,
+            isEditing = p.Id == editingPoiId
+        }).ToList();
+
+        var markersJson = JsonSerializer.Serialize(markers);
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("poiAdminMap.refreshMarkers", "poi-admin-map", markersJson, panLat, panLng);
+        }
+        catch { }
     }
 
     private async Task DeletePoiAsync(string poiId)

@@ -1,0 +1,78 @@
+@startuml act_06_gps
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontSize 12
+skinparam activityBorderColor black
+skinparam activityBackgroundColor white
+skinparam activityDiamondBorderColor black
+skinparam activityDiamondBackgroundColor white
+skinparam activityStartColor black
+skinparam activityEndColor black
+skinparam partitionBorderColor black
+skinparam partitionBackgroundColor white
+skinparam ArrowColor black
+
+title UC-06: Geofence với Priority TTS Queue
+
+|LocationTrackingForegroundService|
+start
+:Nhận GPS update (lat, lng);
+:GetPoiItemsAsync(language);
+:Khởi tạo triggeredBatch = [];
+
+|LocationTrackingForegroundService|
+repeat
+  :Tính distanceMeters đến POI hiện tại;
+  if (distance <= ActivationRadius?) then (Có – trong vùng)
+    if (Lần đầu vào\nVÀ hết cooldown?) then (Có)
+      :Thêm (PoiId, Priority) vào triggeredBatch;
+      :Gửi Android notification;
+    else (Không – đã trong vùng\nhoặc cooldown)
+      :Cập nhật trạng thái inside=true;
+    endif
+  else (Không – ngoài vùng)
+    :Reset inside=false, debounce=0;
+  endif
+repeat while (Còn POI chưa kiểm tra?) is (Có)
+->Không;
+
+if (triggeredBatch rỗng?) then (Có)
+  :Không có gì mới để phát;
+  stop
+else (Không – có POI vừa trigger)
+  :TriggerProximityBatchAsync(triggeredBatch);
+endif
+
+|NarrationService|
+:Fetch TtsScript cho từng POI trong batch;
+:Tạo PendingProximityItem\n(PoiId, Priority, text, lang);
+:EnqueueProximityBatchAsync(pendingItems);
+:Sort theo Priority giảm dần\n(P cao hơn → phát trước);
+:Merge vào _priorityQueue\n(bỏ duplicate PoiId);
+
+note right
+  Ví dụ queue sau sort:
+  1. POI_C  (Priority=8)  ← phát trước
+  2. POI_A  (Priority=5)
+  3. POI_B  (Priority=2)  ← phát cuối
+end note
+
+:ProcessQueueAsync() [background];
+
+repeat
+  :Dequeue item priority cao nhất;
+  :SpeakTextAsync(text, lang);
+  :Phát TTS cho người dùng nghe;
+repeat while (Queue còn item?) is (Có)
+->Không;
+stop
+
+|Người Dùng|
+note
+  Nếu bấm Play thủ công bất kỳ lúc nào:
+  → StopAsync() xoá queue + cancel TTS
+  → PlayManualNarrationAsync() phát ngay
+end note
+
+@enduml

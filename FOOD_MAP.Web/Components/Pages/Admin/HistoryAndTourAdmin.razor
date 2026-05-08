@@ -1,5 +1,6 @@
 @page "/admin/history-tour"
 @using FOOD_MAP.Shared.Data
+@using FOOD_MAP.Shared.Models
 @using Microsoft.EntityFrameworkCore
 @using System.ComponentModel.DataAnnotations
 @inject IDbContextFactory<AppDbContext> DbContextFactory
@@ -9,7 +10,7 @@
 <CmsRoleGate AllowedRoles="@(new[] { UserRole.Admin })">
 
 <h1>History & Tour Admin</h1>
-<p class="text-muted">Monitor user activity, favorites, and tour visit history.</p>
+<p class="text-muted">Monitor user activity, favorites, tour visit history, and manage user TourList.</p>
 
 <div class="d-flex flex-wrap gap-2 mb-3">
     <a class="btn btn-outline-secondary" href="/admin">Open Admin Dashboard</a>
@@ -23,70 +24,241 @@
     </div>
 }
 
-<EditForm Model="filterModel" OnValidSubmit="ApplyFilterAsync" class="border rounded p-3 mb-3 bg-light-subtle">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div class="row g-3 align-items-end">
-        <div class="col-md-3">
-            <label class="form-label">Time Window (days)</label>
-            <InputNumber @bind-Value="filterModel.Days" class="form-control" />
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Recent Rows</label>
-            <InputNumber @bind-Value="filterModel.RecentLimit" class="form-control" />
-        </div>
-        <div class="col-md-6 d-flex gap-2">
-            <button type="submit" class="btn btn-primary" disabled="@isBusy">Apply Filter</button>
-            <button type="button" class="btn btn-outline-secondary" @onclick="ResetFilterAsync" disabled="@isBusy">Reset</button>
-        </div>
-    </div>
-</EditForm>
-
 @if (isBusy)
 {
     <p>Loading...</p>
 }
 else
 {
-    <div class="row g-3 mb-3">
-        <div class="col-12 col-md-6 col-xl-2">
-            <div class="border rounded p-3 bg-white h-100">
-                <div class="text-muted">Total Users</div>
-                <div class="fs-4 fw-semibold">@summary.TotalUsers</div>
+
+<section class="border rounded p-3 bg-white mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0">User Tour Lists</h2>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="OpenCreateTourListEditor" disabled="@isBusy">Add Tour</button>
+        </div>
+
+        @if (isTourListEditorOpen)
+        {
+            <div class="border rounded p-3 mb-3 bg-light-subtle">
+                <h3 class="h6 mb-3">@(isTourListEditMode ? "Edit Tour" : "Add Tour")</h3>
+
+                @if (!string.IsNullOrWhiteSpace(tourListEditorStatusMessage))
+                {
+                    <div class="alert @(isTourListEditorErrorStatus ? "alert-danger" : "alert-success") py-2" role="alert">
+                        @tourListEditorStatusMessage
+                    </div>
+                }
+
+                <EditForm Model="tourListEditorModel" OnValidSubmit="SaveTourListAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Tour Code</label>
+                            <InputText @bind-Value="tourListEditorModel.TourCode" class="form-control" disabled="@isTourListEditMode" />
+                            <ValidationMessage For="@(() => tourListEditorModel.TourCode)" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Owner</label>
+                            <InputSelect @bind-Value="tourListEditorModel.OwnerUserId" class="form-select" disabled="@isTourListEditMode">
+                                <option value="">System</option>
+                                @foreach (var owner in tourListOwnerOptions)
+                                {
+                                    <option value="@owner.UserId">@owner.DisplayLabel</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tour Name</label>
+                            <InputText @bind-Value="tourListEditorModel.TourName" class="form-control" />
+                            <ValidationMessage For="@(() => tourListEditorModel.TourName)" />
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="tourListEditorModel.IsPublic" class="form-check-input" />
+                                <label class="form-check-label">Public</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label d-flex justify-content-between">
+                                <span>POI list (checkbox)</span>
+                                <span class="text-muted small">@tourListPoiOptions.Count(x => x.IsSelected) / @tourListPoiOptions.Count selected</span>
+                            </label>
+                            <div class="border rounded bg-white p-2" style="max-height: 260px; overflow-y: auto;">
+                                @if (tourListPoiOptions.Count == 0)
+                                {
+                                    <div class="text-muted small">No POI available.</div>
+                                }
+                                else
+                                {
+                                    @foreach (var poi in tourListPoiOptions)
+                                    {
+                                        <label class="d-flex align-items-center gap-2 py-1">
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   checked="@poi.IsSelected"
+                                                   @onchange="(e) => TogglePoiSelection(poi.PoiId, e)"
+                                                   disabled="@isTourListEditorBusy" />
+                                            <span class="small">@poi.DisplayLabel</span>
+                                        </label>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-success" disabled="@isTourListEditorBusy">Save</button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CancelTourListEditor" disabled="@isTourListEditorBusy">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+                <div class="border rounded p-3 bg-light-subtle h-100">
+                    <div class="text-muted">Total Tours</div>
+                    <div class="fs-4 fw-semibold">@tourListSummary.TotalTours</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="border rounded p-3 bg-light-subtle h-100">
+                    <div class="text-muted">Total Tour Items</div>
+                    <div class="fs-4 fw-semibold">@tourListSummary.TotalTourItems</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="border rounded p-3 bg-light-subtle h-100">
+                    <div class="text-muted">Users With Tours</div>
+                    <div class="fs-4 fw-semibold">@tourListSummary.TotalOwners</div>
+                </div>
             </div>
         </div>
-        <div class="col-12 col-md-6 col-xl-2">
-            <div class="border rounded p-3 bg-white h-100">
-                <div class="text-muted">Total Favorites</div>
-                <div class="fs-4 fw-semibold">@summary.TotalFavorites</div>
+
+        <div class="row g-2 mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <InputText @bind-Value="tourListSearchKeyword" class="form-control" placeholder="Display name, username, tour code..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Visibility</label>
+                <InputSelect @bind-Value="tourListVisibilityFilter" class="form-select">
+                    <option value="">All</option>
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Sort By</label>
+                <InputSelect @bind-Value="tourListSortField" class="form-select">
+                    <option value="created">Created UTC</option>
+                    <option value="owner">Owner</option>
+                    <option value="tourcode">Tour Code</option>
+                    <option value="items">Items</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Dir</label>
+                <InputSelect @bind-Value="tourListSortDirection" class="form-select">
+                    <option value="desc">Desc</option>
+                    <option value="asc">Asc</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Page Size</label>
+                <InputSelect @bind-Value="tourListPageSize" class="form-select">
+                    @foreach (var size in GridPageSizeOptions)
+                    {
+                        <option value="@size">@size</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100" @onclick="ResetTourListGrid">Clear</button>
             </div>
         </div>
-        <div class="col-12 col-md-6 col-xl-2">
-            <div class="border rounded p-3 bg-white h-100">
-                <div class="text-muted">Total Tours</div>
-                <div class="fs-4 fw-semibold">@summary.TotalTours</div>
+
+        @{
+            var filteredTourLists = GetFilteredTourLists();
+            var tourListTotalPages = GetTourListTotalPages(filteredTourLists.Count);
+            var safeTourListPage = Math.Clamp(tourListPageIndex, 1, tourListTotalPages);
+            var pagedTourLists = filteredTourLists
+                .Skip((safeTourListPage - 1) * tourListPageSize)
+                .Take(tourListPageSize)
+                .ToList();
+        }
+
+        @if (filteredTourLists.Count == 0)
+        {
+            <p class="text-muted mb-0">No user tour lists found.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Owner</th>
+                            <th>Tour Code</th>
+                            <th>Tour Name</th>
+                            <th>Items</th>
+                            <th>Visibility</th>
+                            <th>Created (UTC)</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in pagedTourLists)
+                        {
+                            <tr>
+                                <td>@item.OwnerDisplayName (@item.OwnerUserName)</td>
+                                <td>@item.TourCode</td>
+                                <td>@item.TourName</td>
+                                <td>@item.ItemCount</td>
+                                <td>
+                                    <span class="badge @(item.IsPublic ? "bg-success" : "bg-secondary")">
+                                        @(item.IsPublic ? "Public" : "Private")
+                                    </span>
+                                </td>
+                                <td>@item.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td class="text-end">
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-secondary me-2"
+                                            @onclick="() => BeginEditTourListAsync(item)"
+                                            disabled="@isBusy">
+                                        Edit
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-primary me-2"
+                                            @onclick="() => ToggleTourVisibilityAsync(item)"
+                                            disabled="@isBusy">
+                                        @(item.IsPublic ? "Set Private" : "Set Public")
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            @onclick="() => DeleteTourListAsync(item)"
+                                            disabled="@isBusy">
+                                        Delete Tour
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-2">
-            <div class="border rounded p-3 bg-white h-100">
-                <div class="text-muted">Active Users (@filterModel.Days d)</div>
-                <div class="fs-4 fw-semibold">@summary.ActiveUsersInWindow</div>
+
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <small class="text-muted">Showing @pagedTourLists.Count of @filteredTourLists.Count result(s).</small>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeTourListPage <= 1)" @onclick="() => MoveTourListPage(-1)">Previous</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Page @safeTourListPage / @tourListTotalPages</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(safeTourListPage >= tourListTotalPages)" @onclick="() => MoveTourListPage(1)">Next</button>
+                </div>
             </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-2">
-            <div class="border rounded p-3 bg-white h-100">
-                <div class="text-muted">Favorites (@filterModel.Days d)</div>
-                <div class="fs-4 fw-semibold">@summary.FavoritesInWindow</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-2">
-            <div class="border rounded p-3 bg-white h-100">
-                <div class="text-muted">Tours (@filterModel.Days d)</div>
-                <div class="fs-4 fw-semibold">@summary.ToursInWindow</div>
-            </div>
-        </div>
-    </div>
+        }
+    </section>
 
     <section class="border rounded p-3 bg-white mb-3">
         <h2 class="h5 mb-3">Top Users By Tours (@filterModel.Days days)</h2>
@@ -366,9 +538,11 @@ else
     private readonly DashboardFilterModel filterModel = new();
 
     private DashboardSummary summary = new();
+    private TourListSummary tourListSummary = new();
     private readonly List<TopUserRow> topUsersByTours = [];
     private readonly List<FavoriteRow> recentFavorites = [];
     private readonly List<TourRow> recentTours = [];
+    private readonly List<TourListRow> userTourLists = [];
 
     private bool isBusy;
     private bool isErrorStatus;
@@ -392,6 +566,23 @@ else
     private string tourSortDirection = "desc";
     private int tourPageSize = 10;
     private int tourPageIndex = 1;
+
+    private string tourListSearchKeyword = string.Empty;
+    private string tourListVisibilityFilter = string.Empty;
+    private string tourListSortField = "created";
+    private string tourListSortDirection = "desc";
+    private int tourListPageSize = 10;
+    private int tourListPageIndex = 1;
+    private bool isTourListEditorOpen;
+    private bool isTourListEditMode;
+    private bool isTourListEditorBusy;
+    private bool isTourListEditorErrorStatus;
+    private string tourListEditorStatusMessage = string.Empty;
+    private string editingTourCode = string.Empty;
+    private int? editingOwnerUserId;
+    private readonly TourListEditorModel tourListEditorModel = new();
+    private readonly List<UserOption> tourListOwnerOptions = [];
+    private readonly List<PoiOption> tourListPoiOptions = [];
 
     private static readonly int[] GridPageSizeOptions = [5, 10, 20, 50];
 
@@ -424,22 +615,33 @@ else
 
             await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
-            var poiNameLookup = await dbContext.Pois
+            var poiRawData = await dbContext.Pois
                 .AsNoTracking()
                 .Select(p => new
                 {
                     p.Id,
-                    Name = p.PoiTranslations
+                    ViName = p.PoiTranslations
                         .Where(t => t.Language != null && t.Language.LanguageCode == "vi")
                         .Select(t => t.LocationName)
+                        .FirstOrDefault(),
+                    FirstName = p.PoiTranslations
+                        .OrderBy(t => t.LanguageId)
+                        .Select(t => t.LocationName)
                         .FirstOrDefault()
-                        ?? p.PoiTranslations
-                            .OrderBy(t => t.LanguageId)
-                            .Select(t => t.LocationName)
-                            .FirstOrDefault()
-                        ?? $"POI #{p.Id}"
                 })
-                .ToDictionaryAsync(x => x.Id, x => x.Name);
+                .ToListAsync();
+
+            var poiOptions = poiRawData
+                .Select(p => new
+                {
+                    p.Id,
+                    Name = p.ViName ?? p.FirstName ?? $"POI #{p.Id}"
+                })
+                .OrderBy(x => x.Name)
+                .ThenBy(x => x.Id)
+                .ToList();
+
+            var poiNameLookup = poiOptions.ToDictionary(x => x.Id, x => x.Name);
 
             summary = new DashboardSummary
             {
@@ -474,6 +676,46 @@ else
                     DisplayName = g.Key.DisplayName,
                     TourCount = g.Count(),
                     LastVisitedUtc = g.Max(x => x.tour.VisitedUtc)
+                })
+                .ToListAsync();
+
+            var ownerOptions = await dbContext.Users
+                .AsNoTracking()
+                .OrderBy(x => x.DisplayName)
+                .ThenBy(x => x.UserName)
+                .Select(x => new UserOption
+                {
+                    UserId = x.Id,
+                    DisplayName = x.DisplayName,
+                    UserName = x.UserName
+                })
+                .ToListAsync();
+
+            var tourListRows = await (
+                from tourItem in dbContext.TourLists.AsNoTracking()
+                join user in dbContext.Users.AsNoTracking() on tourItem.OwnerUserId equals user.Id into userGroup
+                from user in userGroup.DefaultIfEmpty()
+                group new { tourItem, user } by new
+                {
+                    OwnerUserId = tourItem.OwnerUserId,
+                    UserName = user != null ? user.UserName : "System",
+                    DisplayName = user != null ? user.DisplayName : "System",
+                    tourItem.TourCode,
+                    tourItem.TourName,
+                    tourItem.IsPublic
+                }
+                into g
+                orderby g.Max(x => x.tourItem.CreatedUtc) descending
+                select new TourListRow
+                {
+                    OwnerUserId = g.Key.OwnerUserId,
+                    OwnerUserName = g.Key.UserName,
+                    OwnerDisplayName = g.Key.DisplayName,
+                    TourCode = g.Key.TourCode,
+                    TourName = g.Key.TourName ?? string.Empty,
+                    IsPublic = g.Key.IsPublic,
+                    ItemCount = g.Count(),
+                    CreatedUtc = g.Min(x => x.tourItem.CreatedUtc)
                 })
                 .ToListAsync();
 
@@ -534,9 +776,32 @@ else
             recentTours.Clear();
             recentTours.AddRange(tourRows);
 
+            userTourLists.Clear();
+            userTourLists.AddRange(tourListRows);
+
+            tourListOwnerOptions.Clear();
+            tourListOwnerOptions.AddRange(ownerOptions);
+
+            var selectedPoiIds = tourListPoiOptions.Where(x => x.IsSelected).Select(x => x.PoiId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            tourListPoiOptions.Clear();
+            tourListPoiOptions.AddRange(poiOptions.Select(x => new PoiOption
+            {
+                PoiId = x.Id,
+                PoiName = x.Name,
+                IsSelected = selectedPoiIds.Contains(x.Id)
+            }));
+
+            tourListSummary = new TourListSummary
+            {
+                TotalTours = tourListRows.Count,
+                TotalTourItems = tourListRows.Sum(x => x.ItemCount),
+                TotalOwners = tourListRows.Select(x => x.OwnerUserId).Distinct().Count()
+            };
+
             topUserPageIndex = 1;
             favoritePageIndex = 1;
             tourPageIndex = 1;
+            tourListPageIndex = 1;
 
             isErrorStatus = false;
             statusMessage = $"Loaded dashboard for last {filterModel.Days} days.";
@@ -639,6 +904,40 @@ else
         return query.ToList();
     }
 
+    private List<TourListRow> GetFilteredTourLists()
+    {
+        IEnumerable<TourListRow> query = userTourLists;
+
+        if (!string.IsNullOrWhiteSpace(tourListSearchKeyword))
+        {
+            var keyword = tourListSearchKeyword.Trim();
+            query = query.Where(x =>
+                x.OwnerDisplayName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.OwnerUserName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.TourCode.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.TourName.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(tourListVisibilityFilter))
+        {
+            var isPublic = string.Equals(tourListVisibilityFilter, "public", StringComparison.OrdinalIgnoreCase);
+            query = query.Where(x => x.IsPublic == isPublic);
+        }
+
+        var sortDescending = string.Equals(tourListSortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        query = tourListSortField.ToLowerInvariant() switch
+        {
+            "owner" => sortDescending
+                ? query.OrderByDescending(x => x.OwnerDisplayName).ThenByDescending(x => x.OwnerUserName)
+                : query.OrderBy(x => x.OwnerDisplayName).ThenBy(x => x.OwnerUserName),
+            "tourcode" => sortDescending ? query.OrderByDescending(x => x.TourCode) : query.OrderBy(x => x.TourCode),
+            "items" => sortDescending ? query.OrderByDescending(x => x.ItemCount) : query.OrderBy(x => x.ItemCount),
+            _ => sortDescending ? query.OrderByDescending(x => x.CreatedUtc) : query.OrderBy(x => x.CreatedUtc)
+        };
+
+        return query.ToList();
+    }
+
     private int GetTopUserTotalPages(int totalRows)
     {
         return GetTotalPages(totalRows, topUserPageSize);
@@ -652,6 +951,11 @@ else
     private int GetTourTotalPages(int totalRows)
     {
         return GetTotalPages(totalRows, tourPageSize);
+    }
+
+    private int GetTourListTotalPages(int totalRows)
+    {
+        return GetTotalPages(totalRows, tourListPageSize);
     }
 
     private static int GetTotalPages(int totalRows, int pageSize)
@@ -676,6 +980,12 @@ else
     {
         var totalPages = GetTourTotalPages(GetFilteredTours().Count);
         tourPageIndex = Math.Clamp(tourPageIndex + delta, 1, totalPages);
+    }
+
+    private void MoveTourListPage(int delta)
+    {
+        var totalPages = GetTourListTotalPages(GetFilteredTourLists().Count);
+        tourListPageIndex = Math.Clamp(tourListPageIndex + delta, 1, totalPages);
     }
 
     private void ResetTopUserGrid()
@@ -706,6 +1016,309 @@ else
         tourPageIndex = 1;
     }
 
+    private void ResetTourListGrid()
+    {
+        tourListSearchKeyword = string.Empty;
+        tourListVisibilityFilter = string.Empty;
+        tourListSortField = "created";
+        tourListSortDirection = "desc";
+        tourListPageSize = 10;
+        tourListPageIndex = 1;
+    }
+
+    private async Task ToggleTourVisibilityAsync(TourListRow row)
+    {
+        isBusy = true;
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var items = await BuildTourScopeQuery(dbContext, row.OwnerUserId, row.TourCode)
+                .ToListAsync();
+
+            if (items.Count == 0)
+            {
+                isErrorStatus = true;
+                statusMessage = $"Tour '{row.TourCode}' không tồn tại hoặc đã bị xóa.";
+                return;
+            }
+
+            var newValue = !row.IsPublic;
+            foreach (var item in items)
+            {
+                item.IsPublic = newValue;
+            }
+
+            await dbContext.SaveChangesAsync();
+
+            isErrorStatus = false;
+            statusMessage = $"Đã cập nhật visibility cho tour '{row.TourCode}' thành {(newValue ? "Public" : "Private")}.";
+            await LoadDashboardAsync();
+        }
+        catch (Exception ex)
+        {
+            isErrorStatus = true;
+            statusMessage = $"Không thể cập nhật visibility tour: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task DeleteTourListAsync(TourListRow row)
+    {
+        isBusy = true;
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var items = await BuildTourScopeQuery(dbContext, row.OwnerUserId, row.TourCode)
+                .ToListAsync();
+
+            if (items.Count == 0)
+            {
+                isErrorStatus = true;
+                statusMessage = $"Tour '{row.TourCode}' không tồn tại hoặc đã bị xóa.";
+                return;
+            }
+
+            dbContext.TourLists.RemoveRange(items);
+            await dbContext.SaveChangesAsync();
+
+            isErrorStatus = false;
+            statusMessage = $"Đã xóa tour '{row.TourCode}' của user '{row.OwnerUserName}'.";
+            await LoadDashboardAsync();
+        }
+        catch (Exception ex)
+        {
+            isErrorStatus = true;
+            statusMessage = $"Không thể xóa tour: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void OpenCreateTourListEditor()
+    {
+        isTourListEditMode = false;
+        isTourListEditorOpen = true;
+        isTourListEditorErrorStatus = false;
+        tourListEditorStatusMessage = string.Empty;
+        editingTourCode = string.Empty;
+        editingOwnerUserId = null;
+        tourListEditorModel.TourCode = string.Empty;
+        tourListEditorModel.TourName = string.Empty;
+        tourListEditorModel.OwnerUserId = null;
+        tourListEditorModel.IsPublic = false;
+        ClearPoiSelections();
+    }
+
+    private void CancelTourListEditor()
+    {
+        isTourListEditorOpen = false;
+        isTourListEditMode = false;
+        isTourListEditorErrorStatus = false;
+        tourListEditorStatusMessage = string.Empty;
+    }
+
+    private async Task BeginEditTourListAsync(TourListRow row)
+    {
+        isBusy = true;
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var rows = await BuildTourScopeQuery(dbContext, row.OwnerUserId, row.TourCode)
+                .OrderBy(x => x.SortOrder)
+                .ToListAsync();
+
+            if (rows.Count == 0)
+            {
+                isErrorStatus = true;
+                statusMessage = $"Tour '{row.TourCode}' không tồn tại hoặc đã bị xóa.";
+                return;
+            }
+
+            var header = rows[0];
+            isTourListEditorOpen = true;
+            isTourListEditMode = true;
+            isTourListEditorErrorStatus = false;
+            tourListEditorStatusMessage = string.Empty;
+            editingTourCode = header.TourCode;
+            editingOwnerUserId = header.OwnerUserId;
+            tourListEditorModel.TourCode = header.TourCode;
+            tourListEditorModel.TourName = header.TourName ?? string.Empty;
+            tourListEditorModel.OwnerUserId = header.OwnerUserId;
+            tourListEditorModel.IsPublic = header.IsPublic;
+            SetSelectedPois(rows.Select(x => x.PoiId));
+        }
+        catch (Exception ex)
+        {
+            isErrorStatus = true;
+            statusMessage = $"Không thể nạp tour để chỉnh sửa: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task SaveTourListAsync()
+    {
+        isBusy = true;
+        isTourListEditorBusy = true;
+        try
+        {
+            var normalizedCode = NormalizeTourCode(tourListEditorModel.TourCode);
+            var normalizedName = string.IsNullOrWhiteSpace(tourListEditorModel.TourName)
+                ? string.Empty
+                : tourListEditorModel.TourName.Trim();
+            var normalizedPoiIds = tourListPoiOptions
+                .Where(x => x.IsSelected)
+                .Select(x => x.PoiId)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (normalizedPoiIds.Count == 0)
+            {
+                isTourListEditorErrorStatus = true;
+                tourListEditorStatusMessage = "Cần ít nhất 1 POI hợp lệ để lưu tour.";
+                return;
+            }
+
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            var isCreating = !isTourListEditMode;
+            if (isCreating)
+            {
+                var hasExistingTourCode = await dbContext.TourLists
+                    .AsNoTracking()
+                    .AnyAsync(x => x.TourCode == normalizedCode);
+
+                if (hasExistingTourCode)
+                {
+                    isTourListEditorErrorStatus = true;
+                    tourListEditorStatusMessage = $"Tour code '{normalizedCode}' đã tồn tại.";
+                    return;
+                }
+            }
+            else
+            {
+                var existingRows = await BuildTourScopeQuery(dbContext, editingOwnerUserId, editingTourCode)
+                    .ToListAsync();
+
+                if (existingRows.Count == 0)
+                {
+                    isTourListEditorErrorStatus = true;
+                    tourListEditorStatusMessage = $"Tour '{editingTourCode}' không tồn tại hoặc đã bị xóa.";
+                    return;
+                }
+
+                dbContext.TourLists.RemoveRange(existingRows);
+            }
+
+            var nowUtc = DateTimeOffset.UtcNow;
+            var rowsToSave = normalizedPoiIds
+                .Select((poiId, index) => new TourList
+                {
+                    TourCode = normalizedCode,
+                    TourName = string.IsNullOrWhiteSpace(normalizedName) ? null : normalizedName,
+                    OwnerUserId = tourListEditorModel.OwnerUserId,
+                    IsPublic = tourListEditorModel.IsPublic,
+                    PoiId = poiId,
+                    SortOrder = index,
+                    CreatedUtc = nowUtc
+                })
+                .ToList();
+
+            await dbContext.TourLists.AddRangeAsync(rowsToSave);
+            await dbContext.SaveChangesAsync();
+
+            isTourListEditorErrorStatus = false;
+            tourListEditorStatusMessage = isCreating
+                ? $"Đã tạo tour '{normalizedCode}' với {rowsToSave.Count} POI."
+                : $"Đã cập nhật tour '{normalizedCode}' với {rowsToSave.Count} POI.";
+            statusMessage = tourListEditorStatusMessage;
+            isErrorStatus = false;
+            isTourListEditorOpen = false;
+            isTourListEditMode = false;
+            await LoadDashboardAsync();
+        }
+        catch (Exception ex)
+        {
+            isTourListEditorErrorStatus = true;
+            tourListEditorStatusMessage = $"Không thể lưu tour: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+            isTourListEditorBusy = false;
+        }
+    }
+
+    private static string NormalizeTourCode(string value)
+    {
+        var normalized = string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : value.Trim().ToUpperInvariant();
+
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return string.Empty;
+        }
+
+        return new string(normalized.Where(ch => char.IsLetterOrDigit(ch) || ch == '_' || ch == '-').ToArray());
+    }
+
+    private void TogglePoiSelection(string poiId, ChangeEventArgs args)
+    {
+        var item = tourListPoiOptions.FirstOrDefault(x => x.PoiId == poiId);
+        if (item is null)
+        {
+            return;
+        }
+
+        item.IsSelected = args.Value switch
+        {
+            bool b => b,
+            string s when bool.TryParse(s, out var parsed) => parsed,
+            _ => false
+        };
+    }
+
+    private void SetSelectedPois(IEnumerable<string> poiIds)
+    {
+        var selected = poiIds
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim().ToUpperInvariant())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var poi in tourListPoiOptions)
+        {
+            poi.IsSelected = selected.Contains(poi.PoiId);
+        }
+    }
+
+    private void ClearPoiSelections()
+    {
+        foreach (var poi in tourListPoiOptions)
+        {
+            poi.IsSelected = false;
+        }
+    }
+
+    private static IQueryable<TourList> BuildTourScopeQuery(AppDbContext dbContext, int? ownerUserId, string? tourCode)
+    {
+        var normalizedTourCode = string.IsNullOrWhiteSpace(tourCode)
+            ? string.Empty
+            : tourCode.Trim().ToUpperInvariant();
+
+        return dbContext.TourLists.Where(x =>
+            x.TourCode == normalizedTourCode
+            && ((ownerUserId.HasValue && x.OwnerUserId == ownerUserId)
+                || (!ownerUserId.HasValue && x.OwnerUserId == null)));
+    }
+
     private sealed class DashboardSummary
     {
         public int TotalUsers { get; set; }
@@ -732,6 +1345,71 @@ else
         public int TourCount { get; set; }
 
         public DateTimeOffset LastVisitedUtc { get; set; }
+    }
+
+    private sealed class TourListSummary
+    {
+        public int TotalTours { get; set; }
+
+        public int TotalTourItems { get; set; }
+
+        public int TotalOwners { get; set; }
+    }
+
+    private sealed class TourListRow
+    {
+        public int? OwnerUserId { get; set; }
+
+        public string OwnerUserName { get; set; } = string.Empty;
+
+        public string OwnerDisplayName { get; set; } = string.Empty;
+
+        public string TourCode { get; set; } = string.Empty;
+
+        public string TourName { get; set; } = string.Empty;
+
+        public bool IsPublic { get; set; }
+
+        public int ItemCount { get; set; }
+
+        public DateTimeOffset CreatedUtc { get; set; }
+    }
+
+    private sealed class UserOption
+    {
+        public int UserId { get; set; }
+
+        public string UserName { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public string DisplayLabel => $"{DisplayName} ({UserName})";
+    }
+
+    private sealed class TourListEditorModel
+    {
+        [Required]
+        [StringLength(50)]
+        [RegularExpression("^[A-Za-z0-9_-]+$", ErrorMessage = "Tour Code chỉ gồm chữ, số, '_' hoặc '-'")]
+        public string TourCode { get; set; } = string.Empty;
+
+        [StringLength(150)]
+        public string TourName { get; set; } = string.Empty;
+
+        public int? OwnerUserId { get; set; }
+
+        public bool IsPublic { get; set; }
+    }
+
+    private sealed class PoiOption
+    {
+        public string PoiId { get; set; } = string.Empty;
+
+        public string PoiName { get; set; } = string.Empty;
+
+        public bool IsSelected { get; set; }
+
+        public string DisplayLabel => $"{PoiName} ({PoiId})";
     }
 
     private sealed class FavoriteRow

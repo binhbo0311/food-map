@@ -1,4 +1,8 @@
 @page "/poi-scanner"
+@page "/poi-scanner/poi"
+@page "/poi-scanner/{RoutePoiId}"
+@page "/POIscanner"
+@page "/POIscanner/{RoutePoiId}"
 @page "/poi/{RoutePoiId}"
 @using FOOD_MAP.Shared.Data
 @using FOOD_MAP.Shared.Models
@@ -435,4 +439,3 @@
 
     private sealed record LanguageOption(string LanguageCode, string LanguageName);
 }
-
