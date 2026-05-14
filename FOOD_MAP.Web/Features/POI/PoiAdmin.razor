@@ -548,13 +548,20 @@ else
 
                 if (vietnameseTranslation is null)
                 {
-                    vietnameseTranslation = new POITranslation
-                    {
-                        PoiId = existingPoi.Id,
-                        LanguageId = vietnameseLanguageId
-                    };
+                    // Tìm bản dịch từ database thay vì tạo mới để tránh track lại.
+                    vietnameseTranslation = await dbContext.PoiTranslations
+                        .FirstOrDefaultAsync(x => x.PoiId == existingPoi.Id && x.LanguageId == vietnameseLanguageId);
 
-                    dbContext.PoiTranslations.Add(vietnameseTranslation);
+                    if (vietnameseTranslation is null)
+                    {
+                        vietnameseTranslation = new POITranslation
+                        {
+                            PoiId = existingPoi.Id,
+                            LanguageId = vietnameseLanguageId
+                        };
+
+                        dbContext.PoiTranslations.Add(vietnameseTranslation);
+                    }
                 }
 
                 // Đồng bộ bản dịch tiếng Việt làm dữ liệu gốc để app và CMS dùng chung.
