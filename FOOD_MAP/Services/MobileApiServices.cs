@@ -90,9 +90,46 @@ internal static class OfflineCacheStore
 
 public sealed class ApiDataService : IDataService
 {
+    private readonly HttpClient _httpClient;
+
+    public ApiDataService(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
     public Task SeedDataAsync(CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
+    }
+
+    public async Task<IReadOnlyList<Language>> GetAvailableLanguagesAsync(CancellationToken cancellationToken = default)
+    {
+        // Lấy danh sách ngôn ngữ từ API, nếu không kết nối được thì trả về danh sách mặc định.
+        try
+        {
+            var response = await _httpClient.GetAsync("api/mobile/languages", cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return new List<Language>
+                {
+                    new Language { LanguageCode = "vi", LanguageName = "Tiếng Việt" }
+                };
+            }
+
+            var languages = await response.Content.ReadAsAsync<List<Language>>(cancellationToken);
+            return languages ?? new List<Language>
+            {
+                new Language { LanguageCode = "vi", LanguageName = "Tiếng Việt" }
+            };
+        }
+        catch
+        {
+            // Khi mất kết nối, trả về danh sách mặc định.
+            return new List<Language>
+            {
+                new Language { LanguageCode = "vi", LanguageName = "Tiếng Việt" }
+            };
+        }
     }
 }
 
@@ -1564,6 +1601,37 @@ public sealed class ApiPoiWorkflowRepository : IPoiWorkflowRepository
         var response = await _httpClient.PostAsJsonAsync(
             $"api/mobile/workflow/pois/{Uri.EscapeDataString(poiId)}/reject",
             new ApproveRequestDto(adminUserId),
+            cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        return await ReadApiResultAsync(response, cancellationToken);
+    }
+
+    public async Task<(bool IsSuccess, string Message)> SaveOwnerPoiTranslationAsync(
+        int ownerUserId,
+        string poiId,
+        int languageId,
+        string locationName,
+        string description,
+        string imageUrl,
+        string audioFileUrl,
+        string ttsScript,
+        CancellationToken cancellationToken = default)
+    {
+        // Gửi yêu cầu cập nhật/tạo bản dịch POI qua API.
+        var response = await _httpClient.PostAsJsonAsync(
+            "api/mobile/workflow/owner-poi-translation",
+            new
+            {
+                ownerUserId,
+                poiId,
+                languageId,
+                locationName,
+                description,
+                imageUrl,
+                audioFileUrl,
+                ttsScript
+            },
             cancellationToken);
 
         response.EnsureSuccessStatusCode();

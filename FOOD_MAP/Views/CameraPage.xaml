@@ -25,9 +25,11 @@
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="20" />
                         </Border.StrokeShape>
-                        <Grid x:Name="ScannerHost"
-                              HorizontalOptions="Fill"
-                              VerticalOptions="Fill" />
+                        <zxing:CameraBarcodeReaderView x:Name="BarcodeReaderView"
+                                                        HorizontalOptions="Fill"
+                                                        VerticalOptions="Fill"
+                                                        IsDetecting="False"
+                                                        BarcodesDetected="OnBarcodesDetected" />
                     </Border>
 
                     <Border HorizontalOptions="Center" VerticalOptions="Center" WidthRequest="260" HeightRequest="260"

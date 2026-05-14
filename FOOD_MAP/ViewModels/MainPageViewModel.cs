@@ -59,7 +59,7 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
 
         PoiItems = new ObservableCollection<PoiListItemViewModel>();
         FoodMenuItems = new ObservableCollection<FoodMenuItemViewModel>();
-        AvailableLanguages = new ObservableCollection<string> { "vi", "en" };
+        AvailableLanguages = new ObservableCollection<string>();
 
         SelectPoiTabCommand = new Command(() => SetActiveTab(true));
         SelectCameraTabCommand = new Command(() => SetActiveTab(false));
@@ -375,6 +375,9 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
             _isSeeded = true;
         }
 
+        // Nạp danh sách ngôn ngữ từ database động thay vì hardcode.
+        await LoadAvailableLanguagesAsync(cancellationToken);
+
         UpdateSessionStateLabel();
 
         var selectedLanguageCode = NormalizeLanguageCode(SelectedLanguage);
@@ -423,6 +426,24 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
         }
 
         _isLoaded = true;
+    }
+
+    private async Task LoadAvailableLanguagesAsync(CancellationToken cancellationToken = default)
+    {
+        // Tải danh sách ngôn ngữ khả dụng từ database.
+        var languages = await _dataService.GetAvailableLanguagesAsync(cancellationToken);
+        
+        AvailableLanguages.Clear();
+        foreach (var language in languages)
+        {
+            AvailableLanguages.Add(language.LanguageCode);
+        }
+
+        // Nếu không có ngôn ngữ nào từ database, sử dụng tiếng Việt làm mặc định.
+        if (AvailableLanguages.Count == 0)
+        {
+            AvailableLanguages.Add("vi");
+        }
     }
 
     public void InvalidateData()

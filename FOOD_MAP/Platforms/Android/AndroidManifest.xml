@@ -14,6 +14,22 @@
 			android:enabled="true"
 			android:exported="false"
 			android:foregroundServiceType="location" />
+		<activity
+			android:name=".MainActivity"
+			android:exported="true"
+			android:launchMode="singleTask">
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+				<data android:scheme="https" android:pathPrefix="/poi-scanner" />
+				<data android:scheme="https" android:pathPrefix="/POIscanner" />
+				<data android:scheme="https" android:pathPrefix="/poi" />
+				<data android:scheme="http" android:pathPrefix="/poi-scanner" />
+				<data android:scheme="http" android:pathPrefix="/POIscanner" />
+				<data android:scheme="http" android:pathPrefix="/poi" />
+			</intent-filter>
+		</activity>
 	</application>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />

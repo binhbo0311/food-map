@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS "POIs" (
     "OwnerId" integer NULL,
     "ReviewedByAdminUserId" integer NULL,
     "QRCodeId" varchar(100) NULL,
+    "ListenCount" integer NOT NULL DEFAULT 0,
     CONSTRAINT "FK_POIs_Users_OwnerId" FOREIGN KEY ("OwnerId") REFERENCES "Users" ("Id") ON DELETE SET NULL,
     CONSTRAINT "FK_POIs_Users_ReviewedByAdminUserId" FOREIGN KEY ("ReviewedByAdminUserId") REFERENCES "Users" ("Id") ON DELETE SET NULL
 );

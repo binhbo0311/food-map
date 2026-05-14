@@ -29,7 +29,8 @@ ALTER TABLE "POIs"
     ADD COLUMN IF NOT EXISTS "SubmittedUtc" timestamptz,
     ADD COLUMN IF NOT EXISTS "ReviewedUtc" timestamptz,
     ADD COLUMN IF NOT EXISTS "OwnerId" integer,
-    ADD COLUMN IF NOT EXISTS "ReviewedByAdminUserId" integer;
+    ADD COLUMN IF NOT EXISTS "ReviewedByAdminUserId" integer,
+    ADD COLUMN IF NOT EXISTS "ListenCount" integer;
 
 UPDATE "POIs"
 SET
@@ -43,7 +44,14 @@ ALTER TABLE "POIs"
     ALTER COLUMN "SubmittedUtc" SET NOT NULL,
     ALTER COLUMN "Type" SET DEFAULT 'visit',
     ALTER COLUMN "ApprovalStatus" SET DEFAULT 'pending',
-    ALTER COLUMN "SubmittedUtc" SET DEFAULT NOW();
+    ALTER COLUMN "SubmittedUtc" SET DEFAULT NOW(),
+    ALTER COLUMN "ListenCount" SET DEFAULT 0;
+
+UPDATE "POIs"
+SET "ListenCount" = COALESCE("ListenCount", 0);
+
+ALTER TABLE "POIs"
+    ALTER COLUMN "ListenCount" SET NOT NULL;
 
 -- 3) Convert POI id from integer to varchar business key and migrate all FK columns.
 DO $$

@@ -381,4 +381,16 @@ public sealed class DataService : IDataService
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<Language>> GetAvailableLanguagesAsync(CancellationToken cancellationToken = default)
+    {
+        // Lấy danh sách ngôn ngữ khả dụng từ database.
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        return await dbContext.Languages
+            .AsNoTracking()
+            .OrderBy(x => x.LanguageName)
+            .ThenBy(x => x.LanguageCode)
+            .ToListAsync(cancellationToken);
+    }
 }

@@ -799,6 +799,74 @@ public sealed class PoiWorkflowRepository : IPoiWorkflowRepository
         return (true, $"Rejected POI {poi.Id}.");
     }
 
+    public async Task<(bool IsSuccess, string Message)> SaveOwnerPoiTranslationAsync(
+        int ownerUserId,
+        string poiId,
+        int languageId,
+        string locationName,
+        string description,
+        string imageUrl,
+        string audioFileUrl,
+        string ttsScript,
+        CancellationToken cancellationToken = default)
+    {
+        // Kiểm tra chủ sở hữu POI.
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var poi = await dbContext.Pois
+            .FirstOrDefaultAsync(x => x.Id == poiId && x.OwnerId == ownerUserId, cancellationToken);
+
+        if (poi is null)
+        {
+            return (false, "POI not found or not owned by this user.");
+        }
+
+        var normalizedLocationName = TextInputNormalizer.NormalizeSingleLine(locationName);
+        var normalizedDescription = TextInputNormalizer.NormalizeMultiline(description);
+        var normalizedImageUrl = TextInputNormalizer.NormalizeSingleLine(imageUrl);
+        var normalizedAudioFileUrl = TextInputNormalizer.NormalizeSingleLine(audioFileUrl);
+        var normalizedTtsScript = TextInputNormalizer.NormalizeMultiline(ttsScript);
+
+        // Tìm bản dịch hiện tại nếu đã tồn tại.
+        var existingTranslation = await dbContext.PoiTranslations
+            .FirstOrDefaultAsync(x => x.PoiId == poiId && x.LanguageId == languageId, cancellationToken);
+
+        if (existingTranslation is not null)
+        {
+            // Cập nhật bản dịch hiện tại thay vì tạo mới.
+            existingTranslation.LocationName = normalizedLocationName;
+            existingTranslation.Description = normalizedDescription;
+            existingTranslation.ImageUrl = normalizedImageUrl;
+            existingTranslation.AudioFileUrl = normalizedAudioFileUrl;
+            existingTranslation.TtsScript = normalizedTtsScript;
+        }
+        else
+        {
+            // Tạo bản dịch mới nếu chưa tồn tại.
+            var newTranslation = new POITranslation
+            {
+                PoiId = poiId,
+                LanguageId = languageId,
+                LocationName = normalizedLocationName,
+                Description = normalizedDescription,
+                ImageUrl = normalizedImageUrl,
+                AudioFileUrl = normalizedAudioFileUrl,
+                TtsScript = normalizedTtsScript
+            };
+
+            dbContext.PoiTranslations.Add(newTranslation);
+        }
+
+        // Đánh dấu POI đang được chỉnh sửa để chờ duyệt lại từ admin.
+        poi.ApprovalStatus = PoiApprovalStatus.Pending;
+        poi.SubmittedUtc = DateTimeOffset.UtcNow;
+        poi.ReviewedByAdminUserId = null;
+        poi.ReviewedUtc = null;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return (true, $"POI translation updated for language {languageId}.");
+    }
+
     private static async Task<string> GenerateNextPoiIdInternalAsync(
         AppDbContext dbContext,
         PoiType type,

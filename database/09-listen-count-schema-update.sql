@@ -1,0 +1,15 @@
+BEGIN;
+
+ALTER TABLE "POIs"
+    ADD COLUMN IF NOT EXISTS "ListenCount" integer;
+
+UPDATE "POIs"
+SET "ListenCount" = COALESCE("ListenCount", 0);
+
+ALTER TABLE "POIs"
+    ALTER COLUMN "ListenCount" SET DEFAULT 0;
+
+ALTER TABLE "POIs"
+    ALTER COLUMN "ListenCount" SET NOT NULL;
+
+COMMIT;

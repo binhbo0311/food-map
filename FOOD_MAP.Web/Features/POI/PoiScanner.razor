@@ -97,6 +97,32 @@
     }
 </section>
 
+<div class="download-app-banner">
+    <span class="download-app-banner-text">Download app for more</span>
+    <a class="btn btn-light btn-sm" href="#">Download</a>
+</div>
+
+<style>
+    .download-app-banner {
+        position: sticky;
+        bottom: 0;
+        z-index: 1030;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 16px;
+        padding: 12px 16px;
+        border-radius: 12px 12px 0 0;
+        background: #066d72;
+        color: #ffffff;
+    }
+
+    .download-app-banner-text {
+        font-weight: 600;
+    }
+</style>
+
 @code {
     [Parameter]
     public string? RoutePoiId { get; set; }

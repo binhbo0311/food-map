@@ -50,6 +50,7 @@ namespace FOOD_MAP
             builder.Services.AddSingleton<ISyncService, ApiSyncService>();
             builder.Services.AddSingleton<IActiveUserTrackerService, ApiActiveUserTrackerService>();
             builder.Services.AddSingleton<IActiveMobileHeartbeatAgent, ActiveMobileHeartbeatAgent>();
+            builder.Services.AddSingleton<DeepLinkRoutingService>();
             builder.Services.AddSingleton<ViewModels.LoginViewModel>();
             builder.Services.AddTransient<ViewModels.RegisterViewModel>();
             builder.Services.AddTransient<ViewModels.SettingsViewModel>();

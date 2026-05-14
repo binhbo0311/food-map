@@ -3,6 +3,7 @@ using FOOD_MAP.Shared.Configuration;
 using FOOD_MAP.Shared.Services;
 using FOOD_MAP.Web.Components;
 using FOOD_MAP.Web.Services;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,14 @@ builder.Services.AddSingleton<IFormFactor, FormFactor>();
 builder.Services.AddSingleton<IPoiWorkflowRepository, PoiWorkflowRepository>();
 builder.Services.AddSingleton<ISubscriptionService, SubscriptionService>();
 builder.Services.AddSingleton<ISubscriptionPlanService, SubscriptionPlanService>();
+builder.Services.AddScoped(sp =>
+{
+    var navigationManager = sp.GetRequiredService<NavigationManager>();
+    return new HttpClient
+    {
+        BaseAddress = new Uri(navigationManager.BaseUri)
+    };
+});
 
 // Liên kết chung cơ sở dữ liệu PostgreSQL để Web và App dùng cùng nguồn dữ liệu.
 var postgresConnectionString = PostgresEnvironmentConfiguration.BuildPostgresConnectionString();

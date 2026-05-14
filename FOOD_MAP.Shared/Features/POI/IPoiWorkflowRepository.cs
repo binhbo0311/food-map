@@ -134,4 +134,15 @@ public interface IPoiWorkflowRepository
         string poiId,
         int adminUserId,
         CancellationToken cancellationToken = default);
+
+    Task<(bool IsSuccess, string Message)> SaveOwnerPoiTranslationAsync(
+        int ownerUserId,
+        string poiId,
+        int languageId,
+        string locationName,
+        string description,
+        string imageUrl,
+        string audioFileUrl,
+        string ttsScript,
+        CancellationToken cancellationToken = default);
 }

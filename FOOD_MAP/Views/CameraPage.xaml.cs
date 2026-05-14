@@ -5,7 +5,6 @@ using FOOD_MAP.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
 using ZXing.Net.Maui;
-using ZXing.Net.Maui.Controls;
 
 namespace FOOD_MAP;
 
@@ -15,7 +14,8 @@ public partial class CameraPage : ContentPage
     private readonly SemaphoreSlim _cameraInitGate = new(1, 1);
     private bool _isProcessing;
     private bool _cameraInitialized;
-    private CameraBarcodeReaderView? _barcodeReaderView;
+    private bool _suppressQrPayloadChange;
+    private string? _pendingExternalPayload;
 
     public CameraPage()
     {
@@ -34,16 +34,39 @@ public partial class CameraPage : ContentPage
 
     public string StatusMessage { get; private set; } = "Hãy đưa mã QR vào trong khung để quét.";
 
+    public async Task HandleExternalPayloadAsync(string payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            return;
+        }
+
+        _pendingExternalPayload = payload.Trim();
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            _suppressQrPayloadChange = true;
+            QrPayloadEntry.Text = _pendingExternalPayload;
+            _suppressQrPayloadChange = false;
+            StatusMessage = $"Đã nhận QR: {_pendingExternalPayload}";
+            OnPropertyChanged(nameof(StatusMessage));
+        });
+
+        await ProcessPendingExternalPayloadAsync();
+    }
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
 
         await EnsureCameraReadyAsync();
+        await ProcessPendingExternalPayloadAsync();
     }
 
     private async void OnLoaded(object? sender, EventArgs e)
     {
         await EnsureCameraReadyAsync();
+        await ProcessPendingExternalPayloadAsync();
     }
 
     private async Task EnsureCameraReadyAsync()
@@ -51,9 +74,9 @@ public partial class CameraPage : ContentPage
         await _cameraInitGate.WaitAsync();
         try
         {
-            if (_cameraInitialized && _barcodeReaderView is not null)
+            if (_cameraInitialized)
             {
-                _barcodeReaderView.IsDetecting = true;
+                BarcodeReaderView.IsDetecting = true;
                 return;
             }
 
@@ -77,25 +100,15 @@ public partial class CameraPage : ContentPage
                 return;
             }
 
-            EnsureScannerView();
-            if (_barcodeReaderView is null)
+            BarcodeReaderView.Options = new BarcodeReaderOptions
             {
-                StatusMessage = "Không thể khởi tạo camera scanner.";
-                OnPropertyChanged(nameof(StatusMessage));
-                return;
-            }
+                Formats = BarcodeFormats.TwoDimensional,
+                AutoRotate = true,
+                Multiple = false
+            };
+            BarcodeReaderView.CameraLocation = CameraLocation.Rear;
 
-            await WaitForScannerHandlerAsync(_barcodeReaderView);
-            if (_barcodeReaderView.Handler is null)
-            {
-                StatusMessage = "Camera chưa sẵn sàng. Vui lòng thử lại.";
-                OnPropertyChanged(nameof(StatusMessage));
-                return;
-            }
-
-            _barcodeReaderView.CameraLocation = CameraLocation.Rear;
-
-            var cameras = await _barcodeReaderView.GetAvailableCameras();
+            var cameras = await BarcodeReaderView.GetAvailableCameras();
             if (cameras.Count == 0)
             {
                 StatusMessage = "Không tìm thấy camera khả dụng trên thiết bị.";
@@ -104,8 +117,8 @@ public partial class CameraPage : ContentPage
             }
 
             var rearCamera = cameras.FirstOrDefault(camera => camera.Location == CameraLocation.Rear);
-            _barcodeReaderView.SelectedCamera = rearCamera ?? cameras[0];
-            _barcodeReaderView.IsDetecting = true;
+            BarcodeReaderView.SelectedCamera = rearCamera ?? cameras[0];
+            BarcodeReaderView.IsDetecting = true;
             _cameraInitialized = true;
 
             StatusMessage = $"Camera sẵn sàng ({cameras.Count} camera). Đưa QR vào khung để quét.";
@@ -119,52 +132,21 @@ public partial class CameraPage : ContentPage
 
     protected override void OnDisappearing()
     {
-        if (_barcodeReaderView is not null)
-        {
-            _barcodeReaderView.BarcodesDetected -= OnBarcodesDetected;
-            _barcodeReaderView.IsDetecting = false;
-            ScannerHost.Children.Clear();
-            _barcodeReaderView = null;
-        }
-
+        BarcodeReaderView.IsDetecting = false;
         _cameraInitialized = false;
         base.OnDisappearing();
     }
 
-    private void EnsureScannerView()
+    private async Task ProcessPendingExternalPayloadAsync()
     {
-        if (_barcodeReaderView is not null)
+        if (!_cameraInitialized || _isProcessing || string.IsNullOrWhiteSpace(_pendingExternalPayload))
         {
             return;
         }
 
-        var scannerView = new CameraBarcodeReaderView
-        {
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill,
-            CameraLocation = CameraLocation.Rear,
-            IsDetecting = false,
-            Options = new BarcodeReaderOptions
-            {
-                Formats = BarcodeFormats.TwoDimensional,
-                AutoRotate = true,
-                Multiple = false
-            }
-        };
-
-        scannerView.BarcodesDetected += OnBarcodesDetected;
-        ScannerHost.Children.Clear();
-        ScannerHost.Children.Add(scannerView);
-        _barcodeReaderView = scannerView;
-    }
-
-    private static async Task WaitForScannerHandlerAsync(CameraBarcodeReaderView scannerView)
-    {
-        const int maxAttempts = 30;
-        for (var attempt = 0; attempt < maxAttempts && scannerView.Handler is null; attempt++)
-        {
-            await Task.Delay(100);
-        }
+        var pendingPayload = _pendingExternalPayload;
+        _pendingExternalPayload = null;
+        await ProcessQrAsync(pendingPayload);
     }
 
     private async void OnBarcodesDetected(object? sender, BarcodeDetectionEventArgs e)
@@ -182,7 +164,9 @@ public partial class CameraPage : ContentPage
 
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
+            _suppressQrPayloadChange = true;
             QrPayloadEntry.Text = barcodeValue;
+            _suppressQrPayloadChange = false;
             StatusMessage = $"Đã nhận QR: {barcodeValue}";
             OnPropertyChanged(nameof(StatusMessage));
         });
@@ -192,7 +176,7 @@ public partial class CameraPage : ContentPage
 
     private async void OnQrPayloadChanged(object? sender, TextChangedEventArgs e)
     {
-        if (_isProcessing)
+        if (_isProcessing || _suppressQrPayloadChange)
         {
             return;
         }
